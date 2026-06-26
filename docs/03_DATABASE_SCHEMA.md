@@ -663,3 +663,203 @@ Function         : fn_동사_대상   예) fn_get_user_role
 database/procedures/   — Stored Procedure
 database/functions/    — Function
 ```
+
+---
+
+# SP 코딩 컨벤션
+
+## 기본 구조
+
+모든 SP는 아래 순서를 따른다.
+
+```sql
+DELIMITER $
+
+DROP PROCEDURE IF EXISTS sp_동사_대상$
+
+CREATE PROCEDURE sp_동사_대상(
+    IN  p_param1 TYPE,    -- 파라미터 설명 (한국어)
+    OUT p_param2 TYPE     -- 파라미터 설명 (한국어)
+)
+COMMENT 'SP 한 줄 설명'
+BEGIN
+
+    -- ... 내용 ...
+
+END$
+
+DELIMITER ;
+```
+
+---
+
+## 헤더 주석 블록
+
+CREATE PROCEDURE 본문 첫 줄에 작성한다.
+
+### 필수 항목
+
+```sql
+/*
+    명칭 : sp_동사_대상
+    작성 : YYYY-MM-DD 작성자
+    내용 : 동작 설명 (주요 처리 흐름 요약)
+    테이블 적용 순서 : table_a → table_b → table_c
+*/
+```
+
+`테이블 적용 순서`는 트랜잭션 내 테이블 처리 순서를 명시한다. 데드락 방지를 위해 모든 SP가 동일한 순서를 준수한다.
+
+### 선택 항목
+
+필요한 경우에만 추가한다.
+
+```sql
+/*
+    명칭 : sp_동사_대상
+    작성 : YYYY-MM-DD 작성자
+    내용 : 동작 설명
+    의도 : 특이한 설계 이유 또는 주의사항
+    전제 : 이 SP 가 의존하는 사전 조건
+    이력 : YYYY-MM-DD 작성자 — 변경 내용
+    테이블 적용 순서 : table_a → table_b
+*/
+```
+
+---
+
+## 파라미터 규칙
+
+모든 IN/OUT 파라미터에 인라인 한국어 주석을 필수로 작성한다.
+
+```sql
+CREATE PROCEDURE sp_create_user(
+    IN  p_company_id    BIGINT,       -- 회사 ID
+    IN  p_login_id      VARCHAR(100), -- 로그인 ID
+    IN  p_password_hash VARCHAR(255), -- 비밀번호 해시
+    OUT p_user_id       BIGINT        -- 생성된 사용자 ID (출력)
+)
+```
+
+---
+
+## 핸들러 등록
+
+### SQLEXCEPTION 핸들러 (필수)
+
+모든 SP에 기본 등록한다.
+
+```sql
+DECLARE sql_state     CHAR(5)       DEFAULT '00000';
+DECLARE error_no      INT           DEFAULT 0;
+DECLARE error_message VARCHAR(255)  DEFAULT '';
+DECLARE EXIT HANDLER FOR SQLEXCEPTION
+BEGIN
+    GET DIAGNOSTICS CONDITION 1
+        sql_state     = RETURNED_SQLSTATE,
+        error_no      = MYSQL_ERRNO,
+        error_message = MESSAGE_TEXT;
+    ROLLBACK;
+    SELECT 99 AS RESULT, sql_state AS SQL_STATE, error_no AS ERROR_NO, error_message AS ERROR_MESSAGE;
+END;
+```
+
+- `RESULT = 99` 는 시스템 오류(DB 예외)를 의미한다.
+- ROLLBACK 후 오류 정보를 반드시 반환한다.
+
+### NOT FOUND 핸들러 (필요 시 추가)
+
+```sql
+DECLARE CONTINUE HANDLER FOR NOT FOUND
+BEGIN
+    SET v_not_found = 1;
+END;
+```
+
+---
+
+## 트랜잭션 블록
+
+메인 로직은 반드시 `transaction_block` 레이블로 감싼다.
+
+```sql
+transaction_block: BEGIN
+    START TRANSACTION;
+
+    -- 처리 로직
+
+    COMMIT;
+    SELECT 0 AS RESULT;
+END;
+```
+
+트랜잭션 없이 조회만 하는 SP도 동일하게 적용한다. 중간 탈출이 필요한 경우 `LEAVE transaction_block` 을 사용한다.
+
+---
+
+## 결과 반환 규칙
+
+- 모든 SP의 최종 SELECT 는 반드시 `RESULT` 컬럼을 포함한다.
+- `RESULT = 0` 은 성공을 의미한다.
+- `RESULT = 99` 는 시스템 오류(SQLEXCEPTION 핸들러 자동 반환)를 의미한다.
+- 그 외 값은 비즈니스 오류 코드로 사용한다 (`04_API_COMMON.md` 오류 코드 체계 참조).
+
+```sql
+-- 성공
+SELECT 0 AS RESULT;
+
+-- 조회 결과 없음
+SELECT 31003 AS RESULT;
+
+-- 시스템 오류 (SQLEXCEPTION 핸들러에서 자동 반환)
+SELECT 99 AS RESULT, sql_state AS SQL_STATE, error_no AS ERROR_NO, error_message AS ERROR_MESSAGE;
+```
+
+---
+
+## 전체 SP 템플릿
+
+```sql
+DELIMITER $
+
+DROP PROCEDURE IF EXISTS sp_동사_대상$
+
+CREATE PROCEDURE sp_동사_대상(
+    IN  p_param1 BIGINT,      -- 파라미터 설명
+    IN  p_param2 VARCHAR(100) -- 파라미터 설명
+)
+COMMENT 'SP 한 줄 설명'
+BEGIN
+    /*
+        명칭 : sp_동사_대상
+        작성 : YYYY-MM-DD 작성자
+        내용 : 처리 내용 설명
+        테이블 적용 순서 : table_a → table_b
+    */
+
+    DECLARE sql_state     CHAR(5)       DEFAULT '00000';
+    DECLARE error_no      INT           DEFAULT 0;
+    DECLARE error_message VARCHAR(255)  DEFAULT '';
+    DECLARE EXIT HANDLER FOR SQLEXCEPTION
+    BEGIN
+        GET DIAGNOSTICS CONDITION 1
+            sql_state     = RETURNED_SQLSTATE,
+            error_no      = MYSQL_ERRNO,
+            error_message = MESSAGE_TEXT;
+        ROLLBACK;
+        SELECT 99 AS RESULT, sql_state AS SQL_STATE, error_no AS ERROR_NO, error_message AS ERROR_MESSAGE;
+    END;
+
+    transaction_block: BEGIN
+        START TRANSACTION;
+
+        -- 처리 로직
+
+        COMMIT;
+        SELECT 0 AS RESULT;
+    END;
+
+END$
+
+DELIMITER ;
+```
