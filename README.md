@@ -64,27 +64,27 @@ GM Platform은 회사 → 프로젝트 → API 구조로 다중 서비스를 단
 
 **Backend**
 
-| 항목 | 스택 |
-|------|------|
-| Runtime | Node.js 22 LTS |
-| Framework | Express + TypeScript |
-| Database | MySQL 8.4 |
-| Data Access | mysql2 (Native SQL) |
-| 인증 | JWT (HS256) + user_session |
-| 비밀번호 | bcrypt (rounds=12) |
-| S2S 호출 | HTTP/HTTPS POST (JSON Payload) |
-| 로깅 | log_audit + log4js |
+| 항목        | 스택                           |
+| ----------- | ------------------------------ |
+| Runtime     | Node.js 22 LTS                 |
+| Framework   | Express + TypeScript           |
+| Database    | MySQL 8.4                      |
+| Data Access | mysql2 (Native SQL)            |
+| 인증        | JWT (HS256) + user_session     |
+| 비밀번호    | bcrypt (rounds=12)             |
+| S2S 호출    | HTTP/HTTPS POST (JSON Payload) |
+| 로깅        | log_audit + log4js             |
 
 **Frontend**
 
-| 항목 | 스택 |
-|------|------|
+| 항목      | 스택                  |
+| --------- | --------------------- |
 | Framework | React 18 + TypeScript |
-| Build | Vite |
-| UI | Ant Design |
-| 폼 | React Hook Form |
-| 상태 관리 | Zustand |
-| HTTP | Axios |
+| Build     | Vite                  |
+| UI        | Ant Design            |
+| 폼        | React Hook Form       |
+| 상태 관리 | Zustand               |
+| HTTP      | Axios                 |
 
 ---
 
@@ -101,18 +101,18 @@ GM Platform은 회사 → 프로젝트 → API 구조로 다중 서비스를 단
 
 ## 문서 목록
 
-| 파일 | 설명 |
-|------|------|
-| [01_TECH_STACK.md](docs/01_TECH_STACK.md) | 기술 스택 및 환경변수 목록 |
-| [02_ERD.md](docs/02_ERD.md) | Entity Relationship Diagram |
-| [03_DATABASE_SCHEMA.md](docs/03_DATABASE_SCHEMA.md) | 테이블 정의 및 공통 정책 |
-| [04_API_COMMON.md](docs/04_API_COMMON.md) | API 공통 규약 (인증, 응답 형식, 오류 코드) |
-| [05_AUTH_API.md](docs/05_AUTH_API.md) | 인증 API (로그인, 토큰, 세션, JWT 명세) |
-| [06_API_SPEC_Part1.md](docs/06_API_SPEC_Part1.md) | Company / Project / User / UserRole API |
-| [07_API_SPEC_Part2.md](docs/07_API_SPEC_Part2.md) | API / API Request / API Response |
-| [08_API_SPEC_Part3.md](docs/08_API_SPEC_Part3.md) | API 실행 및 승인 워크플로우 |
-| [09_API_SPEC_Part4.md](docs/09_API_SPEC_Part4.md) | Code Group / Code Item |
-| [10_API_SPEC_Part5.md](docs/10_API_SPEC_Part5.md) | 감사 로그 |
+| 파일                                                | 설명                                       |
+| --------------------------------------------------- | ------------------------------------------ |
+| [01_TECH_STACK.md](docs/01_TECH_STACK.md)           | 기술 스택 및 환경변수 목록                 |
+| [02_ERD.md](docs/02_ERD.md)                         | Entity Relationship Diagram                |
+| [03_DATABASE_SCHEMA.md](docs/03_DATABASE_SCHEMA.md) | 테이블 정의 및 공통 정책                   |
+| [04_API_COMMON.md](docs/04_API_COMMON.md)           | API 공통 규약 (인증, 응답 형식, 오류 코드) |
+| [05_AUTH_API.md](docs/05_AUTH_API.md)               | 인증 API (로그인, 토큰, 세션, JWT 명세)    |
+| [06_API_SPEC_Part1.md](docs/06_API_SPEC_Part1.md)   | Company / Project / User / UserRole API    |
+| [07_API_SPEC_Part2.md](docs/07_API_SPEC_Part2.md)   | API / API Request / API Response           |
+| [08_API_SPEC_Part3.md](docs/08_API_SPEC_Part3.md)   | API 실행 및 승인 워크플로우                |
+| [09_API_SPEC_Part4.md](docs/09_API_SPEC_Part4.md)   | Code Group / Code Item                     |
+| [10_API_SPEC_Part5.md](docs/10_API_SPEC_Part5.md)   | 감사 로그                                  |
 
 ---
 
@@ -131,14 +131,14 @@ gm_platform/
 
 ## AI 활용
 
-이 프로젝트는 개발 전 과정을 AI에 위임하는 시도를 포함한다.
+이 프로젝트는 AI를 적극 활용한 개발 워크플로우를 실험하기 위해 진행되었다.
 
-설계 · 문서 작성 · 코드 구현 전반에 걸쳐 AI와 협업하며 진행한다.
+설계, 문서 작성, 코드 구현 전반에서 AI를 활용하되, 요구사항 정의, 검증, 수정 및 최종 의사결정은 개발자가 수행하였다.
 
-| 도구 | 용도 |
-|------|------|
-| ChatGPT | 설계 검토 및 아이디어 논의 |
-| Claude Code | 문서 작성 및 코드 구현 |
+| 도구        | 용도                       |
+| ----------- | -------------------------- |
+| ChatGPT     | 설계 검토 및 아이디어 논의 |
+| Claude Code | 문서 작성 및 코드 구현     |
 
 ---
 
