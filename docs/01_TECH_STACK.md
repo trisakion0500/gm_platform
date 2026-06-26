@@ -8,7 +8,7 @@
 | Framework       | Express                                     |
 | Language        | TypeScript                                  |
 | Database        | MySQL 8.4                                   |
-| Data Access     | mysql2 (Native SQL, Stored Procedure & Function) |
+| Data Access     | mysql2 — Stored Procedure / Function 전용 (Native SQL 직접 작성 금지) |
 | Authentication  | JWT (HS256) + user_session                  |
 | Password Hash   | bcrypt (rounds=12)                          |
 | API Style       | REST + JSON                                 |
