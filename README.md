@@ -117,6 +117,7 @@ GM Platform은 회사 → 프로젝트 → API 구조로 다중 서비스를 단
 | [12_SCREEN_LIST.md](docs/12_SCREEN_LIST.md)         | 화면 목록 및 연관 API                      |
 | [13_LAYOUT.md](docs/13_LAYOUT.md)                   | 공통 레이아웃 구조                         |
 | [14_DEV_SETUP.md](docs/14_DEV_SETUP.md)             | 로컬 개발 환경 설정                        |
+| [15_PROJECT_STRUCTURE.md](docs/15_PROJECT_STRUCTURE.md) | 프로젝트 폴더 구조                     |
 
 ---
 
@@ -155,5 +156,6 @@ AI는 문서 초안 작성과 반복적인 코드 작업의 속도를 높이는 
 - ✅ 화면 목록 작성 완료
 - ✅ 레이아웃 구조 정의 완료
 - ✅ 로컬 개발 환경 설정 완료
+- ✅ 프로젝트 폴더 구조 정의 완료
 - ⬜ Backend 구현
 - ⬜ Frontend 구현
