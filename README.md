@@ -113,6 +113,8 @@ GM Platform은 회사 → 프로젝트 → API 구조로 다중 서비스를 단
 | [08_API_SPEC_Part3.md](docs/08_API_SPEC_Part3.md)   | API 실행 및 승인 워크플로우                |
 | [09_API_SPEC_Part4.md](docs/09_API_SPEC_Part4.md)   | Code Group / Code Item                     |
 | [10_API_SPEC_Part5.md](docs/10_API_SPEC_Part5.md)   | 감사 로그                                  |
+| [11_MENU_PERMISSION.md](docs/11_MENU_PERMISSION.md) | 역할별 메뉴 접근 권한                      |
+| [12_SCREEN_LIST.md](docs/12_SCREEN_LIST.md)         | 화면 목록 및 연관 API                      |
 
 ---
 
@@ -146,5 +148,7 @@ gm_platform/
 
 - ✅ 데이터베이스 설계 완료
 - ✅ API 명세 작성 완료
+- ✅ 역할별 권한 설계 완료
+- ✅ 화면 목록 작성 완료
 - ⬜ Backend 구현
 - ⬜ Frontend 구현
