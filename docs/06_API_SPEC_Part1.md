@@ -140,6 +140,11 @@ ORDER BY status DESC,
          company_name ASC
 ```
 
+### Business Rules
+
+- SUPER_ADMIN : 전체 회사 목록 반환
+- DEVELOPER : 본인 소속 company_id 의 회사만 반환
+
 ### Response
 
 페이지네이션 응답 형식 (`04_API_COMMON.md` 3.4 참고)
@@ -158,6 +163,11 @@ GET /companies/{company_id}
 
 - SUPER_ADMIN
 - DEVELOPER
+
+### Business Rules
+
+- SUPER_ADMIN : 모든 회사 조회 가능
+- DEVELOPER : 본인 소속 company_id 의 회사만 조회 가능
 
 ---
 
