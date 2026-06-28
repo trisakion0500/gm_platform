@@ -11,7 +11,9 @@ gm_platform/
 ├── client/              # Frontend (React + Vite)
 ├── server/              # Backend (Express + TypeScript)
 ├── database/
-│   └── tables/          # DDL SQL 파일
+│   ├── tables/          # DDL SQL 파일
+│   ├── procedures/      # Stored Procedure SQL 파일
+│   └── functions/       # Function SQL 파일
 └── docs/                # 설계 문서
 ```
 
