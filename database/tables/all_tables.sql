@@ -33,7 +33,9 @@ CREATE TABLE `api` (
   CONSTRAINT `fk_api_created_by` FOREIGN KEY (`created_by`) REFERENCES `user` (`user_id`),
   CONSTRAINT `fk_api_updated_by` FOREIGN KEY (`updated_by`) REFERENCES `user` (`user_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='GM API 정의';
-SET FOREIGN_KEY_CHECKS = 1;--  ------------------------------------------------------------------------------------------------------------ --
+SET FOREIGN_KEY_CHECKS = 1;
+
+--  ------------------------------------------------------------------------------------------------------------ --
 -- 명칭 : api_execution
 -- 작성 : 2026.06.17 trisakion
 -- 내용 : API 요청 승인 및 실행 관리
@@ -80,7 +82,9 @@ CREATE TABLE `api_execution` (
   CONSTRAINT `fk_api_execution_request_user` FOREIGN KEY (`request_user_id`) REFERENCES `user` (`user_id`),
   CONSTRAINT `fk_api_execution_approve_user` FOREIGN KEY (`approve_user_id`) REFERENCES `user` (`user_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='API 요청 승인 및 실행 관리';
-SET FOREIGN_KEY_CHECKS = 1;--  ------------------------------------------------------------------------------------------------------------ --
+SET FOREIGN_KEY_CHECKS = 1;
+
+--  ------------------------------------------------------------------------------------------------------------ --
 -- 명칭 : api_request
 -- 작성 : 2026.06.17 trisakion
 -- 내용 : API 요청 파라미터 정의
@@ -115,7 +119,9 @@ CREATE TABLE `api_request` (
   CONSTRAINT `fk_api_request_created_by` FOREIGN KEY (`created_by`) REFERENCES `user` (`user_id`),
   CONSTRAINT `fk_api_request_updated_by` FOREIGN KEY (`updated_by`) REFERENCES `user` (`user_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='API 요청 파라미터 정의';
-SET FOREIGN_KEY_CHECKS = 1;--  ------------------------------------------------------------------------------------------------------------ --
+SET FOREIGN_KEY_CHECKS = 1;
+
+--  ------------------------------------------------------------------------------------------------------------ --
 -- 명칭 : api_response
 -- 작성 : 2026.06.17 trisakion
 -- 내용 : API 응답 데이터 정의
@@ -152,7 +158,9 @@ CREATE TABLE `api_response` (
   CONSTRAINT `fk_api_response_created_by` FOREIGN KEY (`created_by`) REFERENCES `user` (`user_id`),
   CONSTRAINT `fk_api_response_updated_by` FOREIGN KEY (`updated_by`) REFERENCES `user` (`user_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='API 응답 데이터 정의';
-SET FOREIGN_KEY_CHECKS = 1;--  ------------------------------------------------------------------------------------------------------------ --
+SET FOREIGN_KEY_CHECKS = 1;
+
+--  ------------------------------------------------------------------------------------------------------------ --
 -- 명칭 : code_group
 -- 작성 : 2026.06.17 trisakion
 -- 내용 : 공통 코드 그룹 정의
@@ -179,7 +187,9 @@ CREATE TABLE `code_group` (
   CONSTRAINT `fk_code_group_created_by` FOREIGN KEY (`created_by`) REFERENCES `user` (`user_id`),
   CONSTRAINT `fk_code_group_updated_by` FOREIGN KEY (`updated_by`) REFERENCES `user` (`user_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='공통 코드 그룹 정의';
-SET FOREIGN_KEY_CHECKS = 1;--  ------------------------------------------------------------------------------------------------------------ --
+SET FOREIGN_KEY_CHECKS = 1;
+
+--  ------------------------------------------------------------------------------------------------------------ --
 -- 명칭 : code_item
 -- 작성 : 2026.06.17 trisakion
 -- 내용 : 공통 코드 상세 정의
@@ -208,7 +218,9 @@ CREATE TABLE `code_item` (
   CONSTRAINT `fk_code_item_created_by` FOREIGN KEY (`created_by`) REFERENCES `user` (`user_id`),
   CONSTRAINT `fk_code_item_updated_by` FOREIGN KEY (`updated_by`) REFERENCES `user` (`user_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='공통 코드 상세 정의';
-SET FOREIGN_KEY_CHECKS = 1;--  ------------------------------------------------------------------------------------------------------------ --
+SET FOREIGN_KEY_CHECKS = 1;
+
+--  ------------------------------------------------------------------------------------------------------------ --
 -- 명칭 : company
 -- 작성 : 2026.06.17 trisakion
 -- 내용 : 플랫폼 이용 회사 정보
@@ -228,7 +240,9 @@ CREATE TABLE `company` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='플랫폼 이용 회사';
 INSERT INTO `company` (`company_id`, `company_code`, `company_name`, `status`, `created_at`, `updated_at`)
 VALUES (1, 'ADMIN', 'Administrator Company', 1, '1970-01-01 00:00:00', '1970-01-01 00:00:00');
-SET FOREIGN_KEY_CHECKS = 1;--  ------------------------------------------------------------------------------------------------------------ --
+SET FOREIGN_KEY_CHECKS = 1;
+
+--  ------------------------------------------------------------------------------------------------------------ --
 -- 명칭 : log_audit
 -- 작성 : 2026.06.22 trisakion
 -- 내용 : 운영 데이터 변경 이력을 저장하는 Append-Only 테이블
@@ -259,7 +273,9 @@ CREATE TABLE `log_audit` (
   KEY `ix_created_at` (`created_at`)
   -- CONSTRAINT `fk_log_audit_created_by` FOREIGN KEY (`created_by`) REFERENCES `user` (`user_id`)	-- 로그테이블이므로 FK 사용하지 않음
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='시스템 설정 변경 감사 로그 (api_execution 제외, 변경 전후 전체 Row를 JSON 형태로 저장하는 Append-Only 테이블)';
-SET FOREIGN_KEY_CHECKS = 1;--  ------------------------------------------------------------------------------------------------------------ --
+SET FOREIGN_KEY_CHECKS = 1;
+
+--  ------------------------------------------------------------------------------------------------------------ --
 -- 명칭 : project
 -- 작성 : 2026.06.17 trisakion
 -- 내용 : 서비스 프로젝트 정보
@@ -283,7 +299,9 @@ CREATE TABLE `project` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='서비스 프로젝트 정보';
 INSERT INTO `project` (`project_id`, `company_id`, `project_code`, `project_name`, `api_base_url`, `status`, `created_at`, `updated_at`)
 VALUES (1, 1, 'ADMIN_PROJECT', 'Administrator Company Default Project', 'https://127.0.0.1:8080', 1, '1970-01-01 00:00:00', '1970-01-01 00:00:00');
-SET FOREIGN_KEY_CHECKS = 1;--  ------------------------------------------------------------------------------------------------------------ --
+SET FOREIGN_KEY_CHECKS = 1;
+
+--  ------------------------------------------------------------------------------------------------------------ --
 -- 명칭 : user
 -- 작성 : 2026.06.17 trisakion
 -- 내용 : 플랫폼 사용자 계정 (회사 소속 사용자)
@@ -310,7 +328,9 @@ CREATE TABLE `user` (
   CONSTRAINT `fk_user_company_id` FOREIGN KEY (`company_id`) REFERENCES `company` (`company_id`),
   CONSTRAINT `fk_user_requested_project` FOREIGN KEY (`requested_project_id`) REFERENCES `project` (`project_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='플랫폼 사용자 계정';
-SET FOREIGN_KEY_CHECKS = 1;--  ------------------------------------------------------------------------------------------------------------ --
+SET FOREIGN_KEY_CHECKS = 1;
+
+--  ------------------------------------------------------------------------------------------------------------ --
 -- 명칭 : user_role
 -- 작성 : 2026.06.17 trisakion
 -- 내용 : 사용자 - 프로젝트 권한 매핑 (10단위 role 레벨 코드)
@@ -329,7 +349,9 @@ CREATE TABLE `user_role` (
   CONSTRAINT `fk_user_role_project` FOREIGN KEY (`project_id`) REFERENCES `project` (`project_id`),
   CONSTRAINT `fk_user_role_user` FOREIGN KEY (`user_id`) REFERENCES `user` (`user_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='사용자 프로젝트 권한 매핑 (10단위 role 레벨 코드)';
-SET FOREIGN_KEY_CHECKS = 1;--  ------------------------------------------------------------------------------------------------------------ --
+SET FOREIGN_KEY_CHECKS = 1;
+
+--  ------------------------------------------------------------------------------------------------------------ --
 -- 명칭 : user_session
 -- 작성 : 2026.06.22 trisakion
 -- 내용 : 사용자 인증 세션 관리
