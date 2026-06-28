@@ -52,26 +52,36 @@ mysql -u root -p gm_platform < database/tables/all_tables.sql
 
 ## 3.3 SUPER_ADMIN 계정 생성
 
-**① 비밀번호 해시 생성**
+**① 회원가입 API 호출**
 
-```bash
-node -e "require('bcrypt').hash('설정할비밀번호', 12).then(console.log)"
+서버 기동 후 아래 요청으로 계정을 생성한다.
+
+```http
+POST /api/auth/signup
+Content-Type: application/json
+
+{
+  "company_id": 1,
+  "requested_project_id": 1,
+  "login_id": "admin",
+  "password": "설정할비밀번호",
+  "user_name": "Super Admin",
+  "email": "admin@example.com"
+}
 ```
 
-> bcrypt 패키지가 없으면 `npm install bcrypt` 후 실행.
+**② DB에서 승인 및 역할 부여**
 
-**② INSERT 실행**
-
-아래 SQL의 `$HASH` 부분을 ①에서 생성한 해시로 대체한다.
+응답의 `user_id`를 확인 후 아래 SQL을 실행한다.
 
 ```sql
 USE gm_platform;
 
-INSERT INTO `user` (`company_id`, `login_id`, `password_hash`, `user_name`, `email`, `status`)
-VALUES (1, 'admin', '$HASH', 'Super Admin', 'admin@example.com', 1);
+-- $USER_ID 를 ①에서 생성된 user_id로 대체
+UPDATE user SET status = 1 WHERE user_id = $USER_ID;
 
-INSERT INTO `user_role` (`user_id`, `project_id`, `role_code`, `status`)
-VALUES (LAST_INSERT_ID(), 1, 10, 1);
+INSERT INTO user_role (user_id, project_id, role_code, status)
+VALUES ($USER_ID, 1, 10, 1);
 ```
 
 ---
