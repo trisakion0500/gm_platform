@@ -37,7 +37,7 @@ export async function callSP(
   if (statusRow?.RESULT === undefined) {
     throw new DBError(
       50001,
-      `${ERROR_MAP[50001].message} [${sp}]: RESULT 컬럼 없음`,
+      `${ERROR_MAP[50001].message} [${sp}]: RESULT column missing`,
       ERROR_MAP[50001].httpStatus,
     );
   }

@@ -13,7 +13,7 @@ const required = [
 
 for (const key of required) {
   if (!process.env[key]) {
-    throw new Error(`환경변수 누락: ${key}`);
+    throw new Error(`Missing env var: ${key}`);
   }
 }
 

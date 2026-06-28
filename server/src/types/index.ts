@@ -96,6 +96,27 @@ export interface SessionWithUserRow extends SessionRow {
 }
 
 /**
+ * company 테이블 조회 행 타입.
+ * @author trisakion
+ */
+export interface CompanyRow {
+  /** 회사 ID */
+  company_id: number;
+  /** 회사 코드 */
+  company_code: string;
+  /** 회사명 */
+  company_name: string;
+  /** 설명 */
+  description: string | null;
+  /** 상태 (1=사용, 0=중지) */
+  status: number;
+  /** 생성 일시 */
+  created_at: Date;
+  /** 수정 일시 */
+  updated_at: Date;
+}
+
+/**
  * 비즈니스 로직 오류를 표현하는 기본 오류 클래스.
  * result(비즈니스 오류 코드)와 httpStatus를 함께 보유하여 errorHandler에서 일관된 응답을 생성한다.
  * @author trisakion

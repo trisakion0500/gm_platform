@@ -42,8 +42,8 @@ export const ERROR_MAP = {
   31002: { message: '존재하지 않는 프로젝트입니다.',               httpStatus: 404 },
   /** user_id로 사용자를 찾을 수 없음 */
   31003: { message: '사용자를 찾을 수 없습니다.',                  httpStatus: 404 },
-  /** login_id 또는 email 중복 */
-  32001: { message: '이미 사용 중인 로그인 ID 또는 이메일입니다.', httpStatus: 400 },
+  /** 중복 데이터 */
+  32001: { message: '이미 사용 중인 값입니다.',                    httpStatus: 400 },
   // 시스템
   /** 예상치 못한 서버 오류 */
   50000: { message: '서버 오류가 발생했습니다.',                   httpStatus: 500 },
