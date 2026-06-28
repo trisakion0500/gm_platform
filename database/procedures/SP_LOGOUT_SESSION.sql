@@ -1,6 +1,6 @@
-DELIMITER $
+DROP PROCEDURE IF EXISTS SP_LOGOUT_SESSION;
 
-DROP PROCEDURE IF EXISTS SP_LOGOUT_SESSION$
+DELIMITER $
 
 CREATE PROCEDURE SP_LOGOUT_SESSION(
     IN  i_session_id  BIGINT  -- 세션 ID
@@ -32,9 +32,9 @@ BEGIN
 
         START TRANSACTION;
 
-            UPDATE user_session
-            SET    status = 0
-            WHERE  session_id = i_session_id;
+            UPDATE `user_session`
+            SET    `status` = 0
+            WHERE  `session_id` = i_session_id;
 
         COMMIT;
 

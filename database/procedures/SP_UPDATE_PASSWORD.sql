@@ -1,6 +1,6 @@
-DELIMITER $
+DROP PROCEDURE IF EXISTS SP_UPDATE_PASSWORD;
 
-DROP PROCEDURE IF EXISTS SP_UPDATE_PASSWORD$
+DELIMITER $
 
 CREATE PROCEDURE SP_UPDATE_PASSWORD(
     IN  i_user_id           BIGINT,       -- 사용자 ID
@@ -34,14 +34,14 @@ BEGIN
 
         START TRANSACTION;
 
-            UPDATE user
-            SET    password_hash = i_password_hash
-            WHERE  user_id = i_user_id;
+            UPDATE `user`
+            SET    `password_hash` = i_password_hash
+            WHERE  `user_id` = i_user_id;
 
-            UPDATE user_session
-            SET    status = 0
-            WHERE  user_id = i_user_id
-              AND  status  = 1;
+            UPDATE `user_session`
+            SET    `status` = 0
+            WHERE  `user_id` = i_user_id
+              AND  `status`  = 1;
 
         COMMIT;
 

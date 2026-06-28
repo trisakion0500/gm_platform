@@ -1,6 +1,6 @@
-DELIMITER $
+DROP PROCEDURE IF EXISTS SP_UPDATE_SESSION_JTI;
 
-DROP PROCEDURE IF EXISTS SP_UPDATE_SESSION_JTI$
+DELIMITER $
 
 CREATE PROCEDURE SP_UPDATE_SESSION_JTI(
     IN  i_session_id        BIGINT,       -- 세션 ID
@@ -33,10 +33,10 @@ BEGIN
 
         START TRANSACTION;
 
-            UPDATE user_session
-            SET    access_token_jti = i_access_token_jti,
-                   last_access_at   = NOW()
-            WHERE  session_id = i_session_id;
+            UPDATE `user_session`
+            SET    `access_token_jti` = i_access_token_jti,
+                   `last_access_at`   = NOW()
+            WHERE  `session_id` = i_session_id;
 
         COMMIT;
 

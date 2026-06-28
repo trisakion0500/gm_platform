@@ -1,6 +1,6 @@
-DELIMITER $
+DROP PROCEDURE IF EXISTS SP_GET_PASSWORD_HASH_BY_ID;
 
-DROP PROCEDURE IF EXISTS SP_GET_PASSWORD_HASH_BY_ID$
+DELIMITER $
 
 CREATE PROCEDURE SP_GET_PASSWORD_HASH_BY_ID(
     IN  i_user_id  BIGINT  -- 사용자 ID
@@ -34,10 +34,10 @@ BEGIN
 
     transaction_block: BEGIN
 
-        SELECT u.password_hash
+        SELECT u.`password_hash`
         INTO   v_password_hash
-        FROM   user u
-        WHERE  u.user_id = i_user_id;
+        FROM   `user` u
+        WHERE  u.`user_id` = i_user_id;
 
         IF v_not_found = 1 THEN
             SELECT 31003 AS RESULT;

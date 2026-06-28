@@ -1,6 +1,6 @@
-DELIMITER $
+DROP PROCEDURE IF EXISTS SP_CREATE_LOGIN_SESSION;
 
-DROP PROCEDURE IF EXISTS SP_CREATE_LOGIN_SESSION$
+DELIMITER $
 
 CREATE PROCEDURE SP_CREATE_LOGIN_SESSION(
     IN  i_user_id               BIGINT,       -- 사용자 ID
@@ -40,11 +40,11 @@ BEGIN
 
         START TRANSACTION;
 
-            UPDATE user
-            SET    last_login_at = v_now
-            WHERE  user_id = i_user_id;
+            UPDATE `user`
+            SET    `last_login_at` = v_now
+            WHERE  `user_id` = i_user_id;
 
-            INSERT INTO user_session (user_id, access_token_jti, refresh_token_hash, expired_at, last_access_at, status)
+            INSERT INTO `user_session` (`user_id`, `access_token_jti`, `refresh_token_hash`, `expired_at`, `last_access_at`, `status`)
             VALUES (i_user_id, i_access_token_jti, i_refresh_token_hash, i_expired_at, v_now, 1);
 
             SET v_session_id = LAST_INSERT_ID();

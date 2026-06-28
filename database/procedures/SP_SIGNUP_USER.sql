@@ -1,6 +1,6 @@
-DELIMITER $
+DROP PROCEDURE IF EXISTS SP_SIGNUP_USER;
 
-DROP PROCEDURE IF EXISTS SP_SIGNUP_USER$
+DELIMITER $
 
 CREATE PROCEDURE SP_SIGNUP_USER(
     IN  i_company_id            BIGINT,       -- 회사 ID
@@ -37,30 +37,30 @@ BEGIN
 
     transaction_block: BEGIN
 
-        IF NOT EXISTS (SELECT 1 FROM company WHERE company_id = i_company_id AND status = 1) THEN
+        IF NOT EXISTS (SELECT 1 FROM `company` WHERE `company_id` = i_company_id AND `status` = 1) THEN
             SELECT 31001 AS RESULT;
             LEAVE transaction_block;
         END IF;
 
         IF i_requested_project_id IS NOT NULL AND
-           NOT EXISTS (SELECT 1 FROM project WHERE project_id = i_requested_project_id AND status = 1) THEN
+           NOT EXISTS (SELECT 1 FROM `project` WHERE `project_id` = i_requested_project_id AND `status` = 1) THEN
             SELECT 31002 AS RESULT;
             LEAVE transaction_block;
         END IF;
 
-        IF EXISTS (SELECT 1 FROM user WHERE login_id = i_login_id) THEN
+        IF EXISTS (SELECT 1 FROM `user` WHERE `login_id` = i_login_id) THEN
             SELECT 32001 AS RESULT;
             LEAVE transaction_block;
         END IF;
 
-        IF EXISTS (SELECT 1 FROM user WHERE email = i_email) THEN
+        IF EXISTS (SELECT 1 FROM `user` WHERE `email` = i_email) THEN
             SELECT 32001 AS RESULT;
             LEAVE transaction_block;
         END IF;
 
         START TRANSACTION;
 
-            INSERT INTO user (company_id, requested_project_id, login_id, password_hash, user_name, email, status)
+            INSERT INTO `user` (`company_id`, `requested_project_id`, `login_id`, `password_hash`, `user_name`, `email`, `status`)
             VALUES (i_company_id, i_requested_project_id, i_login_id, i_password_hash, i_user_name, i_email, 0);
 
             SET v_user_id = LAST_INSERT_ID();
@@ -68,11 +68,11 @@ BEGIN
         COMMIT;
 
         SELECT 0 AS RESULT;
-        SELECT u.user_id, u.company_id, u.requested_project_id,
-               u.login_id, u.user_name, u.email,
-               u.status, u.last_login_at, u.created_at, u.updated_at
-        FROM user u
-        WHERE u.user_id = v_user_id;
+        SELECT u.`user_id`, u.`company_id`, u.`requested_project_id`,
+               u.`login_id`, u.`user_name`, u.`email`,
+               u.`status`, u.`last_login_at`, u.`created_at`, u.`updated_at`
+        FROM `user` u
+        WHERE u.`user_id` = v_user_id;
 
     END;
 

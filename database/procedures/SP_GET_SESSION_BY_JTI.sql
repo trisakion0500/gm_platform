@@ -1,6 +1,6 @@
-DELIMITER $
+DROP PROCEDURE IF EXISTS SP_GET_SESSION_BY_JTI;
 
-DROP PROCEDURE IF EXISTS SP_GET_SESSION_BY_JTI$
+DELIMITER $
 
 CREATE PROCEDURE SP_GET_SESSION_BY_JTI(
     IN  i_jti  VARCHAR(100)  -- Access Token JTI
@@ -35,10 +35,10 @@ BEGIN
 
     transaction_block: BEGIN
 
-        SELECT s.session_id
+        SELECT s.`session_id`
         INTO   v_session_id
-        FROM   user_session s
-        WHERE  s.access_token_jti = i_jti;
+        FROM   `user_session` s
+        WHERE  s.`access_token_jti` = i_jti;
 
         IF v_not_found = 1 THEN
             SELECT 10009 AS RESULT;
@@ -46,12 +46,12 @@ BEGIN
         END IF;
 
         SELECT 0 AS RESULT;
-        SELECT s.session_id, s.user_id,
-               s.status AS session_status,
-               u.status AS user_status
-        FROM   user_session s
-        JOIN   user u ON s.user_id = u.user_id
-        WHERE  s.session_id = v_session_id;
+        SELECT s.`session_id`, s.`user_id`,
+               s.`status` AS session_status,
+               u.`status` AS user_status
+        FROM   `user_session` s
+        JOIN   `user` u ON s.`user_id` = u.`user_id`
+        WHERE  s.`session_id` = v_session_id;
 
     END;
 

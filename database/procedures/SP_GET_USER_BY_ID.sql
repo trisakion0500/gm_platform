@@ -1,6 +1,6 @@
-DELIMITER $
+DROP PROCEDURE IF EXISTS SP_GET_USER_BY_ID;
 
-DROP PROCEDURE IF EXISTS SP_GET_USER_BY_ID$
+DELIMITER $
 
 CREATE PROCEDURE SP_GET_USER_BY_ID(
     IN  i_user_id  BIGINT  -- 사용자 ID
@@ -35,10 +35,10 @@ BEGIN
 
     transaction_block: BEGIN
 
-        SELECT u.user_id
+        SELECT u.`user_id`
         INTO   v_user_id
-        FROM   user u
-        WHERE  u.user_id = i_user_id;
+        FROM   `user` u
+        WHERE  u.`user_id` = i_user_id;
 
         IF v_not_found = 1 THEN
             SELECT 31003 AS RESULT;
@@ -46,11 +46,11 @@ BEGIN
         END IF;
 
         SELECT 0 AS RESULT;
-        SELECT u.user_id, u.company_id, u.requested_project_id,
-               u.login_id, u.user_name, u.email,
-               u.status, u.last_login_at, u.created_at, u.updated_at
-        FROM   user u
-        WHERE  u.user_id = i_user_id;
+        SELECT u.`user_id`, u.`company_id`, u.`requested_project_id`,
+               u.`login_id`, u.`user_name`, u.`email`,
+               u.`status`, u.`last_login_at`, u.`created_at`, u.`updated_at`
+        FROM   `user` u
+        WHERE  u.`user_id` = i_user_id;
 
     END;
 

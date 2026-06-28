@@ -1,6 +1,6 @@
-DELIMITER $
+DROP PROCEDURE IF EXISTS SP_GET_SESSION_BY_REFRESH;
 
-DROP PROCEDURE IF EXISTS SP_GET_SESSION_BY_REFRESH$
+DELIMITER $
 
 CREATE PROCEDURE SP_GET_SESSION_BY_REFRESH(
     IN  i_refresh_token_hash  VARCHAR(255)  -- Refresh Token 해시 (SHA-256)
@@ -35,12 +35,12 @@ BEGIN
 
     transaction_block: BEGIN
 
-        SELECT s.session_id
+        SELECT s.`session_id`
         INTO   v_session_id
-        FROM   user_session s
-        WHERE  s.refresh_token_hash = i_refresh_token_hash
-          AND  s.status = 1
-          AND  s.expired_at > NOW();
+        FROM   `user_session` s
+        WHERE  s.`refresh_token_hash` = i_refresh_token_hash
+          AND  s.`status` = 1
+          AND  s.`expired_at` > NOW();
 
         IF v_not_found = 1 THEN
             SELECT 10008 AS RESULT;
@@ -48,16 +48,16 @@ BEGIN
         END IF;
 
         SELECT 0 AS RESULT;
-        SELECT s.session_id, s.user_id,
-               s.status AS session_status,
-               u.status AS user_status,
-               u.company_id,
-               COALESCE(MIN(ur.role_code), 40) AS role_code
-        FROM   user_session s
-        JOIN   user u ON s.user_id = u.user_id
-        LEFT JOIN user_role ur ON u.user_id = ur.user_id
-        WHERE  s.session_id = v_session_id
-        GROUP BY s.session_id, s.user_id, s.status, u.status, u.company_id;
+        SELECT s.`session_id`, s.`user_id`,
+               s.`status` AS session_status,
+               u.`status` AS user_status,
+               u.`company_id`,
+               COALESCE(MIN(ur.`role_code`), 40) AS role_code
+        FROM   `user_session` s
+        JOIN   `user` u ON s.`user_id` = u.`user_id`
+        LEFT JOIN `user_role` ur ON u.`user_id` = ur.`user_id`
+        WHERE  s.`session_id` = v_session_id
+        GROUP BY s.`session_id`, s.`user_id`, s.`status`, u.`status`, u.`company_id`;
 
     END;
 

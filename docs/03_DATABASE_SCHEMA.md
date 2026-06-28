@@ -672,10 +672,12 @@ database/functions/    — Function
 
 모든 SP는 아래 순서를 따른다.
 
-```sql
-DELIMITER $
+DROP 구문은 기본 구분자(`;`)를 사용하고, CREATE 구문만 `DELIMITER $`로 감싼다.
 
-DROP PROCEDURE IF EXISTS SP_동사_대상$
+```sql
+DROP PROCEDURE IF EXISTS SP_동사_대상;
+
+DELIMITER $
 
 CREATE PROCEDURE SP_동사_대상(
     IN    i_param1 TYPE,    -- 파라미터 설명 (한국어)
@@ -757,6 +759,50 @@ DECLARE로 선언한 임시 변수는 `v_` 접두어를 사용한다.
 DECLARE v_user_id   BIGINT        DEFAULT NULL;
 DECLARE v_not_found TINYINT       DEFAULT 0;
 ```
+
+---
+
+## NOW() 사용 규칙
+
+하나의 SP 안에서 `NOW()`를 여러 SQL 문장에 걸쳐 사용해야 하는 경우, 반드시 변수에 한 번만 캡처한 후 재사용한다.
+
+MySQL의 `NOW()`는 문장 실행 시점을 기준으로 값을 반환하므로, 여러 문장에서 직접 호출하면 문장 간 실행 시간 차이만큼 미세하게 다른 값이 저장될 수 있다.
+
+```sql
+-- 올바른 예 — 변수로 캡처 후 재사용
+DECLARE v_now DATETIME DEFAULT NULL;
+
+SET v_now = NOW();
+
+UPDATE `user`        SET `last_login_at`  = v_now WHERE `user_id` = i_user_id;
+INSERT INTO `user_session` (..., `last_access_at`) VALUES (..., v_now);
+
+-- 잘못된 예 — 문장마다 NOW() 직접 호출
+UPDATE `user`        SET `last_login_at`  = NOW() WHERE `user_id` = i_user_id;
+INSERT INTO `user_session` (..., `last_access_at`) VALUES (..., NOW());
+```
+
+단일 문장에서만 `NOW()`를 사용하는 경우에는 변수 없이 직접 호출해도 무방하다.
+
+---
+
+## 식별자 쿼팅
+
+SP 본문에서 참조하는 모든 테이블명과 컬럼명에 백틱(`` ` ``)을 사용한다.
+
+MySQL 예약어와의 충돌을 방지하고, 향후 예약어 추가에도 안전하게 대응하기 위함이다.
+
+```sql
+-- 올바른 예
+SELECT `company_id`, `status` FROM `company` WHERE `company_id` = i_company_id;
+INSERT INTO `user` (`login_id`, `status`) VALUES (i_login_id, 0);
+UPDATE `company` SET `company_name` = i_company_name WHERE `company_id` = i_company_id;
+
+-- 잘못된 예 (백틱 없음)
+SELECT company_id, status FROM company WHERE company_id = i_company_id;
+```
+
+입력 파라미터(`i_`, `io_`, `o_`)와 지역 변수(`v_`)에는 백틱을 사용하지 않는다.
 
 ---
 
