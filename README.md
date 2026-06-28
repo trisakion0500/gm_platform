@@ -115,6 +115,7 @@ GM Platform은 회사 → 프로젝트 → API 구조로 다중 서비스를 단
 | [10_API_SPEC_Part5.md](docs/10_API_SPEC_Part5.md)   | 감사 로그                                  |
 | [11_MENU_PERMISSION.md](docs/11_MENU_PERMISSION.md) | 역할별 메뉴 접근 권한                      |
 | [12_SCREEN_LIST.md](docs/12_SCREEN_LIST.md)         | 화면 목록 및 연관 API                      |
+| [13_LAYOUT.md](docs/13_LAYOUT.md)                   | 공통 레이아웃 구조                         |
 
 ---
 
@@ -151,5 +152,6 @@ AI는 문서 초안 작성과 반복적인 코드 작업의 속도를 높이는 
 - ✅ API 명세 작성 완료
 - ✅ 역할별 권한 설계 완료
 - ✅ 화면 목록 작성 완료
+- ✅ 레이아웃 구조 정의 완료
 - ⬜ Backend 구현
 - ⬜ Frontend 구현
