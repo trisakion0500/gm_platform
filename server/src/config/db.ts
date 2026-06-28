@@ -10,7 +10,7 @@ const pool = mysql.createPool({
   waitForConnections: true,
   connectionLimit: 10,
   queueLimit: 0,
-  timezone: '+00:00',
+  timezone: '+00:00', // MySQL 날짜/시간을 항상 UTC 기준으로 처리
   charset: 'utf8mb4',
 });
 
