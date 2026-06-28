@@ -16,16 +16,16 @@ GM-Tool 프론트엔드 화면 목록 및 역할별 접근 권한 정의.
 | SCR-001 | 로그인              | `/login`                        | O           | O         | O        | O        | 미인증 전용                                             |
 | SCR-002 | 회원가입            | `/signup`                       | O           | O         | O        | O        | 미인증 전용                                             |
 | **관리 메뉴** |
-| SCR-010 | 회사 목록           | `/companies`                    | O           | O         | -        | -        | DEVELOPER: 본인 회사만                                  |
-| SCR-011 | 회사 등록           | `/companies/new`                | O           | -         | -        | -        |                                                         |
-| SCR-012 | 회사 상세·수정      | `/companies/:company_id`        | O           | O         | -        | -        | 수정: SUPER_ADMIN만                                     |
-| SCR-020 | 프로젝트 목록       | `/projects`                     | O           | O         | O        | O        | SUPER_ADMIN 외: 자사만                                  |
-| SCR-021 | 프로젝트 등록       | `/projects/new`                 | O           | -         | -        | -        |                                                         |
-| SCR-022 | 프로젝트 상세·수정  | `/projects/:project_id`         | O           | O         | O        | O        | 수정: SUPER_ADMIN만                                     |
-| SCR-030 | 사용자 목록         | `/users`                        | O           | O         | -        | -        | DEVELOPER: 승인 사용자만; 탭: 전체 / 가입 승인 대기    |
-| SCR-031 | 사용자 상세·수정    | `/users/:user_id`               | O           | O         | -        | -        | 수정·승인·반려·권한관리: SUPER_ADMIN만                  |
-| SCR-040 | 감사 로그 목록      | `/audit-logs`                   | O           | O         | O        | -        | SUPER_ADMIN 외: 자사만                                  |
-| SCR-041 | 감사 로그 상세      | `/audit-logs/:log_audit_id`     | O           | O         | O        | -        |                                                         |
+| SCR-010 | 회사 목록           | `/admin/companies`                    | O           | O         | -        | -        | DEVELOPER: 본인 회사만                                  |
+| SCR-011 | 회사 등록           | `/admin/companies/new`                | O           | -         | -        | -        |                                                         |
+| SCR-012 | 회사 상세·수정      | `/admin/companies/:company_id`        | O           | O         | -        | -        | 수정: SUPER_ADMIN만                                     |
+| SCR-020 | 프로젝트 목록       | `/admin/projects`                     | O           | O         | O        | O        | SUPER_ADMIN 외: 자사만                                  |
+| SCR-021 | 프로젝트 등록       | `/admin/projects/new`                 | O           | -         | -        | -        |                                                         |
+| SCR-022 | 프로젝트 상세·수정  | `/admin/projects/:project_id`         | O           | O         | O        | O        | 수정: SUPER_ADMIN만                                     |
+| SCR-030 | 사용자 목록         | `/admin/users`                        | O           | O         | -        | -        | DEVELOPER: 승인 사용자만; 탭: 전체 / 가입 승인 대기    |
+| SCR-031 | 사용자 상세·수정    | `/admin/users/:user_id`               | O           | O         | -        | -        | 수정·승인·반려·권한관리: SUPER_ADMIN만                  |
+| SCR-040 | 감사 로그 목록      | `/admin/audit-logs`                   | O           | O         | O        | -        | SUPER_ADMIN 외: 자사만                                  |
+| SCR-041 | 감사 로그 상세      | `/admin/audit-logs/:log_audit_id`     | O           | O         | O        | -        |                                                         |
 | **비관리 메뉴** |
 | SCR-100 | API 목록            | `/apis`                         | O           | O         | O        | O        | project_id 선택 필요                                    |
 | SCR-101 | API 등록            | `/apis/new`                     | O           | O         | -        | -        |                                                         |
@@ -77,7 +77,7 @@ GM-Tool 프론트엔드 화면 목록 및 역할별 접근 권한 정의.
 
 ### SCR-010. 회사 목록
 
-- **Route:** `/companies`
+- **Route:** `/admin/companies`
 - **접근:** SUPER_ADMIN, DEVELOPER (DEVELOPER: 본인 회사만)
 - **주요 기능:** 회사 목록 조회 (상태 필터, 페이지네이션), 등록 버튼 (SUPER_ADMIN), 상세 이동
 - **연관 API:**
@@ -90,7 +90,7 @@ GM-Tool 프론트엔드 화면 목록 및 역할별 접근 권한 정의.
 
 ### SCR-011. 회사 등록
 
-- **Route:** `/companies/new`
+- **Route:** `/admin/companies/new`
 - **접근:** SUPER_ADMIN
 - **주요 기능:** 회사 코드 / 이름 / 설명 입력 및 등록
 - **연관 API:**
@@ -103,7 +103,7 @@ GM-Tool 프론트엔드 화면 목록 및 역할별 접근 권한 정의.
 
 ### SCR-012. 회사 상세·수정
 
-- **Route:** `/companies/:company_id`
+- **Route:** `/admin/companies/:company_id`
 - **접근:** SUPER_ADMIN (수정), DEVELOPER (조회만)
 - **주요 기능:** 회사 정보 조회, 코드 / 이름 / 설명 / 상태 수정 (SUPER_ADMIN)
 - **연관 API:**
@@ -117,7 +117,7 @@ GM-Tool 프론트엔드 화면 목록 및 역할별 접근 권한 정의.
 
 ### SCR-020. 프로젝트 목록
 
-- **Route:** `/projects`
+- **Route:** `/admin/projects`
 - **접근:** SUPER_ADMIN, DEVELOPER, APPROVER, OPERATOR (SUPER_ADMIN 외: 자사만)
 - **주요 기능:** 프로젝트 목록 조회 (회사 필터 (SUPER_ADMIN), 상태 필터, 페이지네이션), 등록 버튼 (SUPER_ADMIN), 상세 이동
 - **연관 API:**
@@ -130,7 +130,7 @@ GM-Tool 프론트엔드 화면 목록 및 역할별 접근 권한 정의.
 
 ### SCR-021. 프로젝트 등록
 
-- **Route:** `/projects/new`
+- **Route:** `/admin/projects/new`
 - **접근:** SUPER_ADMIN
 - **주요 기능:** 회사 선택, 프로젝트 코드 / 이름 / API Base URL / 설명 입력 및 등록
 - **연관 API:**
@@ -144,7 +144,7 @@ GM-Tool 프론트엔드 화면 목록 및 역할별 접근 권한 정의.
 
 ### SCR-022. 프로젝트 상세·수정
 
-- **Route:** `/projects/:project_id`
+- **Route:** `/admin/projects/:project_id`
 - **접근:** SUPER_ADMIN (수정), DEVELOPER / APPROVER / OPERATOR (조회)
 - **주요 기능:** 프로젝트 정보 조회, 코드 / 이름 / API Base URL / 설명 / 상태 수정 (SUPER_ADMIN)
 - **연관 API:**
@@ -158,7 +158,7 @@ GM-Tool 프론트엔드 화면 목록 및 역할별 접근 권한 정의.
 
 ### SCR-030. 사용자 목록
 
-- **Route:** `/users`
+- **Route:** `/admin/users`
 - **접근:** SUPER_ADMIN, DEVELOPER (DEVELOPER: status=1 사용자만)
 - **주요 기능:** 사용자 목록 조회 (상태 필터, 페이지네이션), 탭 전환: 전체 목록 / 가입 승인 대기 (SUPER_ADMIN), 상세 이동
 - **연관 API:**
@@ -171,7 +171,7 @@ GM-Tool 프론트엔드 화면 목록 및 역할별 접근 권한 정의.
 
 ### SCR-031. 사용자 상세·수정
 
-- **Route:** `/users/:user_id`
+- **Route:** `/admin/users/:user_id`
 - **접근:** SUPER_ADMIN (수정·승인·반려·권한관리), DEVELOPER (조회만)
 - **주요 기능:** 사용자 정보 조회, 이름 / 이메일 / 상태 수정, 가입 승인 / 반려, 비밀번호 강제 초기화, User Role 등록·수정 (모두 SUPER_ADMIN만)
 - **연관 API:**
@@ -191,7 +191,7 @@ GM-Tool 프론트엔드 화면 목록 및 역할별 접근 권한 정의.
 
 ### SCR-040. 감사 로그 목록
 
-- **Route:** `/audit-logs`
+- **Route:** `/admin/audit-logs`
 - **접근:** SUPER_ADMIN, DEVELOPER, APPROVER (SUPER_ADMIN 외: 자사만)
 - **주요 기능:** 감사 로그 목록 조회 (테이블 / 작업 유형 / 작업자 / 기간 필터, 페이지네이션), 상세 이동
 - **연관 API:**
@@ -204,7 +204,7 @@ GM-Tool 프론트엔드 화면 목록 및 역할별 접근 권한 정의.
 
 ### SCR-041. 감사 로그 상세
 
-- **Route:** `/audit-logs/:log_audit_id`
+- **Route:** `/admin/audit-logs/:log_audit_id`
 - **접근:** SUPER_ADMIN, DEVELOPER, APPROVER
 - **주요 기능:** before_json / after_json 비교 조회, 작업 유형 (CREATE / UPDATE / STATUS_CHANGE) 확인
 - **연관 API:**
