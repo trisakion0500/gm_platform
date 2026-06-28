@@ -1,12 +1,12 @@
-import { createHash } from 'crypto';
-import { v4 as uuidv4 } from 'uuid';
-import { UserPublicRow } from '../types';
-import { hashPassword, comparePassword } from '../utils/bcrypt';
-import { signAccessToken } from '../utils/jwt';
-import { formatDatetime } from '../utils/response';
-import { env } from '../config/env';
-import { toAppError, ErrorCode } from '../constants/errors';
-import * as db from '../db/auth.db';
+import { createHash } from "crypto";
+import { v4 as uuidv4 } from "uuid";
+import { UserPublicRow } from "../types";
+import { hashPassword, comparePassword } from "../utils/bcrypt";
+import { signAccessToken } from "../utils/jwt";
+import { formatDatetime } from "../utils/response";
+import { env } from "../config/env";
+import { toAppError } from "../constants/errors";
+import * as db from "../db/auth.db";
 
 /**
  * "7d", "24h", "30m" 형태의 TTL 문자열을 밀리초로 변환한다.
@@ -20,8 +20,8 @@ function parseRefreshExpiry(ttl: string): number {
   if (!match) return 7 * 24 * 60 * 60 * 1000;
   const n = parseInt(match[1], 10);
   const unit = match[2];
-  if (unit === 'd') return n * 24 * 60 * 60 * 1000;
-  if (unit === 'h') return n * 60 * 60 * 1000;
+  if (unit === "d") return n * 24 * 60 * 60 * 1000;
+  if (unit === "h") return n * 60 * 60 * 1000;
   return n * 60 * 1000;
 }
 
@@ -33,15 +33,8 @@ function parseRefreshExpiry(ttl: string): number {
  * @returns SHA-256 해시 문자열 (hex)
  */
 function hashRefreshToken(token: string): string {
-  return createHash('sha256').update(token).digest('hex');
+  return createHash("sha256").update(token).digest("hex");
 }
-
-/** 사용자 계정 상태 코드 → 오류 코드 매핑 */
-const USER_STATUS_ERROR: Record<number, ErrorCode> = {
-  0: 10005,
-  2: 10006,
-  3: 10007,
-};
 
 /**
  * 회원가입 처리 — 비밀번호를 bcrypt로 해시한 뒤 user를 생성한다.
@@ -63,7 +56,14 @@ export async function signup(
   email: string,
 ): Promise<UserPublicRow> {
   const passwordHash = await hashPassword(password);
-  return db.signupUser(companyId, requestedProjectId, loginId, passwordHash, userName, email);
+  return db.signupUser(
+    companyId,
+    requestedProjectId,
+    loginId,
+    passwordHash,
+    userName,
+    email,
+  );
 }
 
 /**
@@ -81,7 +81,14 @@ export async function login(loginId: string, password: string) {
   const match = await comparePassword(password, user.password_hash);
   if (!match) throw toAppError(10001);
 
-  if (user.status !== 1) throw toAppError(USER_STATUS_ERROR[user.status] ?? 10001);
+  if (user.status !== 1) {
+    switch (user.status) {
+      case 0: throw toAppError(10005);
+      case 2: throw toAppError(10006);
+      case 3: throw toAppError(10007);
+      default: throw toAppError(10001);
+    }
+  }
 
   const { token, jti, expiredAt } = signAccessToken({
     user_id: user.user_id,
@@ -91,9 +98,16 @@ export async function login(loginId: string, password: string) {
 
   const refreshToken = uuidv4();
   const refreshTokenHash = hashRefreshToken(refreshToken);
-  const sessionExpiredAt = new Date(Date.now() + parseRefreshExpiry(env.jwt.refreshExpiresIn));
+  const sessionExpiredAt = new Date(
+    Date.now() + parseRefreshExpiry(env.jwt.refreshExpiresIn),
+  );
 
-  await db.createLoginSession(user.user_id, jti, refreshTokenHash, sessionExpiredAt);
+  await db.createLoginSession(
+    user.user_id,
+    jti,
+    refreshTokenHash,
+    sessionExpiredAt,
+  );
 
   return {
     access_token: token,
@@ -124,8 +138,17 @@ export async function refresh(refreshToken: string) {
   const session = await db.getSessionByRefresh(refreshTokenHash);
 
   if (!session) throw toAppError(10008);
+  // SP_GET_SESSION_BY_REFRESH가 status=1 AND expired_at > NOW()로 필터링하므로 실질적으로 실행되지 않음
+  // SP 변경 시 이 체크도 함께 검토할 것
   if (session.session_status !== 1) throw toAppError(10009);
-  if (session.user_status !== 1) throw toAppError(USER_STATUS_ERROR[session.user_status] ?? 10004);
+  if (session.user_status !== 1) {
+    switch (session.user_status) {
+      case 0: throw toAppError(10005);
+      case 2: throw toAppError(10006);
+      case 3: throw toAppError(10007);
+      default: throw toAppError(10004);
+    }
+  }
 
   const { token, jti, expiredAt } = signAccessToken({
     user_id: session.user_id,

@@ -2,14 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import { verifyAccessToken } from '../utils/jwt';
 import { fail } from '../utils/response';
 import { getSessionByJti } from '../db/auth.db';
-import { ERROR_MAP, ErrorCode } from '../constants/errors';
-
-/** 사용자 계정 상태 코드 → 오류 코드 매핑 */
-const USER_STATUS_ERROR: Record<number, ErrorCode> = {
-  0: 10005,
-  2: 10006,
-  3: 10007,
-};
+import { ERROR_MAP } from '../constants/errors';
 
 /**
  * Bearer 토큰을 검증하고 req.user를 설정하는 인증 미들웨어.
@@ -62,7 +55,13 @@ export async function authenticate(req: Request, res: Response, next: NextFuncti
   }
 
   if (session.user_status !== 1) {
-    const code = USER_STATUS_ERROR[session.user_status] ?? 10004;
+    let code: 10004 | 10005 | 10006 | 10007;
+    switch (session.user_status) {
+      case 0: code = 10005; break;
+      case 2: code = 10006; break;
+      case 3: code = 10007; break;
+      default: code = 10004;
+    }
     const e = ERROR_MAP[code];
     fail(res, code, e.message, e.httpStatus);
     return;

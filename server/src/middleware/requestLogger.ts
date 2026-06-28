@@ -19,7 +19,7 @@ export function requestLogger(
 
   res.on("finish", () => {
     const ms = Date.now() - start;
-    logger.info(`${req.method} ${req.url} ${res.statusCode} - ${ms}ms`);
+    logger.info(`${req.method} ${req.originalUrl} ${res.statusCode} - ${ms}ms`);
   });
 
   next();
