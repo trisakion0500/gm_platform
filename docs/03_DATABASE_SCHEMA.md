@@ -653,8 +653,8 @@ Native SQL 직접 작성 금지 (SELECT, INSERT, UPDATE, DELETE 등)
 ## 명명 규칙
 
 ```text
-Stored Procedure : sp_동사_대상   예) sp_get_user, sp_create_api
-Function         : fn_동사_대상   예) fn_get_user_role
+Stored Procedure : SP_동사_대상   예) SP_GET_USER, SP_CREATE_API
+Function         : FN_동사_대상   예) FN_GET_USER_ROLE
 ```
 
 ## 위치
@@ -675,11 +675,12 @@ database/functions/    — Function
 ```sql
 DELIMITER $
 
-DROP PROCEDURE IF EXISTS sp_동사_대상$
+DROP PROCEDURE IF EXISTS SP_동사_대상$
 
-CREATE PROCEDURE sp_동사_대상(
-    IN  p_param1 TYPE,    -- 파라미터 설명 (한국어)
-    OUT p_param2 TYPE     -- 파라미터 설명 (한국어)
+CREATE PROCEDURE SP_동사_대상(
+    IN    i_param1 TYPE,    -- 파라미터 설명 (한국어)
+    INOUT io_param2 TYPE,   -- 파라미터 설명 (한국어)
+    OUT   o_param3 TYPE     -- 파라미터 설명 (한국어)
 )
 COMMENT 'SP 한 줄 설명'
 BEGIN
@@ -701,7 +702,7 @@ CREATE PROCEDURE 본문 첫 줄에 작성한다.
 
 ```sql
 -- --------------------------------- --
--- 명칭 : sp_동사_대상
+-- 명칭 : SP_동사_대상
 -- 작성 : YYYY-MM-DD 작성자
 -- 내용 : 동작 설명 (주요 처리 흐름 요약)
 -- 테이블 적용 순서 : table_a → table_b → table_c
@@ -716,7 +717,7 @@ CREATE PROCEDURE 본문 첫 줄에 작성한다.
 
 ```sql
 -- --------------------------------- --
--- 명칭 : sp_동사_대상
+-- 명칭 : SP_동사_대상
 -- 작성 : YYYY-MM-DD 작성자
 -- 내용 : 동작 설명
 -- 의도 : 특이한 설계 이유 또는 주의사항
@@ -731,15 +732,30 @@ CREATE PROCEDURE 본문 첫 줄에 작성한다.
 
 ## 파라미터 규칙
 
-모든 IN/OUT 파라미터에 인라인 한국어 주석을 필수로 작성한다.
+모든 파라미터에 인라인 한국어 주석을 필수로 작성한다.
+
+파라미터 접두어는 방향에 따라 구분한다.
+
+| 방향 | 접두어 | 예시 |
+|------|--------|------|
+| IN   | `i_`   | `i_user_id` |
+| INOUT | `io_` | `io_count` |
+| OUT  | `o_`   | `o_result` |
 
 ```sql
-CREATE PROCEDURE sp_create_user(
-    IN  p_company_id    BIGINT,       -- 회사 ID
-    IN  p_login_id      VARCHAR(100), -- 로그인 ID
-    IN  p_password_hash VARCHAR(255), -- 비밀번호 해시
-    OUT p_user_id       BIGINT        -- 생성된 사용자 ID (출력)
+CREATE PROCEDURE SP_CREATE_USER(
+    IN  i_company_id    BIGINT,       -- 회사 ID
+    IN  i_login_id      VARCHAR(100), -- 로그인 ID
+    IN  i_password_hash VARCHAR(255), -- 비밀번호 해시
+    OUT o_user_id       BIGINT        -- 생성된 사용자 ID (출력)
 )
+```
+
+DECLARE로 선언한 임시 변수는 `v_` 접두어를 사용한다.
+
+```sql
+DECLARE v_user_id   BIGINT        DEFAULT NULL;
+DECLARE v_not_found TINYINT       DEFAULT 0;
 ```
 
 ---
@@ -783,14 +799,21 @@ END;
 
 메인 로직은 반드시 `transaction_block` 레이블로 감싼다.
 
+`START TRANSACTION` 과 `COMMIT` 사이의 DML 쿼리는 탭 인덴트를 추가하여 트랜잭션 범위를 명시적으로 표현한다.
+
 ```sql
 transaction_block: BEGIN
+
     START TRANSACTION;
 
-    -- 처리 로직
+        -- 처리 로직 (DML 쿼리는 한 단계 더 들여쓰기)
+        UPDATE table_a SET col = val WHERE id = i_id;
+        INSERT INTO table_b (...) VALUES (...);
 
     COMMIT;
+
     SELECT 0 AS RESULT;
+
 END;
 ```
 
@@ -800,16 +823,22 @@ END;
 
 ## 결과 반환 규칙
 
-- 모든 SP의 최종 SELECT 는 반드시 `RESULT` 컬럼을 포함한다.
-- `RESULT = 0` 은 성공을 의미한다.
-- `RESULT = 99` 는 시스템 오류(SQLEXCEPTION 핸들러 자동 반환)를 의미한다.
-- 그 외 값은 비즈니스 오류 코드로 사용한다 (`04_API_COMMON.md` 오류 코드 체계 참조).
+모든 SP는 반드시 두 결과셋을 순서대로 반환한다.
+
+- **첫 번째 SELECT**: `SELECT [코드] AS RESULT;` — 항상 단독으로 반환
+- **두 번째 SELECT**: 반환할 데이터가 있을 때만 추가 (없으면 생략)
+
+`RESULT = 0` 은 성공, `RESULT = 99` 는 시스템 오류(SQLEXCEPTION 핸들러 자동 반환), 그 외는 비즈니스 오류 코드(`04_API_COMMON.md` 참조).
 
 ```sql
--- 성공
+-- 성공 (데이터 없음)
 SELECT 0 AS RESULT;
 
--- 조회 결과 없음
+-- 성공 (데이터 있음) — RESULT 와 data 는 반드시 별도 SELECT
+SELECT 0 AS RESULT;
+SELECT col1, col2 FROM table WHERE ...;
+
+-- 비즈니스 오류
 SELECT 31003 AS RESULT;
 
 -- 시스템 오류 (SQLEXCEPTION 핸들러에서 자동 반환)
@@ -823,21 +852,22 @@ SELECT 99 AS RESULT, sql_state AS SQL_STATE, error_no AS ERROR_NO, error_message
 ```sql
 DELIMITER $
 
-DROP PROCEDURE IF EXISTS sp_동사_대상$
+DROP PROCEDURE IF EXISTS SP_동사_대상$
 
-CREATE PROCEDURE sp_동사_대상(
-    IN  p_param1 BIGINT,      -- 파라미터 설명
-    IN  p_param2 VARCHAR(100) -- 파라미터 설명
+CREATE PROCEDURE SP_동사_대상(
+    IN  i_param1 BIGINT,      -- 파라미터 설명
+    IN  i_param2 VARCHAR(100) -- 파라미터 설명
 )
 COMMENT 'SP 한 줄 설명'
 BEGIN
 -- --------------------------------- --
--- 명칭 : sp_동사_대상
+-- 명칭 : SP_동사_대상
 -- 작성 : YYYY-MM-DD 작성자
 -- 내용 : 처리 내용 설명
 -- 테이블 적용 순서 : table_a → table_b
 -- --------------------------------- --
 
+    DECLARE v_result      INT           DEFAULT 0;
     DECLARE sql_state     CHAR(5)       DEFAULT '00000';
     DECLARE error_no      INT           DEFAULT 0;
     DECLARE error_message VARCHAR(255)  DEFAULT '';
@@ -852,12 +882,17 @@ BEGIN
     END;
 
     transaction_block: BEGIN
+
         START TRANSACTION;
 
-        -- 처리 로직
+            -- 처리 로직
 
         COMMIT;
+
         SELECT 0 AS RESULT;
+        -- 반환 데이터가 있으면 별도 SELECT 추가
+        SELECT col1, col2 FROM table_a WHERE ...;
+
     END;
 
 END$

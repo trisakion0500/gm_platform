@@ -1,0 +1,49 @@
+DELIMITER $
+
+DROP PROCEDURE IF EXISTS SP_UPDATE_SESSION_JTI$
+
+CREATE PROCEDURE SP_UPDATE_SESSION_JTI(
+    IN  i_session_id        BIGINT,       -- 세션 ID
+    IN  i_access_token_jti  VARCHAR(100)  -- 새 Access Token JTI
+)
+COMMENT 'Access Token 재발급 시 세션의 JTI 갱신'
+BEGIN
+-- --------------------------------- --
+-- 명칭 : SP_UPDATE_SESSION_JTI
+-- 작성 : 2026-06-28 trisakion
+-- 내용 : POST /auth/refresh 처리 후 새 JTI로 세션 갱신
+--        last_access_at도 함께 갱신
+-- 테이블 적용 순서 : user_session
+-- --------------------------------- --
+
+    DECLARE sql_state       CHAR(5)       DEFAULT '00000';
+    DECLARE error_no        INT           DEFAULT 0;
+    DECLARE error_message   VARCHAR(255)  DEFAULT '';
+    DECLARE EXIT HANDLER FOR SQLEXCEPTION
+    BEGIN
+        GET DIAGNOSTICS CONDITION 1
+            sql_state     = RETURNED_SQLSTATE,
+            error_no      = MYSQL_ERRNO,
+            error_message = MESSAGE_TEXT;
+        ROLLBACK;
+        SELECT 99 AS RESULT, sql_state AS SQL_STATE, error_no AS ERROR_NO, error_message AS ERROR_MESSAGE;
+    END;
+
+    transaction_block: BEGIN
+
+        START TRANSACTION;
+
+            UPDATE user_session
+            SET    access_token_jti = i_access_token_jti,
+                   last_access_at   = NOW()
+            WHERE  session_id = i_session_id;
+
+        COMMIT;
+
+        SELECT 0 AS RESULT;
+
+    END;
+
+END$
+
+DELIMITER ;
