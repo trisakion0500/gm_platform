@@ -25,7 +25,7 @@ BEGIN
     END;
 
     SELECT 0 AS RESULT;
-    SELECT NOW() AS current_time;
+    SELECT NOW() AS `current_time`;
 
 END$
 

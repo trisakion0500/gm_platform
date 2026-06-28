@@ -1,28 +1,36 @@
 import { Request, Response, NextFunction } from "express";
 import logger from "../utils/logger";
+import { AppError } from "../types";
+import { ERROR_MAP } from "../constants/errors";
 
-interface HttpError extends Error {
-  status?: number;
-}
-
+/**
+ * 전역 오류 처리 미들웨어.
+ * AppError/DBError는 result·message 형태로 응답하고,
+ * 예상치 못한 예외는 내부 메시지를 노출하지 않고 500으로 처리한다.
+ * @author trisakion
+ * @param err 발생한 오류 객체
+ * @param req Express Request 객체
+ * @param res Express Response 객체
+ * @param _next Express NextFunction — 4인자 함수 시그니처를 유지하기 위해 반드시 선언해야 한다
+ * @returns void
+ */
 export function errorHandler(
-  err: HttpError,
+  err: Error,
   req: Request,
   res: Response,
-  _next: NextFunction, // Express가 4-인자 함수를 에러 미들웨어로 인식하는 조건이므로 _next는 반드시 선언해야 함
+  _next: NextFunction,
 ): void {
-  const status = err.status ?? 500;
-
-  if (status >= 500) {
-    // 5xx는 서버 버그이므로 스택 포함 error 레벨, 4xx는 클라이언트 오류이므로 warn 레벨
-    logger.error(`${req.method} ${req.url} - ${err.message}`, err.stack);
-  } else {
-    logger.warn(`${req.method} ${req.url} - ${status} ${err.message}`);
+  if (err instanceof AppError) {
+    if (err.httpStatus >= 500) {
+      logger.error(`${req.method} ${req.url} - [${err.name}] ${err.message}`, err.stack);
+    } else {
+      logger.warn(`${req.method} ${req.url} - ${err.httpStatus} [${err.name}:${err.result}] ${err.message}`);
+    }
+    res.status(err.httpStatus).json({ result: err.result, message: err.message });
+    return;
   }
 
-  // 5xx 응답에는 내부 오류 메시지를 노출하지 않음
-  res.status(status).json({
-    success: false,
-    message: status >= 500 ? "서버 오류가 발생했습니다." : err.message,
-  });
+  // 예상하지 못한 예외 — 5xx 응답에는 내부 오류 메시지를 노출하지 않음
+  logger.error(`${req.method} ${req.url} - ${err.message}`, err.stack);
+  res.status(ERROR_MAP[50000].httpStatus).json({ result: 50000, message: ERROR_MAP[50000].message });
 }
