@@ -25,11 +25,21 @@ export const ERROR_MAP = {
   10008: { message: 'Refresh Token 만료',                       httpStatus: 401 },
   /** 세션 없음 또는 로그아웃된 세션 */
   10009: { message: '유효하지 않은 Session',                     httpStatus: 401 },
-  // 사용자·회사·프로젝트
+  // 권한
+  /** 해당 리소스에 대한 접근 권한 없음 */
+  20001: { message: '권한이 없습니다.',                           httpStatus: 403 },
+  // 입력값 오류
+  /** 필수 입력값 누락 */
+  30001: { message: '필수 입력값이 누락되었습니다.',               httpStatus: 400 },
+  /** 입력값 형식 오류 */
+  30002: { message: '입력값 형식이 올바르지 않습니다.',            httpStatus: 400 },
+  /** 허용되지 않는 값 */
+  30003: { message: '허용되지 않는 값입니다.',                    httpStatus: 400 },
+  // 조회 대상 없음
   /** 존재하지 않거나 비활성 상태인 회사 */
-  31001: { message: '존재하지 않는 회사입니다.',                   httpStatus: 400 },
+  31001: { message: '존재하지 않는 회사입니다.',                   httpStatus: 404 },
   /** 존재하지 않거나 비활성 상태인 프로젝트 */
-  31002: { message: '존재하지 않는 프로젝트입니다.',               httpStatus: 400 },
+  31002: { message: '존재하지 않는 프로젝트입니다.',               httpStatus: 404 },
   /** user_id로 사용자를 찾을 수 없음 */
   31003: { message: '사용자를 찾을 수 없습니다.',                  httpStatus: 404 },
   /** login_id 또는 email 중복 */
