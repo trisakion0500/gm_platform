@@ -1,5 +1,7 @@
 import { Response } from 'express';
 import { ERROR_MAP, ErrorEntry } from '../constants/errors';
+import logger from './logger';
+import { maskBody } from './mask';
 
 /**
  * 성공 응답을 전송한다. 응답 형식: { result: 0, data }
@@ -10,7 +12,9 @@ import { ERROR_MAP, ErrorEntry } from '../constants/errors';
  * @returns void
  */
 export const success = (res: Response, data: unknown, status = 200): void => {
-  res.status(status).json({ result: 0, data });
+  const body = { result: 0, data };
+  logger.info(`res: ${JSON.stringify({ result: 0, data: maskBody(data) })}`);
+  res.status(status).json(body);
 };
 
 /**
@@ -22,7 +26,9 @@ export const success = (res: Response, data: unknown, status = 200): void => {
  * @returns void
  */
 export const fail = (res: Response, entry: ErrorEntry): void => {
-  res.status(entry.httpStatus).json({ result: entry.code, message: entry.message });
+  const body = { result: entry.code, message: entry.message };
+  logger.warn(`res: ${JSON.stringify(body)}`);
+  res.status(entry.httpStatus).json(body);
 };
 
 /**

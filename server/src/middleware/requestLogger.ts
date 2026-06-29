@@ -1,23 +1,6 @@
 import { Request, Response, NextFunction } from "express";
 import logger from "../utils/logger";
-
-const MASK_FIELDS = new Set([
-  "password",
-  "password_hash",
-  "new_password",
-  "current_password",
-  "refresh_token",
-  "access_token",
-]);
-
-function maskBody(body: unknown): unknown {
-  if (!body || typeof body !== "object" || Array.isArray(body)) return body;
-  const result: Record<string, unknown> = {};
-  for (const [k, v] of Object.entries(body as Record<string, unknown>)) {
-    result[k] = MASK_FIELDS.has(k) ? "***" : v;
-  }
-  return result;
-}
+import { maskBody } from "../utils/mask";
 
 /**
  * 요청마다 메서드·URL·body(민감 필드 마스킹)·상태코드·소요시간을 로깅하는 미들웨어.

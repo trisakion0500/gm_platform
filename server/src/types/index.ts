@@ -125,6 +125,37 @@ export interface ProjectRow {
 }
 
 /**
+ * user 테이블 관리 API용 조회 행 타입. company JOIN 포함, password_hash 제외.
+ * @author trisakion
+ */
+export interface UserAdminRow {
+  /** 사용자 ID */
+  user_id: number;
+  /** 소속 회사 ID */
+  company_id: number;
+  /** 소속 회사 코드 */
+  company_code: string;
+  /** 소속 회사명 */
+  company_name: string;
+  /** 가입 신청 프로젝트 ID (상세/수정 응답에만 포함) */
+  requested_project_id?: number | null;
+  /** 로그인 ID */
+  login_id: string;
+  /** 사용자명 */
+  user_name: string;
+  /** 이메일 */
+  email: string;
+  /** 계정 상태 (0=가입승인대기, 1=정상, 2=가입반려, 3=사용중지) */
+  status: number;
+  /** 마지막 로그인 일시 (없으면 null) */
+  last_login_at: Date | null;
+  /** 생성 일시 */
+  created_at: Date;
+  /** 수정 일시 */
+  updated_at: Date;
+}
+
+/**
  * company 테이블 조회 행 타입.
  * @author trisakion
  */
