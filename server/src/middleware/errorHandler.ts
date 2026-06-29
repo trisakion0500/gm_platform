@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from "express";
 import logger from "../utils/logger";
 import { AppError } from "../types";
 import { ERROR_MAP } from "../constants/errors";
+import { env } from "../config/env";
 
 /**
  * 전역 오류 처리 미들웨어.
@@ -25,6 +26,9 @@ export function errorHandler(
       logger.error(`${req.method} ${req.url} - [${err.name}] ${err.message}`, err.stack);
     } else {
       logger.warn(`${req.method} ${req.url} - ${err.httpStatus} [${err.name}:${err.result}] ${err.message}`);
+    }
+    if (env.log.debugErrors) {
+      logger.info(`[${err.name}:${err.result}] ${err.message}\n${err.stack}`);
     }
     res.status(err.httpStatus).json({ result: err.result, message: err.message });
     return;

@@ -1,9 +1,26 @@
 import { Request, Response, NextFunction } from "express";
 import logger from "../utils/logger";
 
+const MASK_FIELDS = new Set([
+  "password",
+  "password_hash",
+  "new_password",
+  "current_password",
+  "refresh_token",
+  "access_token",
+]);
+
+function maskBody(body: unknown): unknown {
+  if (!body || typeof body !== "object" || Array.isArray(body)) return body;
+  const result: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(body as Record<string, unknown>)) {
+    result[k] = MASK_FIELDS.has(k) ? "***" : v;
+  }
+  return result;
+}
+
 /**
- * 요청마다 메서드·URL·상태코드·소요시간을 로깅하는 미들웨어.
- * 응답이 완전히 전송된 시점(finish 이벤트)에 로그를 기록하여 상태코드와 소요시간을 정확히 측정한다.
+ * 요청마다 메서드·URL·body(민감 필드 마스킹)·상태코드·소요시간을 로깅하는 미들웨어.
  * @author trisakion
  * @param req Express Request 객체
  * @param res Express Response 객체
@@ -16,6 +33,11 @@ export function requestLogger(
   next: NextFunction,
 ): void {
   const start = Date.now();
+
+  const body = req.body && Object.keys(req.body).length > 0
+    ? ` body=${JSON.stringify(maskBody(req.body))}`
+    : "";
+  logger.info(`${req.method} ${req.originalUrl}${body}`);
 
   res.on("finish", () => {
     const ms = Date.now() - start;

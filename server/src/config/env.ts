@@ -35,4 +35,7 @@ export const env = {
   cors: {
     allowedOrigins: process.env.CORS_ALLOWED_ORIGINS!.split(","),
   },
+  log: {
+    debugErrors: process.env.LOG_DEBUG_ERRORS === 'true',
+  },
 };
