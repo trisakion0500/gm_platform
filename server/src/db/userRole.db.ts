@@ -16,8 +16,9 @@ export async function getUserRoleList(
   projectId: number | null,
   roleCode: number | null,
   status: number | null,
+  companyId: number | null,
 ): Promise<UserRoleRow[]> {
-  const [, [items]] = await callSP('SP_GET_USER_ROLE_LIST', [userId, projectId, roleCode, status]);
+  const [, [items]] = await callSP('SP_GET_USER_ROLE_LIST', [userId, projectId, roleCode, status, companyId]);
   return items as unknown as UserRoleRow[];
 }
 

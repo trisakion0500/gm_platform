@@ -18,7 +18,7 @@ function formatUserRole(ur: UserRoleRow) {
 }
 
 /**
- * GET /user-roles — User Role 목록 조회 (SUPER_ADMIN)
+ * GET /user-roles — User Role 목록 조회 (SUPER_ADMIN: 전체, DEVELOPER: 본인 회사 스코핑)
  * @author trisakion
  * @param req query: { user_id?, project_id?, role_code?, status? }
  * @param res 200 — User Role 목록
@@ -32,7 +32,8 @@ export async function getUserRoleList(req: Request, res: Response, next: NextFun
     const projectIdNum = project_id !== undefined ? Number(project_id) : null;
     const roleCodeNum  = role_code  !== undefined ? Number(role_code)  : null;
     const statusNum    = status     !== undefined ? Number(status)     : null;
-    const items = await userRoleService.getUserRoleList(userIdNum, projectIdNum, roleCodeNum, statusNum);
+    const companyId    = req.user!.role_code === 10 ? null : req.user!.company_id;
+    const items = await userRoleService.getUserRoleList(userIdNum, projectIdNum, roleCodeNum, statusNum, companyId);
     success(res, items.map(formatUserRole));
   } catch (err) {
     next(err);

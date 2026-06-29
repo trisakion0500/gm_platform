@@ -15,8 +15,9 @@ export async function getUserRoleList(
   projectId: number | null,
   roleCode: number | null,
   status: number | null,
+  companyId: number | null,
 ): Promise<UserRoleRow[]> {
-  return db.getUserRoleList(userId, projectId, roleCode, status);
+  return db.getUserRoleList(userId, projectId, roleCode, status, companyId);
 }
 
 /**

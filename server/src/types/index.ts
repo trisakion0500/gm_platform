@@ -183,6 +183,73 @@ export interface UserRoleRow {
 }
 
 /**
+ * code_group 테이블 조회 행 타입.
+ * @author trisakion
+ */
+export interface CodeGroupRow {
+  /** 코드 그룹 ID */
+  code_group_id: number;
+  /** 소속 프로젝트 ID */
+  project_id: number;
+  /** 코드 그룹 코드 */
+  code_group_code: string;
+  /** 코드 그룹명 */
+  code_group_name: string;
+  /** 설명 */
+  description: string | null;
+  /** 상태 (1=사용, 0=중지) */
+  status: number;
+  /** 생성자 user_id */
+  created_by: number;
+  /** 수정자 user_id */
+  updated_by: number;
+  /** 생성 일시 */
+  created_at: Date;
+  /** 수정 일시 */
+  updated_at: Date;
+}
+
+/**
+ * code_item 테이블 조회 행 타입.
+ * @author trisakion
+ */
+export interface CodeItemRow {
+  /** 코드 아이템 ID */
+  code_item_id: number;
+  /** 소속 코드 그룹 ID */
+  code_group_id: number;
+  /** 코드 값 */
+  code_value: string;
+  /** 코드명 */
+  code_name: string;
+  /** 설명 */
+  description: string | null;
+  /** 표시 순서 */
+  display_order: number;
+  /** 상태 (1=사용, 0=중지) */
+  status: number;
+  /** 생성자 user_id */
+  created_by: number;
+  /** 수정자 user_id */
+  updated_by: number;
+  /** 생성 일시 */
+  created_at: Date;
+  /** 수정 일시 */
+  updated_at: Date;
+}
+
+/**
+ * SP_GET_ACTIVE_CODE_ITEMS 반환 행 타입. 렌더링용 최소 필드만 포함.
+ * @author trisakion
+ */
+export interface ActiveCodeItemRow {
+  /** 코드 값 */
+  code_value: string;
+  /** 코드명 */
+  code_name: string;
+}
+
+/**
  * company 테이블 조회 행 타입.
  * @author trisakion
  */
