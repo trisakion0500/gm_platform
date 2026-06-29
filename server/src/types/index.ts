@@ -96,6 +96,35 @@ export interface SessionWithUserRow extends SessionRow {
 }
 
 /**
+ * project 테이블 조회 행 타입. company JOIN 포함.
+ * @author trisakion
+ */
+export interface ProjectRow {
+  /** 프로젝트 ID */
+  project_id: number;
+  /** 소속 회사 ID */
+  company_id: number;
+  /** 소속 회사 코드 */
+  company_code: string;
+  /** 소속 회사명 */
+  company_name: string;
+  /** 프로젝트 코드 */
+  project_code: string;
+  /** 프로젝트명 */
+  project_name: string;
+  /** API Base URL */
+  api_base_url: string;
+  /** 설명 */
+  description: string | null;
+  /** 상태 (1=사용, 0=중지) */
+  status: number;
+  /** 생성 일시 */
+  created_at: Date;
+  /** 수정 일시 */
+  updated_at: Date;
+}
+
+/**
  * company 테이블 조회 행 타입.
  * @author trisakion
  */
