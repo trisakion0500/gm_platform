@@ -157,5 +157,14 @@ AI는 문서 초안 작성과 반복적인 코드 작업의 속도를 높이는 
 - ✅ 레이아웃 구조 정의 완료
 - ✅ 로컬 개발 환경 설정 완료
 - ✅ 프로젝트 폴더 구조 정의 완료
-- ⬜ Backend 구현
+- 🔧 Backend 구현 중
+  - ✅ Auth API — 로그인 / 회원가입 / 토큰 재발급 / 로그아웃 / 내 정보 / 비밀번호 변경
+  - ✅ Company API — 목록 / 등록 / 상세 / 수정
+  - ✅ Project API — 목록 / 등록 / 상세 / 수정
+  - ✅ User API — 목록 / 상세 / 수정 / 가입 승인·반려 / 비밀번호 강제 초기화
+  - ✅ User Role API — 목록 / 등록 / 수정
+  - ⬜ API API — 목록 / 등록 / 상세 / 수정 / Request·Response 파라미터 관리 / 실행
+  - ⬜ API Execution API — 목록 / 상세 / 승인·반려·취소
+  - ⬜ Code Group / Code Item API
+  - ⬜ Audit Log API
 - ⬜ Frontend 구현
