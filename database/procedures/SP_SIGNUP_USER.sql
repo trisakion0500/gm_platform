@@ -43,7 +43,7 @@ BEGIN
         END IF;
 
         IF i_requested_project_id IS NOT NULL AND
-           NOT EXISTS (SELECT 1 FROM `project` WHERE `project_id` = i_requested_project_id AND `status` = 1) THEN
+           NOT EXISTS (SELECT 1 FROM `project` WHERE `project_id` = i_requested_project_id AND `status` = 1 AND `company_id` = i_company_id) THEN
             SELECT 31002 AS RESULT;
             LEAVE transaction_block;
         END IF;

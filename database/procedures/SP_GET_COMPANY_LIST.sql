@@ -18,7 +18,6 @@ BEGIN
 --        SUPER_ADMIN(10) : 전체 회사 반환
 --        DEVELOPER(20)   : 본인 소속 company_id 의 회사만 반환
 --        페이지네이션 : total_count + items 순서로 반환
--- 테이블 적용 순서 : company
 -- --------------------------------- --
 
     DECLARE v_offset  INT DEFAULT (i_page - 1) * i_page_size;

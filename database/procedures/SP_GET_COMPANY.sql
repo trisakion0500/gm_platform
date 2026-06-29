@@ -16,7 +16,6 @@ BEGIN
 --        SUPER_ADMIN(10) : 모든 회사 조회 가능
 --        DEVELOPER(20)   : 본인 소속 company_id 의 회사만 조회 가능
 --        조회 불가 또는 미존재 시 31001 반환
--- 테이블 적용 순서 : company
 -- --------------------------------- --
 
     transaction_block: BEGIN

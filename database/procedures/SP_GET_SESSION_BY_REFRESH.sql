@@ -55,7 +55,7 @@ BEGIN
                COALESCE(MIN(ur.`role_code`), 40) AS role_code
         FROM   `user_session` s
         JOIN   `user` u ON s.`user_id` = u.`user_id`
-        LEFT JOIN `user_role` ur ON u.`user_id` = ur.`user_id`
+        LEFT JOIN `user_role` ur ON u.`user_id` = ur.`user_id` AND ur.`status` = 1
         WHERE  s.`session_id` = v_session_id
         GROUP BY s.`session_id`, s.`user_id`, s.`status`, u.`status`, u.`company_id`;
 

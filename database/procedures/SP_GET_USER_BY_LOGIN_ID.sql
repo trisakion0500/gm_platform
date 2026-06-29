@@ -52,7 +52,7 @@ BEGIN
                COALESCE(MIN(ur.`role_code`), 40) AS role_code,
                u.`last_login_at`, u.`created_at`, u.`updated_at`
         FROM   `user` u
-        LEFT JOIN `user_role` ur ON u.`user_id` = ur.`user_id`
+        LEFT JOIN `user_role` ur ON u.`user_id` = ur.`user_id` AND ur.`status` = 1
         WHERE  u.`user_id` = v_user_id
         GROUP BY u.`user_id`, u.`company_id`, u.`requested_project_id`,
                  u.`login_id`, u.`password_hash`, u.`user_name`, u.`email`,
