@@ -3,6 +3,7 @@ import authRouter from './auth';
 import companyRouter from './company';
 import projectRouter from './project';
 import userRouter from './user';
+import userRoleRouter from './userRole';
 
 const router = Router();
 
@@ -13,6 +14,7 @@ router.get('/health', (_req: Request, res: Response) => {
 router.use('/auth',      authRouter);
 router.use('/companies', companyRouter);
 router.use('/projects',  projectRouter);
-router.use('/users',     userRouter);
+router.use('/users',      userRouter);
+router.use('/user-roles', userRoleRouter);
 
 export default router;

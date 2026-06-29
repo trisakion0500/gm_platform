@@ -156,6 +156,33 @@ export interface UserAdminRow {
 }
 
 /**
+ * user_role 테이블 조회 행 타입. user/project JOIN 포함.
+ * @author trisakion
+ */
+export interface UserRoleRow {
+  /** 사용자 ID */
+  user_id: number;
+  /** 로그인 ID */
+  login_id: string;
+  /** 사용자명 */
+  user_name: string;
+  /** 프로젝트 ID */
+  project_id: number;
+  /** 프로젝트 코드 */
+  project_code: string;
+  /** 프로젝트명 */
+  project_name: string;
+  /** 역할 코드 (20=DEVELOPER, 30=APPROVER, 40=OPERATOR) */
+  role_code: number;
+  /** 상태 (1=사용, 0=중지) */
+  status: number;
+  /** 생성 일시 */
+  created_at: Date;
+  /** 수정 일시 */
+  updated_at: Date;
+}
+
+/**
  * company 테이블 조회 행 타입.
  * @author trisakion
  */
