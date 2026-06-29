@@ -29,12 +29,12 @@ export async function createProject(req: Request, res: Response, next: NextFunct
   try {
     const { company_id, project_code, project_name, api_base_url, description } = req.body;
     if (!company_id || !project_code || !project_name || !api_base_url) {
-      fail(res, 30001, ERROR_MAP[30001].message, ERROR_MAP[30001].httpStatus);
+      fail(res, ERROR_MAP.REQUIRED_MISSING);
       return;
     }
     const companyId = Number(company_id);
     if (!Number.isInteger(companyId) || companyId < 1) {
-      fail(res, 30002, ERROR_MAP[30002].message, ERROR_MAP[30002].httpStatus);
+      fail(res, ERROR_MAP.INVALID_FORMAT);
       return;
     }
     const project = await projectService.createProject(companyId, project_code, project_name, api_base_url, description ?? null);
@@ -56,17 +56,17 @@ export async function getProjectList(req: Request, res: Response, next: NextFunc
   try {
     const { company_id, status, page, page_size } = req.query;
     if (!page || !page_size) {
-      fail(res, 30001, ERROR_MAP[30001].message, ERROR_MAP[30001].httpStatus);
+      fail(res, ERROR_MAP.REQUIRED_MISSING);
       return;
     }
     const pageNum = Number(page);
     const pageSizeNum = Number(page_size);
     if (!Number.isInteger(pageNum) || pageNum < 1) {
-      fail(res, 30002, ERROR_MAP[30002].message, ERROR_MAP[30002].httpStatus);
+      fail(res, ERROR_MAP.INVALID_FORMAT);
       return;
     }
     if (![20, 50, 100].includes(pageSizeNum)) {
-      fail(res, 30003, ERROR_MAP[30003].message, ERROR_MAP[30003].httpStatus);
+      fail(res, ERROR_MAP.INVALID_VALUE);
       return;
     }
     const companyIdNum = company_id !== undefined ? Number(company_id) : null;
@@ -100,7 +100,7 @@ export async function getProject(req: Request, res: Response, next: NextFunction
   try {
     const projectId = Number(req.params.project_id);
     if (!Number.isInteger(projectId) || projectId < 1) {
-      fail(res, 30002, ERROR_MAP[30002].message, ERROR_MAP[30002].httpStatus);
+      fail(res, ERROR_MAP.INVALID_FORMAT);
       return;
     }
     const project = await projectService.getProject(projectId, req.user!.role_code, req.user!.company_id);
@@ -122,7 +122,7 @@ export async function updateProject(req: Request, res: Response, next: NextFunct
   try {
     const projectId = Number(req.params.project_id);
     if (!Number.isInteger(projectId) || projectId < 1) {
-      fail(res, 30002, ERROR_MAP[30002].message, ERROR_MAP[30002].httpStatus);
+      fail(res, ERROR_MAP.INVALID_FORMAT);
       return;
     }
     const { project_code, project_name, api_base_url, description, status } = req.body;

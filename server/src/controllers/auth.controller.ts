@@ -15,7 +15,7 @@ export async function signup(req: Request, res: Response, next: NextFunction): P
   try {
     const { company_id, requested_project_id, login_id, password, user_name, email } = req.body;
     if (!company_id || !login_id || !password || !user_name || !email) {
-      fail(res, 30001, ERROR_MAP[30001].message, ERROR_MAP[30001].httpStatus);
+      fail(res, ERROR_MAP.REQUIRED_MISSING);
       return;
     }
     const user = await authService.signup(company_id, requested_project_id ?? null, login_id, password, user_name, email);
@@ -42,7 +42,7 @@ export async function login(req: Request, res: Response, next: NextFunction): Pr
   try {
     const { login_id, password } = req.body;
     if (!login_id || !password) {
-      fail(res, 30001, ERROR_MAP[30001].message, ERROR_MAP[30001].httpStatus);
+      fail(res, ERROR_MAP.REQUIRED_MISSING);
       return;
     }
     const result = await authService.login(login_id, password);
@@ -81,7 +81,7 @@ export async function refresh(req: Request, res: Response, next: NextFunction): 
   try {
     const { refresh_token } = req.body;
     if (!refresh_token) {
-      fail(res, 30001, ERROR_MAP[30001].message, ERROR_MAP[30001].httpStatus);
+      fail(res, ERROR_MAP.REQUIRED_MISSING);
       return;
     }
     const result = await authService.refresh(refresh_token);
@@ -125,7 +125,7 @@ export async function changePassword(req: Request, res: Response, next: NextFunc
   try {
     const { current_password, new_password } = req.body;
     if (!current_password || !new_password) {
-      fail(res, 30001, ERROR_MAP[30001].message, ERROR_MAP[30001].httpStatus);
+      fail(res, ERROR_MAP.REQUIRED_MISSING);
       return;
     }
     await authService.changePassword(req.user!.user_id, current_password, new_password);

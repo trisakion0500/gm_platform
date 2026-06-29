@@ -1,6 +1,6 @@
 import { callSP } from '../config/db';
 import { UserRow, UserPublicRow, SessionRow, SessionWithUserRow } from '../types';
-import { toDBError } from '../constants/errors';
+import { toDBError, ERROR_MAP } from '../constants/errors';
 
 /**
  * 회원가입 — user를 INSERT하고 생성된 사용자 공개 정보를 반환한다.
@@ -24,9 +24,9 @@ export async function signupUser(
 ): Promise<UserPublicRow> {
   const [status, [data]] = await callSP('SP_SIGNUP_USER', [companyId, requestedProjectId, loginId, passwordHash, userName, email]);
   switch (status[0].RESULT) {
-    case 31001: throw toDBError(31001);
-    case 31002: throw toDBError(31002);
-    case 32001: throw toDBError(32001);
+    case 31001: throw toDBError(ERROR_MAP.COMPANY_NOT_FOUND);
+    case 31002: throw toDBError(ERROR_MAP.PROJECT_NOT_FOUND);
+    case 32001: throw toDBError(ERROR_MAP.DUPLICATE_VALUE);
   }
   return data[0] as unknown as UserPublicRow;
 }

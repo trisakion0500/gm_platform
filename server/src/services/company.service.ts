@@ -1,5 +1,5 @@
 import { CompanyRow } from '../types';
-import { toAppError } from '../constants/errors';
+import { toAppError, ERROR_MAP } from '../constants/errors';
 import * as db from '../db/company.db';
 
 /**
@@ -53,7 +53,7 @@ export async function getCompany(
   userCompanyId: number,
 ): Promise<CompanyRow> {
   const company = await db.getCompany(companyId, roleCode, userCompanyId);
-  if (!company) throw toAppError(31001);
+  if (!company) throw toAppError(ERROR_MAP.COMPANY_NOT_FOUND);
   return company;
 }
 

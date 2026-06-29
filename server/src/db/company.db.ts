@@ -1,6 +1,6 @@
 import { callSP } from '../config/db';
 import { CompanyRow } from '../types';
-import { toDBError } from '../constants/errors';
+import { toDBError, ERROR_MAP } from '../constants/errors';
 
 /**
  * 회사를 생성하고 생성된 회사 정보를 반환한다.
@@ -18,7 +18,7 @@ export async function createCompany(
 ): Promise<CompanyRow> {
   const [status, [data]] = await callSP('SP_CREATE_COMPANY', [companyCode, companyName, description]);
   switch (status[0].RESULT) {
-    case 32001: throw toDBError(32001);
+    case 32001: throw toDBError(ERROR_MAP.DUPLICATE_VALUE);
   }
   return data[0] as unknown as CompanyRow;
 }
@@ -89,8 +89,8 @@ export async function updateCompany(
 ): Promise<CompanyRow> {
   const [spStatus, [data]] = await callSP('SP_UPDATE_COMPANY', [companyId, companyCode, companyName, description, status]);
   switch (spStatus[0].RESULT) {
-    case 31001: throw toDBError(31001);
-    case 32001: throw toDBError(32001);
+    case 31001: throw toDBError(ERROR_MAP.COMPANY_NOT_FOUND);
+    case 32001: throw toDBError(ERROR_MAP.DUPLICATE_VALUE);
   }
   return data[0] as unknown as CompanyRow;
 }

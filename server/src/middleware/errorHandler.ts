@@ -36,5 +36,5 @@ export function errorHandler(
 
   // 예상하지 못한 예외 — 5xx 응답에는 내부 오류 메시지를 노출하지 않음
   logger.error(`${req.method} ${req.url} - ${err.message}`, err.stack);
-  res.status(ERROR_MAP[50000].httpStatus).json({ result: 50000, message: ERROR_MAP[50000].message });
+  res.status(ERROR_MAP.SERVER_ERROR.httpStatus).json({ result: 50000, message: ERROR_MAP.SERVER_ERROR.message });
 }

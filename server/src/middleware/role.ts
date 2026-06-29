@@ -12,8 +12,7 @@ import { ERROR_MAP } from '../constants/errors';
 export function requireRole(...roleCodes: number[]) {
   return (req: Request, res: Response, next: NextFunction): void => {
     if (!req.user || !roleCodes.includes(req.user.role_code)) {
-      const e = ERROR_MAP[20001];
-      fail(res, 20001, e.message, e.httpStatus);
+      fail(res, ERROR_MAP.FORBIDDEN);
       return;
     }
     next();

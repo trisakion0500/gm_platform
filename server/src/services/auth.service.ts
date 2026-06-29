@@ -5,7 +5,7 @@ import { hashPassword, comparePassword } from "../utils/bcrypt";
 import { signAccessToken } from "../utils/jwt";
 import { formatDatetime } from "../utils/response";
 import { env } from "../config/env";
-import { toAppError } from "../constants/errors";
+import { toAppError, ERROR_MAP } from "../constants/errors";
 import * as db from "../db/auth.db";
 
 /**
@@ -76,17 +76,17 @@ export async function signup(
  */
 export async function login(loginId: string, password: string) {
   const user = await db.getUserByLoginId(loginId);
-  if (!user) throw toAppError(10001);
+  if (!user) throw toAppError(ERROR_MAP.LOGIN_FAILED);
 
   const match = await comparePassword(password, user.password_hash);
-  if (!match) throw toAppError(10001);
+  if (!match) throw toAppError(ERROR_MAP.LOGIN_FAILED);
 
   if (user.status !== 1) {
     switch (user.status) {
-      case 0: throw toAppError(10005);
-      case 2: throw toAppError(10006);
-      case 3: throw toAppError(10007);
-      default: throw toAppError(10001);
+      case 0: throw toAppError(ERROR_MAP.PENDING_APPROVAL);
+      case 2: throw toAppError(ERROR_MAP.SIGNUP_REJECTED);
+      case 3: throw toAppError(ERROR_MAP.ACCOUNT_SUSPENDED);
+      default: throw toAppError(ERROR_MAP.LOGIN_FAILED);
     }
   }
 
@@ -137,16 +137,16 @@ export async function refresh(refreshToken: string) {
   const refreshTokenHash = hashRefreshToken(refreshToken);
   const session = await db.getSessionByRefresh(refreshTokenHash);
 
-  if (!session) throw toAppError(10008);
+  if (!session) throw toAppError(ERROR_MAP.REFRESH_TOKEN_EXPIRED);
   // SP_GET_SESSION_BY_REFRESH가 status=1 AND expired_at > NOW()로 필터링하므로 실질적으로 실행되지 않음
   // SP 변경 시 이 체크도 함께 검토할 것
-  if (session.session_status !== 1) throw toAppError(10009);
+  if (session.session_status !== 1) throw toAppError(ERROR_MAP.INVALID_SESSION);
   if (session.user_status !== 1) {
     switch (session.user_status) {
-      case 0: throw toAppError(10005);
-      case 2: throw toAppError(10006);
-      case 3: throw toAppError(10007);
-      default: throw toAppError(10004);
+      case 0: throw toAppError(ERROR_MAP.PENDING_APPROVAL);
+      case 2: throw toAppError(ERROR_MAP.SIGNUP_REJECTED);
+      case 3: throw toAppError(ERROR_MAP.ACCOUNT_SUSPENDED);
+      default: throw toAppError(ERROR_MAP.UNAUTHORIZED);
     }
   }
 
@@ -172,7 +172,7 @@ export async function refresh(refreshToken: string) {
  */
 export async function getMe(userId: number): Promise<UserPublicRow> {
   const user = await db.getUserById(userId);
-  if (!user) throw toAppError(31003);
+  if (!user) throw toAppError(ERROR_MAP.USER_NOT_FOUND);
   return user;
 }
 
@@ -190,10 +190,10 @@ export async function changePassword(
   newPassword: string,
 ): Promise<void> {
   const passwordHash = await db.getPasswordHashById(userId);
-  if (!passwordHash) throw toAppError(31003);
+  if (!passwordHash) throw toAppError(ERROR_MAP.USER_NOT_FOUND);
 
   const match = await comparePassword(currentPassword, passwordHash);
-  if (!match) throw toAppError(10002);
+  if (!match) throw toAppError(ERROR_MAP.PASSWORD_MISMATCH);
 
   const newHash = await hashPassword(newPassword);
   await db.updatePassword(userId, newHash);

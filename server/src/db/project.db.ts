@@ -1,6 +1,6 @@
 import { callSP } from '../config/db';
 import { ProjectRow } from '../types';
-import { toDBError } from '../constants/errors';
+import { toDBError, ERROR_MAP } from '../constants/errors';
 
 /**
  * 프로젝트를 생성하고 생성된 프로젝트 정보를 반환한다.
@@ -22,8 +22,8 @@ export async function createProject(
 ): Promise<ProjectRow> {
   const [status, [data]] = await callSP('SP_CREATE_PROJECT', [companyId, projectCode, projectName, apiBaseUrl, description]);
   switch (status[0].RESULT) {
-    case 31001: throw toDBError(31001);
-    case 32001: throw toDBError(32001);
+    case 31001: throw toDBError(ERROR_MAP.COMPANY_NOT_FOUND);
+    case 32001: throw toDBError(ERROR_MAP.DUPLICATE_VALUE);
   }
   return data[0] as unknown as ProjectRow;
 }
@@ -98,8 +98,8 @@ export async function updateProject(
 ): Promise<ProjectRow> {
   const [spStatus, [data]] = await callSP('SP_UPDATE_PROJECT', [projectId, projectCode, projectName, apiBaseUrl, description, status]);
   switch (spStatus[0].RESULT) {
-    case 31002: throw toDBError(31002);
-    case 32001: throw toDBError(32001);
+    case 31002: throw toDBError(ERROR_MAP.PROJECT_NOT_FOUND);
+    case 32001: throw toDBError(ERROR_MAP.DUPLICATE_VALUE);
   }
   return data[0] as unknown as ProjectRow;
 }

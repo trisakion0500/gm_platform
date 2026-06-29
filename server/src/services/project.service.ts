@@ -1,5 +1,5 @@
 import { ProjectRow } from '../types';
-import { toAppError } from '../constants/errors';
+import { toAppError, ERROR_MAP } from '../constants/errors';
 import * as db from '../db/project.db';
 
 /**
@@ -59,7 +59,7 @@ export async function getProject(
   userCompanyId: number,
 ): Promise<ProjectRow> {
   const project = await db.getProject(projectId, roleCode, userCompanyId);
-  if (!project) throw toAppError(31002);
+  if (!project) throw toAppError(ERROR_MAP.PROJECT_NOT_FOUND);
   return project;
 }
 

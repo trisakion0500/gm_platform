@@ -22,8 +22,7 @@ import { ERROR_MAP } from '../constants/errors';
 export async function authenticate(req: Request, res: Response, next: NextFunction): Promise<void> {
   const header = req.headers.authorization;
   if (!header?.startsWith('Bearer ')) {
-    const e = ERROR_MAP[10004];
-    fail(res, 10004, e.message, e.httpStatus);
+    fail(res, ERROR_MAP.UNAUTHORIZED);
     return;
   }
 
@@ -34,9 +33,7 @@ export async function authenticate(req: Request, res: Response, next: NextFuncti
     payload = verifyAccessToken(token);
   } catch (err: unknown) {
     const isExpired = err instanceof Error && err.name === 'TokenExpiredError';
-    const code = isExpired ? 10003 : 10004;
-    const e = ERROR_MAP[code];
-    fail(res, code, e.message, e.httpStatus);
+    fail(res, isExpired ? ERROR_MAP.ACCESS_TOKEN_EXPIRED : ERROR_MAP.UNAUTHORIZED);
     return;
   }
 
@@ -49,21 +46,18 @@ export async function authenticate(req: Request, res: Response, next: NextFuncti
   }
 
   if (!session || session.session_status !== 1) {
-    const e = ERROR_MAP[10009];
-    fail(res, 10009, e.message, e.httpStatus);
+    fail(res, ERROR_MAP.INVALID_SESSION);
     return;
   }
 
   if (session.user_status !== 1) {
-    let code: 10004 | 10005 | 10006 | 10007;
+    let entry = ERROR_MAP.UNAUTHORIZED;
     switch (session.user_status) {
-      case 0: code = 10005; break;
-      case 2: code = 10006; break;
-      case 3: code = 10007; break;
-      default: code = 10004;
+      case 0: entry = ERROR_MAP.PENDING_APPROVAL; break;
+      case 2: entry = ERROR_MAP.SIGNUP_REJECTED; break;
+      case 3: entry = ERROR_MAP.ACCOUNT_SUSPENDED; break;
     }
-    const e = ERROR_MAP[code];
-    fail(res, code, e.message, e.httpStatus);
+    fail(res, entry);
     return;
   }
 

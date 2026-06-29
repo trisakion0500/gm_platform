@@ -29,7 +29,7 @@ export async function createCompany(req: Request, res: Response, next: NextFunct
   try {
     const { company_code, company_name, description } = req.body;
     if (!company_code || !company_name) {
-      fail(res, 30001, ERROR_MAP[30001].message, ERROR_MAP[30001].httpStatus);
+      fail(res, ERROR_MAP.REQUIRED_MISSING);
       return;
     }
     const company = await companyService.createCompany(company_code, company_name, description ?? null);
@@ -51,17 +51,17 @@ export async function getCompanyList(req: Request, res: Response, next: NextFunc
   try {
     const { status, page, page_size } = req.query;
     if (!page || !page_size) {
-      fail(res, 30001, ERROR_MAP[30001].message, ERROR_MAP[30001].httpStatus);
+      fail(res, ERROR_MAP.REQUIRED_MISSING);
       return;
     }
     const pageNum = Number(page);
     const pageSizeNum = Number(page_size);
     if (!Number.isInteger(pageNum) || pageNum < 1) {
-      fail(res, 30002, ERROR_MAP[30002].message, ERROR_MAP[30002].httpStatus);
+      fail(res, ERROR_MAP.INVALID_FORMAT);
       return;
     }
     if (![20, 50, 100].includes(pageSizeNum)) {
-      fail(res, 30003, ERROR_MAP[30003].message, ERROR_MAP[30003].httpStatus);
+      fail(res, ERROR_MAP.INVALID_VALUE);
       return;
     }
     const statusNum = status !== undefined ? Number(status) : null;
@@ -93,7 +93,7 @@ export async function getCompany(req: Request, res: Response, next: NextFunction
   try {
     const companyId = Number(req.params.company_id);
     if (!Number.isInteger(companyId) || companyId < 1) {
-      fail(res, 30002, ERROR_MAP[30002].message, ERROR_MAP[30002].httpStatus);
+      fail(res, ERROR_MAP.INVALID_FORMAT);
       return;
     }
     const company = await companyService.getCompany(companyId, req.user!.role_code, req.user!.company_id);
@@ -115,7 +115,7 @@ export async function updateCompany(req: Request, res: Response, next: NextFunct
   try {
     const companyId = Number(req.params.company_id);
     if (!Number.isInteger(companyId) || companyId < 1) {
-      fail(res, 30002, ERROR_MAP[30002].message, ERROR_MAP[30002].httpStatus);
+      fail(res, ERROR_MAP.INVALID_FORMAT);
       return;
     }
     const { company_code, company_name, description, status } = req.body;

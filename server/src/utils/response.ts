@@ -1,4 +1,5 @@
 import { Response } from 'express';
+import { ERROR_MAP, ErrorEntry } from '../constants/errors';
 
 /**
  * 성공 응답을 전송한다. 응답 형식: { result: 0, data }
@@ -13,16 +14,15 @@ export const success = (res: Response, data: unknown, status = 200): void => {
 };
 
 /**
- * 실패 응답을 전송한다. 응답 형식: { result, message }
+ * 실패 응답을 전송한다. ERROR_MAP에서 message·httpStatus를 조회하여 응답한다.
+ * 응답 형식: { result, message }
  * @author trisakion
  * @param res Express Response 객체
- * @param result 비즈니스 오류 코드
- * @param message 오류 메시지
- * @param httpStatus HTTP 상태 코드
+ * @param code ERROR_MAP에 정의된 오류 코드
  * @returns void
  */
-export const fail = (res: Response, result: number, message: string, httpStatus: number): void => {
-  res.status(httpStatus).json({ result, message });
+export const fail = (res: Response, entry: ErrorEntry): void => {
+  res.status(entry.httpStatus).json({ result: entry.code, message: entry.message });
 };
 
 /**
