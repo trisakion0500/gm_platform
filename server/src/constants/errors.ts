@@ -42,6 +42,10 @@ export const ERROR_MAP = {
   PROJECT_NOT_FOUND:     { code: 31002, message: '존재하지 않는 프로젝트입니다.',          httpStatus: 404 },
   /** user_id로 사용자를 찾을 수 없음 */
   USER_NOT_FOUND:        { code: 31003, message: '사용자를 찾을 수 없습니다.',            httpStatus: 404 },
+  /** 존재하지 않는 코드 그룹 */
+  CODE_GROUP_NOT_FOUND:  { code: 31004, message: '존재하지 않는 코드 그룹입니다.',        httpStatus: 404 },
+  /** 존재하지 않는 코드 아이템 */
+  CODE_ITEM_NOT_FOUND:   { code: 31005, message: '존재하지 않는 코드 아이템입니다.',      httpStatus: 404 },
   /** 중복 데이터 */
   DUPLICATE_VALUE:       { code: 32001, message: '이미 사용 중인 값입니다.',              httpStatus: 400 },
   // 시스템

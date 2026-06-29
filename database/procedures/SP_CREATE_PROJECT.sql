@@ -36,7 +36,7 @@ BEGIN
 
     transaction_block: BEGIN
 
-        IF NOT EXISTS (SELECT 1 FROM `company` WHERE `company_id` = i_company_id) THEN
+        IF NOT EXISTS (SELECT 1 FROM `company` WHERE `company_id` = i_company_id AND `status` = 1) THEN
             SELECT 31001 AS RESULT;
             LEAVE transaction_block;
         END IF;
