@@ -282,24 +282,7 @@ api_stage = 20
 
 ---
 
-## 2.2 Get API Request List
-
-### Endpoint
-
-```http
-GET /apis/{api_id}/requests
-```
-
-### Sorting
-
-```sql
-ORDER BY status DESC,
-         display_order ASC
-```
-
----
-
-## 2.3 Get API Request
+## 2.2 Get API Request
 
 ### Endpoint
 
@@ -309,7 +292,7 @@ GET /api-requests/{api_request_id}
 
 ---
 
-## 2.4 Update API Request
+## 2.3 Update API Request
 
 ### Endpoint
 
@@ -410,24 +393,7 @@ api_stage = 20
 
 ---
 
-## 3.2 Get API Response List
-
-### Endpoint
-
-```http
-GET /apis/{api_id}/responses
-```
-
-### Sorting
-
-```sql
-ORDER BY status DESC,
-         display_order ASC
-```
-
----
-
-## 3.3 Get API Response
+## 3.2 Get API Response
 
 ### Endpoint
 
@@ -437,7 +403,7 @@ GET /api-responses/{api_response_id}
 
 ---
 
-## 3.4 Update API Response
+## 3.3 Update API Response
 
 ### Endpoint
 

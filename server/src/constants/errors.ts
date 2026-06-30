@@ -46,6 +46,12 @@ export const ERROR_MAP = {
   CODE_GROUP_NOT_FOUND:  { code: 31004, message: '존재하지 않는 코드 그룹입니다.',        httpStatus: 404 },
   /** 존재하지 않는 코드 아이템 */
   CODE_ITEM_NOT_FOUND:   { code: 31005, message: '존재하지 않는 코드 아이템입니다.',      httpStatus: 404 },
+  /** 존재하지 않는 API */
+  API_NOT_FOUND:         { code: 31006, message: '존재하지 않는 API입니다.',             httpStatus: 404 },
+  /** 존재하지 않는 API Request 파라미터 */
+  API_REQUEST_NOT_FOUND: { code: 31007, message: '존재하지 않는 API Request 파라미터입니다.', httpStatus: 404 },
+  /** 존재하지 않는 API Response 파라미터 */
+  API_RESPONSE_NOT_FOUND:{ code: 31008, message: '존재하지 않는 API Response 파라미터입니다.', httpStatus: 404 },
   /** 중복 데이터 */
   DUPLICATE_VALUE:       { code: 32001, message: '이미 사용 중인 값입니다.',              httpStatus: 400 },
   // 시스템
