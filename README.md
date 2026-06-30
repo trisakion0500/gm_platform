@@ -128,7 +128,8 @@ gm_platform/
 ├── client/          # Frontend (React)
 ├── server/          # Backend (Express)
 ├── database/
-│   └── tables/      # DDL SQL 파일
+│   ├── tables/      # DDL SQL 파일 (all_tables.sql 포함)
+│   └── procedures/  # Stored Procedure SQL 파일
 └── docs/            # 설계 문서
 ```
 
@@ -163,8 +164,8 @@ AI는 문서 초안 작성과 반복적인 코드 작업의 속도를 높이는 
   - ✅ Project API — 목록 / 등록 / 상세 / 수정
   - ✅ User API — 목록 / 상세 / 수정 / 가입 승인·반려 / 비밀번호 강제 초기화
   - ✅ User Role API — 목록 / 등록 / 수정
-  - ⬜ API API — 목록 / 등록 / 상세 / 수정 / Request·Response 파라미터 관리 / 실행
-  - ⬜ API Execution API — 목록 / 상세 / 승인·반려·취소
+  - ✅ API API — 목록 / 등록 / 상세 / 수정 / Request·Response 파라미터 관리 / 실행
+  - ✅ API Execution API — 목록 / 상세 / PENDING 목록 / 승인·반려·취소
   - ✅ Code Group API — 목록 / 등록 / 상세 / 수정 / 활성 아이템 조회
   - ✅ Code Item API — 목록 / 등록 / 상세 / 수정
   - ⬜ Audit Log API
