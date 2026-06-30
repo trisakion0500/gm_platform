@@ -378,6 +378,44 @@ export interface APIResponseRow {
 }
 
 /**
+ * api_execution 테이블 조회 행 타입.
+ * 목록 조회 시 request_json/response_data는 포함되지 않는다.
+ * @author trisakion
+ */
+export interface APIExecutionRow {
+  /** 실행 이력 ID */
+  api_execution_id: number;
+  /** 소속 API ID */
+  api_id: number;
+  /** API 이름 스냅샷 */
+  api_name: string;
+  /** Endpoint 스냅샷 */
+  endpoint: string;
+  /** 요청자 user_id */
+  request_user_id: number;
+  /** 승인/반려자 user_id (없으면 null) */
+  approve_user_id: number | null;
+  /** 상태 (10:PENDING, 20:APPROVED, 30:REJECTED, 40:SUCCESS, 50:FAILED, 60:CANCELED) */
+  status: number;
+  /** 요청 파라미터 JSON (상세 조회 시만 포함) */
+  request_json?: string;
+  /** 응답 데이터 JSON (상세 조회 시만 포함, 없으면 null) */
+  response_data?: string | null;
+  /** 반려/취소 사유 (없으면 null) */
+  reject_reason: string | null;
+  /** 에러 메시지 (없으면 null) */
+  error_message: string | null;
+  /** 요청 일시 */
+  requested_at: Date;
+  /** 승인 일시 (없으면 null) */
+  approved_at: Date | null;
+  /** 실행 일시 (없으면 null) */
+  executed_at: Date | null;
+  /** 수정 일시 */
+  updated_at: Date;
+}
+
+/**
  * 비즈니스 로직 오류를 표현하는 기본 오류 클래스.
  * result(비즈니스 오류 코드)와 httpStatus를 함께 보유하여 errorHandler에서 일관된 응답을 생성한다.
  * @author trisakion
