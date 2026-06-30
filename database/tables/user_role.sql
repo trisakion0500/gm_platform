@@ -17,4 +17,10 @@ CREATE TABLE `user_role` (
   CONSTRAINT `fk_user_role_project` FOREIGN KEY (`project_id`) REFERENCES `project` (`project_id`),
   CONSTRAINT `fk_user_role_user` FOREIGN KEY (`user_id`) REFERENCES `user` (`user_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='사용자 프로젝트 권한 매핑 (10단위 role 레벨 코드)';
+INSERT INTO `user_role` (`user_id`, `project_id`, `role_code`, `status`, `created_at`, `updated_at`)
+VALUES
+(1, 1, 10, 1, '1970-01-01 00:00:00', '1970-01-01 00:00:00'),
+(2, 2, 20, 1, '1970-01-01 00:00:00', '1970-01-01 00:00:00'),
+(3, 2, 30, 1, '1970-01-01 00:00:00', '1970-01-01 00:00:00'),
+(4, 2, 40, 1, '1970-01-01 00:00:00', '1970-01-01 00:00:00');
 SET FOREIGN_KEY_CHECKS = 1;

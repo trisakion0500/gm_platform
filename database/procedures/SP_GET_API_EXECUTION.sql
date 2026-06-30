@@ -11,7 +11,7 @@ BEGIN
 -- 명칭 : SP_GET_API_EXECUTION
 -- 작성 : 2026-06-30 trisakion
 -- 내용 : API 실행 이력 상세 조회
---        OPERATOR(40) : 본인 요청 건만 조회 가능 (20001)
+--        OPERATOR(40) : 본인 요청 건만 조회 가능 (31009)
 --        비SUPER_ADMIN : 자신의 company 프로젝트만 조회 가능 (20001)
 -- --------------------------------- --
 
@@ -45,7 +45,7 @@ BEGIN
         END IF;
 
         IF i_caller_role_code = 40 AND v_request_user_id != i_caller_user_id THEN
-            SELECT 20001 AS RESULT;
+            SELECT 31009 AS RESULT;
             LEAVE transaction_block;
         END IF;
 

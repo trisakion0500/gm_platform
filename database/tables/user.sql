@@ -25,4 +25,10 @@ CREATE TABLE `user` (
   CONSTRAINT `fk_user_company_id` FOREIGN KEY (`company_id`) REFERENCES `company` (`company_id`),
   CONSTRAINT `fk_user_requested_project` FOREIGN KEY (`requested_project_id`) REFERENCES `project` (`project_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='플랫폼 사용자 계정';
+INSERT INTO `user` (`user_id`, `company_id`, `requested_project_id`, `login_id`, `password_hash`, `user_name`, `email`, `status`, `created_at`, `updated_at`)
+VALUES
+(1, 1, 1, 'sa',  '$2b$12$P9T8Tsrnvqw7RX4e/UxQHuqjD6qEe7SJ7cYSBBf2HY1bTt5iV0BoG', 'Super Admin', 'sa@example.com',  1, '1970-01-01 00:00:00', '1970-01-01 00:00:00'),
+(2, 2, 2, 'dev', '$2b$12$F6tSaPz673OpLoLtGwJuceez38jfCV79KGRv/vk3FSkiDKVngM.zK',  'Developer',   'dev@example.com', 1, '1970-01-01 00:00:00', '1970-01-01 00:00:00'),
+(3, 2, 2, 'apv', '$2b$12$kIHtGsC1nrUxKcooDXyHhe9LREZPM4Q6v5N4VSwrYrfF7qCD61WaC',  'Approver',    'apv@example.com', 1, '1970-01-01 00:00:00', '1970-01-01 00:00:00'),
+(4, 2, 2, 'op',  '$2b$12$uEM0RqK8zY/r4S2EmmPCEu7PNfMAdWKA3fwFWUMCc4.Ydcx2q926.',  'Operator',    'op@example.com',  1, '1970-01-01 00:00:00', '1970-01-01 00:00:00');
 SET FOREIGN_KEY_CHECKS = 1;

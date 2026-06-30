@@ -45,44 +45,16 @@ mysql -u root -p gm_platform < database/tables/all_tables.sql
 
 실행 결과로 아래 초기 데이터가 삽입된다.
 
-| 테이블 | 데이터 |
-| ------- | ------------------------------------------- |
-| company | company_id=1, company_code=`ADMIN` |
-| project | project_id=1, project_code=`ADMIN_PROJECT` |
-
-## 3.3 SUPER_ADMIN 계정 생성
-
-**① 회원가입 API 호출**
-
-서버 기동 후 아래 요청으로 계정을 생성한다.
-
-```http
-POST /api/auth/signup
-Content-Type: application/json
-
-{
-  "company_id": 1,
-  "requested_project_id": 1,
-  "login_id": "admin",
-  "password": "설정할비밀번호",
-  "user_name": "Super Admin",
-  "email": "admin@example.com"
-}
-```
-
-**② DB에서 승인 및 역할 부여**
-
-응답의 `user_id`를 확인 후 아래 SQL을 실행한다.
-
-```sql
-USE gm_platform;
-
--- $USER_ID 를 ①에서 생성된 user_id로 대체
-UPDATE user SET status = 1 WHERE user_id = $USER_ID;
-
-INSERT INTO user_role (user_id, project_id, role_code, status)
-VALUES ($USER_ID, 1, 10, 1);
-```
+| 테이블 | ID | code | name | 비고 |
+| ------- | -- | ---- | ---- | ---- |
+| company | 1 | `ADMIN` | Administrator Company | — |
+| company | 2 | `DEV` | Developer Company | — |
+| project | 1 | `ADMIN_PROJECT` | Administrator Company Default Project | company_id=1 |
+| project | 2 | `DEV_PROJECT` | Developer Company Default Project | company_id=2 |
+| user | 1 | `sa` | Super Admin | pw=`1234`, company=1, project=1, role=SUPER_ADMIN(10) |
+| user | 2 | `dev` | Developer | pw=`1234`, company=2, project=2, role=DEVELOPER(20) |
+| user | 3 | `apv` | Approver | pw=`1234`, company=2, project=2, role=APPROVER(30) |
+| user | 4 | `op` | Operator | pw=`1234`, company=2, project=2, role=OPERATOR(40) |
 
 ---
 

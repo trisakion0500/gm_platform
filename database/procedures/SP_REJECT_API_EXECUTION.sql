@@ -11,7 +11,7 @@ BEGIN
 -- 작성 : 2026-06-30 trisakion
 -- 내용 : PENDING(10) → REJECTED(30)
 --        실행 이력 없음 → 31009
---        status != 10  → 30003
+--        status != 10  → 31009
 -- 테이블 적용 순서 : api_execution
 -- --------------------------------- --
 
@@ -44,7 +44,7 @@ BEGIN
         END IF;
 
         IF v_status != 10 THEN
-            SELECT 30003 AS RESULT;
+            SELECT 31009 AS RESULT;
             LEAVE transaction_block;
         END IF;
 
@@ -60,7 +60,7 @@ BEGIN
 
             IF ROW_COUNT() = 0 THEN
                 ROLLBACK;
-                SELECT 30003 AS RESULT;
+                SELECT 31009 AS RESULT;
                 LEAVE transaction_block;
             END IF;
 

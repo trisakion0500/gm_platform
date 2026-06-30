@@ -10,7 +10,7 @@ BEGIN
 -- 작성 : 2026-06-30 trisakion
 -- 내용 : PENDING(10) → APPROVED(20)
 --        실행 이력 없음 → 31009
---        status != 10  → 30003
+--        status != 10  → 31009
 --        api_base_url 반환 (서비스에서 HTTP 호출에 사용)
 -- 테이블 적용 순서 : api_execution
 -- --------------------------------- --
@@ -47,7 +47,7 @@ BEGIN
         END IF;
 
         IF v_status != 10 THEN
-            SELECT 30003 AS RESULT;
+            SELECT 31009 AS RESULT;
             LEAVE transaction_block;
         END IF;
 
@@ -63,7 +63,7 @@ BEGIN
 
             IF ROW_COUNT() = 0 THEN
                 ROLLBACK;
-                SELECT 30003 AS RESULT;
+                SELECT 31009 AS RESULT;
                 LEAVE transaction_block;
             END IF;
 

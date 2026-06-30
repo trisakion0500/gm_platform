@@ -16,6 +16,8 @@ CREATE TABLE `company` (
   PRIMARY KEY (`company_id`),
   UNIQUE KEY `uk_company_code` (`company_code`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='플랫폼 이용 회사';
-INSERT INTO `company` (`company_id`, `company_code`, `company_name`, `status`, `created_at`, `updated_at`)
-VALUES (1, 'ADMIN', 'Administrator Company', 1, '1970-01-01 00:00:00', '1970-01-01 00:00:00');
+INSERT INTO `company` (`company_id`, `company_code`, `company_name`, `description`, `status`, `created_at`, `updated_at`)
+VALUES
+(1, 'ADMIN', 'Administrator Company', NULL, 1, '1970-01-01 00:00:00', '1970-01-01 00:00:00'),
+(2, 'DEV',   'Developer Company',     NULL, 1, '1970-01-01 00:00:00', '1970-01-01 00:00:00');
 SET FOREIGN_KEY_CHECKS = 1;
