@@ -60,6 +60,45 @@ API 실행은 모두 `api_execution` 테이블을 기준으로 관리한다.
 
 ---
 
+## 3.4 SP 흐름 다이어그램
+
+```
+                              ┌─────────────────────────────┐
+                              │   SP_CREATE_API_EXECUTION   │
+                              │         status = 10         │
+                              └──────────────┬──────────────┘
+                                             │
+                          ┌──────────────────┴──────────────────┐
+                    is_immediate=1                          is_immediate=0
+                    (승인 불필요 or SA/DEV/APP)            (OPERATOR + 승인필요)
+                          │                                      │
+                          ▼                                      ▼
+                   [HTTP 호출]                    ┌──────────────────────────────┐
+                          │                       │ SP_GET_API_EXECUTION_PENDING │
+                          │                       │         status = 10          │
+                          │                       └──────┬───────────────────────┘
+                          │                              │
+                          │               ┌──────────────┼──────────────┐
+                          │            승인(SA/DEV/APP) 반려          취소(본인)
+                          │               │              │              │
+                          │               ▼              ▼              ▼
+                          │  SP_APPROVE_API_EXECUTION  SP_REJECT   SP_CANCEL
+                          │       status = 20          status=30   status=60
+                          │               │
+                          │          [HTTP 호출]
+                          │               │
+                          └───────────────┘
+                                          │
+                              ┌───────────┴───────────┐
+                            성공                     실패
+                              │                       │
+                              ▼                       ▼
+              SP_UPDATE_API_EXECUTION_RESULT  SP_UPDATE_API_EXECUTION_RESULT
+                        status = 40                status = 50
+```
+
+---
+
 # 4. Execute API
 
 ## Endpoint

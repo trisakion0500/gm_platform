@@ -1,0 +1,111 @@
+DROP PROCEDURE IF EXISTS SP_CREATE_API_EXECUTION;
+DELIMITER $
+CREATE PROCEDURE SP_CREATE_API_EXECUTION(
+    IN  i_api_id            BIGINT,
+    IN  i_request_user_id   BIGINT,
+    IN  i_request_json      LONGTEXT,
+    IN  i_role_code         INT,
+    IN  i_company_id        BIGINT
+) COMMENT 'API 실행 생성 - 검증, 스냅샷 저장, 즉시실행 여부 반환'
+BEGIN
+-- --------------------------------- --
+-- 명칭 : SP_CREATE_API_EXECUTION
+-- 작성 : 2026-06-30 trisakion
+-- 내용 : API 실행 이력 생성
+--        api 존재·활성 검사 (31006, 30003)
+--        api_stage 역할 접근 검사 (20001)
+--        프로젝트 company 접근 검사 (20001, SUPER_ADMIN 제외)
+--        api_name/endpoint 스냅샷 저장
+--        is_immediate: is_required_approval=0 또는 OPERATOR(40) 아닌 경우 1
+-- 테이블 적용 순서 : api_execution
+-- --------------------------------- --
+
+    DECLARE v_now                   DATETIME      DEFAULT NOW();
+    DECLARE v_api_name              VARCHAR(200);
+    DECLARE v_endpoint              VARCHAR(500);
+    DECLARE v_api_stage             TINYINT;
+    DECLARE v_is_required_approval  TINYINT;
+    DECLARE v_api_status            TINYINT;
+    DECLARE v_project_id            BIGINT;
+    DECLARE v_project_company_id    BIGINT;
+    DECLARE v_api_base_url          VARCHAR(255);
+    DECLARE v_is_immediate          TINYINT;
+
+    DECLARE sql_state      CHAR(5)       DEFAULT '00000';
+    DECLARE error_no       INT           DEFAULT 0;
+    DECLARE error_message  VARCHAR(255)  DEFAULT '';
+    DECLARE EXIT HANDLER FOR SQLEXCEPTION
+    BEGIN
+        GET DIAGNOSTICS CONDITION 1
+            sql_state     = RETURNED_SQLSTATE,
+            error_no      = MYSQL_ERRNO,
+            error_message = MESSAGE_TEXT;
+        ROLLBACK;
+        SELECT 99 AS RESULT, sql_state AS SQL_STATE, error_no AS ERROR_NO, error_message AS ERROR_MESSAGE;
+    END;
+
+    transaction_block: BEGIN
+
+        SELECT a.`api_name`, a.`endpoint`, a.`api_stage`, a.`is_required_approval`,
+               a.`status`, a.`project_id`, p.`company_id`, p.`api_base_url`
+        INTO   v_api_name, v_endpoint, v_api_stage, v_is_required_approval,
+               v_api_status, v_project_id, v_project_company_id, v_api_base_url
+        FROM `api` a
+        JOIN `project` p ON p.`project_id` = a.`project_id`
+        WHERE a.`api_id` = i_api_id;
+
+        IF v_project_id IS NULL THEN
+            SELECT 31006 AS RESULT;
+            LEAVE transaction_block;
+        END IF;
+
+        IF v_api_status != 1 THEN
+            SELECT 30003 AS RESULT;
+            LEAVE transaction_block;
+        END IF;
+
+        -- api_stage 역할 접근 검사
+        IF v_api_stage = 20 AND i_role_code NOT IN (10, 20) THEN
+            SELECT 20001 AS RESULT;
+            LEAVE transaction_block;
+        END IF;
+        IF v_api_stage = 30 AND i_role_code NOT IN (10, 20, 30) THEN
+            SELECT 20001 AS RESULT;
+            LEAVE transaction_block;
+        END IF;
+
+        -- 프로젝트 company 접근 검사 (SUPER_ADMIN 제외)
+        IF i_role_code != 10 AND v_project_company_id != i_company_id THEN
+            SELECT 20001 AS RESULT;
+            LEAVE transaction_block;
+        END IF;
+
+        -- is_required_approval=0 또는 OPERATOR(40)가 아닌 경우 즉시 실행
+        SET v_is_immediate = IF(v_is_required_approval = 0 OR i_role_code != 40, 1, 0);
+
+        START TRANSACTION;
+
+            INSERT INTO `api_execution` (
+                `api_id`, `api_name`, `endpoint`,
+                `request_user_id`, `status`, `request_json`, `requested_at`, `updated_at`
+            ) VALUES (
+                i_api_id, v_api_name, v_endpoint,
+                i_request_user_id, 10, i_request_json, v_now, v_now
+            );
+
+        COMMIT;
+
+        SELECT 0 AS RESULT;
+        SELECT ae.`api_execution_id`, ae.`api_id`, ae.`api_name`, ae.`endpoint`,
+               ae.`request_user_id`, ae.`approve_user_id`, ae.`status`,
+               ae.`request_json`, ae.`response_data`, ae.`reject_reason`, ae.`error_message`,
+               ae.`requested_at`, ae.`approved_at`, ae.`executed_at`, ae.`updated_at`,
+               v_api_base_url AS api_base_url, v_is_immediate AS is_immediate
+        FROM `api_execution` ae
+        WHERE ae.`api_execution_id` = LAST_INSERT_ID();
+
+    END;
+
+END$
+
+DELIMITER ;
