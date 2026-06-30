@@ -1,13 +1,10 @@
-DROP PROCEDURE IF EXISTS SP_GET_COMPANY;
-
+﻿DROP PROCEDURE IF EXISTS SP_GET_COMPANY;
 DELIMITER $
-
 CREATE PROCEDURE SP_GET_COMPANY(
     IN  i_company_id       BIGINT,  -- 조회할 회사 ID
     IN  i_role_code        INT,     -- 요청자 역할 코드 (10=SUPER_ADMIN, 20=DEVELOPER)
     IN  i_user_company_id  BIGINT   -- 요청자 소속 회사 ID (DEVELOPER 스코핑용)
-)
-COMMENT '회사 단건 조회 - 역할별 스코핑'
+) COMMENT '회사 단건 조회 - 역할별 스코핑'
 BEGIN
 -- --------------------------------- --
 -- 명칭 : SP_GET_COMPANY

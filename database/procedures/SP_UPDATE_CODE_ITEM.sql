@@ -1,7 +1,5 @@
-DROP PROCEDURE IF EXISTS SP_UPDATE_CODE_ITEM;
-
+﻿DROP PROCEDURE IF EXISTS SP_UPDATE_CODE_ITEM;
 DELIMITER $
-
 CREATE PROCEDURE SP_UPDATE_CODE_ITEM(
     IN  i_code_item_id   BIGINT,        -- 수정할 코드 아이템 ID
     IN  i_code_name      VARCHAR(200),  -- 코드명 (NULL=변경 없음)
@@ -9,8 +7,7 @@ CREATE PROCEDURE SP_UPDATE_CODE_ITEM(
     IN  i_display_order  INT,           -- 표시 순서 (NULL=변경 없음)
     IN  i_status         TINYINT,       -- 상태 (NULL=변경 없음)
     IN  i_updated_by     BIGINT         -- 수정자 user_id
-)
-COMMENT '코드 아이템 수정 - code_item UPDATE'
+) COMMENT '코드 아이템 수정 - code_item UPDATE'
 BEGIN
 -- --------------------------------- --
 -- 명칭 : SP_UPDATE_CODE_ITEM

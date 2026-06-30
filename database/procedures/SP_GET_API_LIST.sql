@@ -1,7 +1,5 @@
-DROP PROCEDURE IF EXISTS SP_GET_API_LIST;
-
+﻿DROP PROCEDURE IF EXISTS SP_GET_API_LIST;
 DELIMITER $
-
 CREATE PROCEDURE SP_GET_API_LIST(
     IN  i_project_id         BIGINT,   -- 프로젝트 ID (필수)
     IN  i_status             TINYINT,  -- 상태 필터 (NULL=전체)
@@ -10,8 +8,7 @@ CREATE PROCEDURE SP_GET_API_LIST(
     IN  i_page_size          INT,      -- 페이지 크기 (20/50/100)
     IN  i_caller_role_code   INT,      -- 요청자 역할 코드 (10=SUPER_ADMIN)
     IN  i_caller_user_id     BIGINT    -- 요청자 user_id (비SUPER_ADMIN 프로젝트 접근 검사)
-)
-COMMENT 'API 목록 조회 - 페이지네이션, 역할별 스코핑'
+) COMMENT 'API 목록 조회 - 페이지네이션, 역할별 스코핑'
 BEGIN
 -- --------------------------------- --
 -- 명칭 : SP_GET_API_LIST

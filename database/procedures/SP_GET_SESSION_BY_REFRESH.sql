@@ -1,11 +1,8 @@
-DROP PROCEDURE IF EXISTS SP_GET_SESSION_BY_REFRESH;
-
+﻿DROP PROCEDURE IF EXISTS SP_GET_SESSION_BY_REFRESH;
 DELIMITER $
-
 CREATE PROCEDURE SP_GET_SESSION_BY_REFRESH(
     IN  i_refresh_token_hash  VARCHAR(255)  -- Refresh Token 해시 (SHA-256)
-)
-COMMENT 'Refresh Token 해시로 세션 조회 - Access Token 재발급 시 사용'
+) COMMENT 'Refresh Token 해시로 세션 조회 - Access Token 재발급 시 사용'
 BEGIN
 -- --------------------------------- --
 -- 명칭 : SP_GET_SESSION_BY_REFRESH

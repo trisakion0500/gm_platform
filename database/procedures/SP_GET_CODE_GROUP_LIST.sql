@@ -1,12 +1,9 @@
-DROP PROCEDURE IF EXISTS SP_GET_CODE_GROUP_LIST;
-
+﻿DROP PROCEDURE IF EXISTS SP_GET_CODE_GROUP_LIST;
 DELIMITER $
-
 CREATE PROCEDURE SP_GET_CODE_GROUP_LIST(
     IN  i_project_id  BIGINT,   -- 프로젝트 ID
     IN  i_status      TINYINT   -- 상태 필터 (NULL=전체)
-)
-COMMENT '코드 그룹 목록 조회'
+) COMMENT '코드 그룹 목록 조회'
 BEGIN
 -- --------------------------------- --
 -- 명칭 : SP_GET_CODE_GROUP_LIST

@@ -1,15 +1,12 @@
-DROP PROCEDURE IF EXISTS SP_CREATE_CODE_GROUP;
-
+﻿DROP PROCEDURE IF EXISTS SP_CREATE_CODE_GROUP;
 DELIMITER $
-
 CREATE PROCEDURE SP_CREATE_CODE_GROUP(
     IN  i_project_id        BIGINT,        -- 프로젝트 ID
     IN  i_code_group_code   VARCHAR(100),  -- 코드 그룹 코드 (프로젝트 내 유일)
     IN  i_code_group_name   VARCHAR(200),  -- 코드 그룹명
     IN  i_description       VARCHAR(1000), -- 설명 (NULL 허용)
     IN  i_created_by        BIGINT         -- 생성자 user_id
-)
-COMMENT '코드 그룹 등록 - code_group INSERT'
+) COMMENT '코드 그룹 등록 - code_group INSERT'
 BEGIN
 -- --------------------------------- --
 -- 명칭 : SP_CREATE_CODE_GROUP

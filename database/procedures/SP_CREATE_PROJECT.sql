@@ -1,15 +1,12 @@
-DROP PROCEDURE IF EXISTS SP_CREATE_PROJECT;
-
+﻿DROP PROCEDURE IF EXISTS SP_CREATE_PROJECT;
 DELIMITER $
-
 CREATE PROCEDURE SP_CREATE_PROJECT(
     IN  i_company_id    BIGINT,        -- 회사 ID
     IN  i_project_code  VARCHAR(20),   -- 프로젝트 코드
     IN  i_project_name  VARCHAR(100),  -- 프로젝트명
     IN  i_api_base_url  VARCHAR(255),  -- API Base URL
     IN  i_description   VARCHAR(1000)  -- 설명 (NULL 허용)
-)
-COMMENT '프로젝트 생성 - project 테이블 INSERT'
+) COMMENT '프로젝트 생성 - project 테이블 INSERT'
 BEGIN
 -- --------------------------------- --
 -- 명칭 : SP_CREATE_PROJECT

@@ -1,14 +1,11 @@
-DROP PROCEDURE IF EXISTS SP_CREATE_LOGIN_SESSION;
-
+﻿DROP PROCEDURE IF EXISTS SP_CREATE_LOGIN_SESSION;
 DELIMITER $
-
 CREATE PROCEDURE SP_CREATE_LOGIN_SESSION(
     IN  i_user_id               BIGINT,       -- 사용자 ID
     IN  i_access_token_jti      VARCHAR(100), -- Access Token JTI (UUID v4)
     IN  i_refresh_token_hash    VARCHAR(255), -- Refresh Token 해시 (SHA-256)
     IN  i_expired_at            DATETIME      -- 세션 만료일시 (Refresh Token 기준, 7일)
-)
-COMMENT '로그인 세션 생성 - last_login_at 갱신 및 user_session INSERT'
+) COMMENT '로그인 세션 생성 - last_login_at 갱신 및 user_session INSERT'
 BEGIN
 -- --------------------------------- --
 -- 명칭 : SP_CREATE_LOGIN_SESSION

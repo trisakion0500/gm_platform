@@ -1,11 +1,8 @@
-DROP PROCEDURE IF EXISTS SP_LOGOUT_ALL_SESSIONS;
-
+﻿DROP PROCEDURE IF EXISTS SP_LOGOUT_ALL_SESSIONS;
 DELIMITER $
-
 CREATE PROCEDURE SP_LOGOUT_ALL_SESSIONS(
     IN  i_user_id  BIGINT  -- 사용자 ID
-)
-COMMENT '사용자의 모든 활성 세션 로그아웃 - status=1인 세션 전체를 0으로 변경'
+) COMMENT '사용자의 모든 활성 세션 로그아웃 - status=1인 세션 전체를 0으로 변경'
 BEGIN
 -- --------------------------------- --
 -- 명칭 : SP_LOGOUT_ALL_SESSIONS

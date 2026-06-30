@@ -1,7 +1,5 @@
-DROP PROCEDURE IF EXISTS SP_SIGNUP_USER;
-
+﻿DROP PROCEDURE IF EXISTS SP_SIGNUP_USER;
 DELIMITER $
-
 CREATE PROCEDURE SP_SIGNUP_USER(
     IN  i_company_id            BIGINT,       -- 회사 ID
     IN  i_requested_project_id  BIGINT,       -- 가입 신청 프로젝트 ID (NULL 허용)
@@ -9,8 +7,7 @@ CREATE PROCEDURE SP_SIGNUP_USER(
     IN  i_password_hash         VARCHAR(255), -- 비밀번호 해시
     IN  i_user_name             VARCHAR(100), -- 사용자명
     IN  i_email                 VARCHAR(200)  -- 이메일
-)
-COMMENT '회원가입 - user 테이블 INSERT (status=0: 가입승인대기)'
+) COMMENT '회원가입 - user 테이블 INSERT (status=0: 가입승인대기)'
 BEGIN
 -- --------------------------------- --
 -- 명칭 : SP_SIGNUP_USER

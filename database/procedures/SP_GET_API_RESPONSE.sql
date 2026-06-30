@@ -1,11 +1,8 @@
-DROP PROCEDURE IF EXISTS SP_GET_API_RESPONSE;
-
+﻿DROP PROCEDURE IF EXISTS SP_GET_API_RESPONSE;
 DELIMITER $
-
 CREATE PROCEDURE SP_GET_API_RESPONSE(
     IN  i_api_response_id  BIGINT  -- API Response 파라미터 ID
-)
-COMMENT 'API Response 파라미터 상세 조회'
+) COMMENT 'API Response 파라미터 상세 조회'
 BEGIN
 -- --------------------------------- --
 -- 명칭 : SP_GET_API_RESPONSE

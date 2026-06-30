@@ -1,15 +1,12 @@
-DROP PROCEDURE IF EXISTS SP_UPDATE_CODE_GROUP;
-
+﻿DROP PROCEDURE IF EXISTS SP_UPDATE_CODE_GROUP;
 DELIMITER $
-
 CREATE PROCEDURE SP_UPDATE_CODE_GROUP(
     IN  i_code_group_id    INT,            -- 수정할 코드 그룹 ID
     IN  i_code_group_name  VARCHAR(200),   -- 코드 그룹명 (NULL=변경 없음)
     IN  i_description      VARCHAR(1000),  -- 설명 (NULL=변경 없음)
     IN  i_status           TINYINT,        -- 상태 (NULL=변경 없음)
     IN  i_updated_by       BIGINT          -- 수정자 user_id
-)
-COMMENT '코드 그룹 수정 - code_group UPDATE'
+) COMMENT '코드 그룹 수정 - code_group UPDATE'
 BEGIN
 -- --------------------------------- --
 -- 명칭 : SP_UPDATE_CODE_GROUP

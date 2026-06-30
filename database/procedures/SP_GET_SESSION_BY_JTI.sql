@@ -1,11 +1,8 @@
-DROP PROCEDURE IF EXISTS SP_GET_SESSION_BY_JTI;
-
+﻿DROP PROCEDURE IF EXISTS SP_GET_SESSION_BY_JTI;
 DELIMITER $
-
 CREATE PROCEDURE SP_GET_SESSION_BY_JTI(
     IN  i_jti  VARCHAR(100)  -- Access Token JTI
-)
-COMMENT 'JTI로 세션 조회 - 인증 미들웨어에서 매 요청마다 호출'
+) COMMENT 'JTI로 세션 조회 - 인증 미들웨어에서 매 요청마다 호출'
 BEGIN
 -- --------------------------------- --
 -- 명칭 : SP_GET_SESSION_BY_JTI

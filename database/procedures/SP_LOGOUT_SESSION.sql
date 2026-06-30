@@ -1,11 +1,8 @@
-DROP PROCEDURE IF EXISTS SP_LOGOUT_SESSION;
-
+﻿DROP PROCEDURE IF EXISTS SP_LOGOUT_SESSION;
 DELIMITER $
-
 CREATE PROCEDURE SP_LOGOUT_SESSION(
     IN  i_session_id  BIGINT  -- 세션 ID
-)
-COMMENT '특정 세션 로그아웃 - status를 0(로그아웃)으로 변경'
+) COMMENT '특정 세션 로그아웃 - status를 0(로그아웃)으로 변경'
 BEGIN
 -- --------------------------------- --
 -- 명칭 : SP_LOGOUT_SESSION

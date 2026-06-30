@@ -1,11 +1,8 @@
-DROP PROCEDURE IF EXISTS SP_GET_USER_BY_LOGIN_ID;
-
+﻿DROP PROCEDURE IF EXISTS SP_GET_USER_BY_LOGIN_ID;
 DELIMITER $
-
 CREATE PROCEDURE SP_GET_USER_BY_LOGIN_ID(
     IN  i_login_id  VARCHAR(100)  -- 로그인 ID
-)
-COMMENT '로그인 ID로 사용자 조회 - password_hash 및 최소 role_code 포함'
+) COMMENT '로그인 ID로 사용자 조회 - password_hash 및 최소 role_code 포함'
 BEGIN
 -- --------------------------------- --
 -- 명칭 : SP_GET_USER_BY_LOGIN_ID

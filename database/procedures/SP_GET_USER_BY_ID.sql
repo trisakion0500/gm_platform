@@ -1,11 +1,8 @@
-DROP PROCEDURE IF EXISTS SP_GET_USER_BY_ID;
-
+﻿DROP PROCEDURE IF EXISTS SP_GET_USER_BY_ID;
 DELIMITER $
-
 CREATE PROCEDURE SP_GET_USER_BY_ID(
     IN  i_user_id  BIGINT  -- 사용자 ID
-)
-COMMENT '사용자 ID로 사용자 조회 (password_hash 제외)'
+) COMMENT '사용자 ID로 사용자 조회 (password_hash 제외)'
 BEGIN
 -- --------------------------------- --
 -- 명칭 : SP_GET_USER_BY_ID

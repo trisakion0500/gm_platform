@@ -1,7 +1,5 @@
-DROP PROCEDURE IF EXISTS SP_UPDATE_PROJECT;
-
+﻿DROP PROCEDURE IF EXISTS SP_UPDATE_PROJECT;
 DELIMITER $
-
 CREATE PROCEDURE SP_UPDATE_PROJECT(
     IN  i_project_id    BIGINT,        -- 수정할 프로젝트 ID
     IN  i_project_code  VARCHAR(20),   -- 프로젝트 코드 (NULL=변경 없음)
@@ -9,8 +7,7 @@ CREATE PROCEDURE SP_UPDATE_PROJECT(
     IN  i_api_base_url  VARCHAR(255),  -- API Base URL (NULL=변경 없음)
     IN  i_description   VARCHAR(1000), -- 설명 (NULL=변경 없음)
     IN  i_status        TINYINT        -- 상태 (NULL=변경 없음)
-)
-COMMENT '프로젝트 수정 - project 테이블 UPDATE'
+) COMMENT '프로젝트 수정 - project 테이블 UPDATE'
 BEGIN
 -- --------------------------------- --
 -- 명칭 : SP_UPDATE_PROJECT

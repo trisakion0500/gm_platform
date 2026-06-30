@@ -1,11 +1,8 @@
-DROP PROCEDURE IF EXISTS SP_REJECT_USER;
-
+﻿DROP PROCEDURE IF EXISTS SP_REJECT_USER;
 DELIMITER $
-
 CREATE PROCEDURE SP_REJECT_USER(
     IN  i_user_id  BIGINT  -- 반려할 사용자 ID
-)
-COMMENT '가입 반려 - status=2로 변경'
+) COMMENT '가입 반려 - status=2로 변경'
 BEGIN
 -- --------------------------------- --
 -- 명칭 : SP_REJECT_USER

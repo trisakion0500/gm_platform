@@ -1,14 +1,11 @@
-DROP PROCEDURE IF EXISTS SP_UPDATE_USER;
-
+﻿DROP PROCEDURE IF EXISTS SP_UPDATE_USER;
 DELIMITER $
-
 CREATE PROCEDURE SP_UPDATE_USER(
     IN  i_user_id    BIGINT,        -- 수정할 사용자 ID
     IN  i_user_name  VARCHAR(100),  -- 이름 (NULL=변경 없음)
     IN  i_email      VARCHAR(200),  -- 이메일 (NULL=변경 없음)
     IN  i_status     TINYINT        -- 상태 (NULL=변경 없음)
-)
-COMMENT '사용자 수정 - user 테이블 UPDATE'
+) COMMENT '사용자 수정 - user 테이블 UPDATE'
 BEGIN
 -- --------------------------------- --
 -- 명칭 : SP_UPDATE_USER

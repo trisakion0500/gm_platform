@@ -1,7 +1,5 @@
-DROP PROCEDURE IF EXISTS SP_UPDATE_API;
-
+﻿DROP PROCEDURE IF EXISTS SP_UPDATE_API;
 DELIMITER $
-
 CREATE PROCEDURE SP_UPDATE_API(
     IN  i_api_id                 BIGINT,        -- 수정할 API ID
     IN  i_api_code               VARCHAR(100),  -- API 코드 (NULL=변경 없음)
@@ -14,8 +12,7 @@ CREATE PROCEDURE SP_UPDATE_API(
     IN  i_display_order          INT,           -- 표시 순서 (NULL=변경 없음)
     IN  i_status                 TINYINT,       -- 상태 (NULL=변경 없음)
     IN  i_updated_by             BIGINT         -- 수정자 user_id
-)
-COMMENT 'API 수정 - api UPDATE, api_stage 자동 롤백 포함'
+) COMMENT 'API 수정 - api UPDATE, api_stage 자동 롤백 포함'
 BEGIN
 -- --------------------------------- --
 -- 명칭 : SP_UPDATE_API

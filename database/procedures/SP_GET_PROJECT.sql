@@ -1,13 +1,10 @@
-DROP PROCEDURE IF EXISTS SP_GET_PROJECT;
-
+﻿DROP PROCEDURE IF EXISTS SP_GET_PROJECT;
 DELIMITER $
-
 CREATE PROCEDURE SP_GET_PROJECT(
     IN  i_project_id       BIGINT,  -- 조회할 프로젝트 ID
     IN  i_role_code        INT,     -- 요청자 역할 코드 (10=SUPER_ADMIN)
     IN  i_user_company_id  BIGINT   -- 요청자 소속 회사 ID (SUPER_ADMIN 외 스코핑용)
-)
-COMMENT '프로젝트 단건 조회 - 역할별 스코핑, company 정보 포함'
+) COMMENT '프로젝트 단건 조회 - 역할별 스코핑, company 정보 포함'
 BEGIN
 -- --------------------------------- --
 -- 명칭 : SP_GET_PROJECT

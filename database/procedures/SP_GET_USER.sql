@@ -1,11 +1,8 @@
-DROP PROCEDURE IF EXISTS SP_GET_USER;
-
+﻿DROP PROCEDURE IF EXISTS SP_GET_USER;
 DELIMITER $
-
 CREATE PROCEDURE SP_GET_USER(
     IN  i_user_id  BIGINT  -- 사용자 ID
-)
-COMMENT '사용자 상세 조회 - company 정보 포함'
+) COMMENT '사용자 상세 조회 - company 정보 포함'
 BEGIN
 -- --------------------------------- --
 -- 명칭 : SP_GET_USER

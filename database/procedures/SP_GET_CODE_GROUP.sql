@@ -1,11 +1,8 @@
-DROP PROCEDURE IF EXISTS SP_GET_CODE_GROUP;
-
+﻿DROP PROCEDURE IF EXISTS SP_GET_CODE_GROUP;
 DELIMITER $
-
 CREATE PROCEDURE SP_GET_CODE_GROUP(
     IN  i_code_group_id  INT  -- 코드 그룹 ID
-)
-COMMENT '코드 그룹 단건 조회'
+) COMMENT '코드 그룹 단건 조회'
 BEGIN
 -- --------------------------------- --
 -- 명칭 : SP_GET_CODE_GROUP

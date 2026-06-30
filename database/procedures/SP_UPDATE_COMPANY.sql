@@ -1,15 +1,12 @@
-DROP PROCEDURE IF EXISTS SP_UPDATE_COMPANY;
-
+﻿DROP PROCEDURE IF EXISTS SP_UPDATE_COMPANY;
 DELIMITER $
-
 CREATE PROCEDURE SP_UPDATE_COMPANY(
     IN  i_company_id    BIGINT,        -- 수정할 회사 ID
     IN  i_company_code  VARCHAR(20),   -- 회사 코드 (NULL=변경 없음)
     IN  i_company_name  VARCHAR(100),  -- 회사명 (NULL=변경 없음)
     IN  i_description   VARCHAR(1000), -- 설명 (NULL=변경 없음)
     IN  i_status        TINYINT        -- 상태 (NULL=변경 없음)
-)
-COMMENT '회사 수정 - company 테이블 UPDATE'
+) COMMENT '회사 수정 - company 테이블 UPDATE'
 BEGIN
 -- --------------------------------- --
 -- 명칭 : SP_UPDATE_COMPANY

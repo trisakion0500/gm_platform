@@ -1,15 +1,12 @@
-DROP PROCEDURE IF EXISTS SP_GET_USER_ROLE_LIST;
-
+﻿DROP PROCEDURE IF EXISTS SP_GET_USER_ROLE_LIST;
 DELIMITER $
-
 CREATE PROCEDURE SP_GET_USER_ROLE_LIST(
     IN  i_user_id     BIGINT,   -- 사용자 ID 필터 (NULL=전체)
     IN  i_project_id  BIGINT,   -- 프로젝트 ID 필터 (NULL=전체)
     IN  i_role_code   TINYINT,  -- 역할 코드 필터 (NULL=전체)
     IN  i_status      TINYINT,  -- 상태 필터 (NULL=전체)
     IN  i_company_id  BIGINT    -- 회사 ID 스코핑 (NULL=전체, DEVELOPER용)
-)
-COMMENT 'User Role 목록 조회 - user/project 정보 포함'
+) COMMENT 'User Role 목록 조회 - user/project 정보 포함'
 BEGIN
 -- --------------------------------- --
 -- 명칭 : SP_GET_USER_ROLE_LIST

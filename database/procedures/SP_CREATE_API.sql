@@ -1,7 +1,5 @@
-DROP PROCEDURE IF EXISTS SP_CREATE_API;
-
+﻿DROP PROCEDURE IF EXISTS SP_CREATE_API;
 DELIMITER $
-
 CREATE PROCEDURE SP_CREATE_API(
     IN  i_project_id             BIGINT,        -- 프로젝트 ID
     IN  i_api_code               VARCHAR(100),  -- API 코드 (프로젝트 내 유일)
@@ -12,8 +10,7 @@ CREATE PROCEDURE SP_CREATE_API(
     IN  i_response_view_type     TINYINT,       -- 응답 표시 방식 (1:KEY_VALUE, 2:GRID)
     IN  i_display_order          INT,           -- 화면 표시 순서
     IN  i_created_by             BIGINT         -- 생성자 user_id
-)
-COMMENT 'API 등록 - api INSERT'
+) COMMENT 'API 등록 - api INSERT'
 BEGIN
 -- --------------------------------- --
 -- 명칭 : SP_CREATE_API

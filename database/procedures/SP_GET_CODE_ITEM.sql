@@ -1,11 +1,8 @@
-DROP PROCEDURE IF EXISTS SP_GET_CODE_ITEM;
-
+﻿DROP PROCEDURE IF EXISTS SP_GET_CODE_ITEM;
 DELIMITER $
-
 CREATE PROCEDURE SP_GET_CODE_ITEM(
     IN  i_code_item_id  BIGINT  -- 코드 아이템 ID
-)
-COMMENT '코드 아이템 단건 조회'
+) COMMENT '코드 아이템 단건 조회'
 BEGIN
 -- --------------------------------- --
 -- 명칭 : SP_GET_CODE_ITEM

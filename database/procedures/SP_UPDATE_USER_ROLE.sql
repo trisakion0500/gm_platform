@@ -1,14 +1,11 @@
-DROP PROCEDURE IF EXISTS SP_UPDATE_USER_ROLE;
-
+﻿DROP PROCEDURE IF EXISTS SP_UPDATE_USER_ROLE;
 DELIMITER $
-
 CREATE PROCEDURE SP_UPDATE_USER_ROLE(
     IN  i_user_id     BIGINT,   -- 사용자 ID
     IN  i_project_id  BIGINT,   -- 프로젝트 ID
     IN  i_role_code   TINYINT,  -- 역할 코드 (NULL=변경 없음)
     IN  i_status      TINYINT   -- 상태 (NULL=변경 없음)
-)
-COMMENT 'User Role 수정 - user_role UPDATE'
+) COMMENT 'User Role 수정 - user_role UPDATE'
 BEGIN
 -- --------------------------------- --
 -- 명칭 : SP_UPDATE_USER_ROLE

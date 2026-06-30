@@ -1,7 +1,5 @@
-DROP PROCEDURE IF EXISTS SP_CREATE_API_RESPONSE;
-
+﻿DROP PROCEDURE IF EXISTS SP_CREATE_API_RESPONSE;
 DELIMITER $
-
 CREATE PROCEDURE SP_CREATE_API_RESPONSE(
     IN  i_api_id          BIGINT,        -- API ID
     IN  i_parameter_name  VARCHAR(100),  -- 응답 항목명 (API 내 유일)
@@ -11,8 +9,7 @@ CREATE PROCEDURE SP_CREATE_API_RESPONSE(
     IN  i_description     VARCHAR(1000), -- 설명 (NULL 허용)
     IN  i_display_order   INT,           -- 화면 표시 순서
     IN  i_created_by      BIGINT         -- 생성자 user_id
-)
-COMMENT 'API Response 파라미터 등록 - api_response INSERT, api_stage 자동 롤백'
+) COMMENT 'API Response 파라미터 등록 - api_response INSERT, api_stage 자동 롤백'
 BEGIN
 -- --------------------------------- --
 -- 명칭 : SP_CREATE_API_RESPONSE

@@ -1,7 +1,5 @@
-DROP PROCEDURE IF EXISTS SP_UPDATE_API_RESPONSE;
-
+﻿DROP PROCEDURE IF EXISTS SP_UPDATE_API_RESPONSE;
 DELIMITER $
-
 CREATE PROCEDURE SP_UPDATE_API_RESPONSE(
     IN  i_api_response_id  BIGINT,        -- 수정할 API Response 파라미터 ID
     IN  i_parameter_name   VARCHAR(100),  -- 응답 항목명 (NULL=변경 없음)
@@ -12,8 +10,7 @@ CREATE PROCEDURE SP_UPDATE_API_RESPONSE(
     IN  i_display_order    INT,           -- 표시 순서 (NULL=변경 없음)
     IN  i_status           TINYINT,       -- 상태 (NULL=변경 없음)
     IN  i_updated_by       BIGINT         -- 수정자 user_id
-)
-COMMENT 'API Response 파라미터 수정 - api_response UPDATE, api_stage 자동 롤백 포함'
+) COMMENT 'API Response 파라미터 수정 - api_response UPDATE, api_stage 자동 롤백 포함'
 BEGIN
 -- --------------------------------- --
 -- 명칭 : SP_UPDATE_API_RESPONSE

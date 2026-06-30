@@ -1,11 +1,8 @@
-DROP PROCEDURE IF EXISTS SP_APPROVE_USER;
-
+﻿DROP PROCEDURE IF EXISTS SP_APPROVE_USER;
 DELIMITER $
-
 CREATE PROCEDURE SP_APPROVE_USER(
     IN  i_user_id  BIGINT  -- 승인할 사용자 ID
-)
-COMMENT '가입 승인 - status=1로 변경'
+) COMMENT '가입 승인 - status=1로 변경'
 BEGIN
 -- --------------------------------- --
 -- 명칭 : SP_APPROVE_USER

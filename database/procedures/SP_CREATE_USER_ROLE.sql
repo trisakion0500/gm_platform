@@ -1,13 +1,10 @@
-DROP PROCEDURE IF EXISTS SP_CREATE_USER_ROLE;
-
+﻿DROP PROCEDURE IF EXISTS SP_CREATE_USER_ROLE;
 DELIMITER $
-
 CREATE PROCEDURE SP_CREATE_USER_ROLE(
     IN  i_user_id     BIGINT,   -- 사용자 ID
     IN  i_project_id  BIGINT,   -- 프로젝트 ID
     IN  i_role_code   TINYINT   -- 역할 코드 (20=DEVELOPER, 30=APPROVER, 40=OPERATOR)
-)
-COMMENT 'User Role 등록 - user_role INSERT'
+) COMMENT 'User Role 등록 - user_role INSERT'
 BEGIN
 -- --------------------------------- --
 -- 명칭 : SP_CREATE_USER_ROLE

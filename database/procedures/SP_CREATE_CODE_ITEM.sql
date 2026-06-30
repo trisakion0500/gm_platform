@@ -1,7 +1,5 @@
-DROP PROCEDURE IF EXISTS SP_CREATE_CODE_ITEM;
-
+﻿DROP PROCEDURE IF EXISTS SP_CREATE_CODE_ITEM;
 DELIMITER $
-
 CREATE PROCEDURE SP_CREATE_CODE_ITEM(
     IN  i_code_group_id  INT,            -- 코드 그룹 ID
     IN  i_code_value     VARCHAR(100),   -- 코드 값 (그룹 내 유일)
@@ -9,8 +7,7 @@ CREATE PROCEDURE SP_CREATE_CODE_ITEM(
     IN  i_description    VARCHAR(1000),  -- 설명 (NULL 허용)
     IN  i_display_order  INT,            -- 표시 순서
     IN  i_created_by     BIGINT          -- 생성자 user_id
-)
-COMMENT '코드 아이템 등록 - code_item INSERT'
+) COMMENT '코드 아이템 등록 - code_item INSERT'
 BEGIN
 -- --------------------------------- --
 -- 명칭 : SP_CREATE_CODE_ITEM

@@ -1,11 +1,8 @@
-DROP PROCEDURE IF EXISTS SP_GET_PASSWORD_HASH_BY_ID;
-
+﻿DROP PROCEDURE IF EXISTS SP_GET_PASSWORD_HASH_BY_ID;
 DELIMITER $
-
 CREATE PROCEDURE SP_GET_PASSWORD_HASH_BY_ID(
     IN  i_user_id  BIGINT  -- 사용자 ID
-)
-COMMENT '사용자 ID로 비밀번호 해시 조회 - 비밀번호 변경 시 현재 비밀번호 검증용'
+) COMMENT '사용자 ID로 비밀번호 해시 조회 - 비밀번호 변경 시 현재 비밀번호 검증용'
 BEGIN
 -- --------------------------------- --
 -- 명칭 : SP_GET_PASSWORD_HASH_BY_ID

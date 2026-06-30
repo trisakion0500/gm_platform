@@ -1,12 +1,9 @@
-DROP PROCEDURE IF EXISTS SP_UPDATE_PASSWORD;
-
+﻿DROP PROCEDURE IF EXISTS SP_UPDATE_PASSWORD;
 DELIMITER $
-
 CREATE PROCEDURE SP_UPDATE_PASSWORD(
     IN  i_user_id           BIGINT,       -- 사용자 ID
     IN  i_password_hash     VARCHAR(255)  -- 새 비밀번호 해시
-)
-COMMENT '비밀번호 변경 - password_hash 갱신 및 모든 활성 세션 종료'
+) COMMENT '비밀번호 변경 - password_hash 갱신 및 모든 활성 세션 종료'
 BEGIN
 -- --------------------------------- --
 -- 명칭 : SP_UPDATE_PASSWORD

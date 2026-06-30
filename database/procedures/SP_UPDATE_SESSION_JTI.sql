@@ -1,12 +1,9 @@
-DROP PROCEDURE IF EXISTS SP_UPDATE_SESSION_JTI;
-
+﻿DROP PROCEDURE IF EXISTS SP_UPDATE_SESSION_JTI;
 DELIMITER $
-
 CREATE PROCEDURE SP_UPDATE_SESSION_JTI(
     IN  i_session_id        BIGINT,       -- 세션 ID
     IN  i_access_token_jti  VARCHAR(100)  -- 새 Access Token JTI
-)
-COMMENT 'Access Token 재발급 시 세션의 JTI 갱신'
+) COMMENT 'Access Token 재발급 시 세션의 JTI 갱신'
 BEGIN
 -- --------------------------------- --
 -- 명칭 : SP_UPDATE_SESSION_JTI

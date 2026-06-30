@@ -1,13 +1,10 @@
-DROP PROCEDURE IF EXISTS SP_CREATE_COMPANY;
-
+﻿DROP PROCEDURE IF EXISTS SP_CREATE_COMPANY;
 DELIMITER $
-
 CREATE PROCEDURE SP_CREATE_COMPANY(
     IN  i_company_code  VARCHAR(20),   -- 회사 코드
     IN  i_company_name  VARCHAR(100),  -- 회사명
     IN  i_description   VARCHAR(1000)  -- 설명 (NULL 허용)
-)
-COMMENT '회사 생성 - company 테이블 INSERT'
+) COMMENT '회사 생성 - company 테이블 INSERT'
 BEGIN
 -- --------------------------------- --
 -- 명칭 : SP_CREATE_COMPANY

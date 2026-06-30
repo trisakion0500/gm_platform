@@ -1,7 +1,5 @@
-DROP PROCEDURE IF EXISTS SP_UPDATE_API_REQUEST;
-
+﻿DROP PROCEDURE IF EXISTS SP_UPDATE_API_REQUEST;
 DELIMITER $
-
 CREATE PROCEDURE SP_UPDATE_API_REQUEST(
     IN  i_api_request_id  BIGINT,        -- 수정할 API Request 파라미터 ID
     IN  i_parameter_name  VARCHAR(100),  -- 파라미터명 (NULL=변경 없음)
@@ -14,8 +12,7 @@ CREATE PROCEDURE SP_UPDATE_API_REQUEST(
     IN  i_display_order   INT,           -- 표시 순서 (NULL=변경 없음)
     IN  i_status          TINYINT,       -- 상태 (NULL=변경 없음)
     IN  i_updated_by      BIGINT         -- 수정자 user_id
-)
-COMMENT 'API Request 파라미터 수정 - api_request UPDATE, api_stage 자동 롤백 포함'
+) COMMENT 'API Request 파라미터 수정 - api_request UPDATE, api_stage 자동 롤백 포함'
 BEGIN
 -- --------------------------------- --
 -- 명칭 : SP_UPDATE_API_REQUEST

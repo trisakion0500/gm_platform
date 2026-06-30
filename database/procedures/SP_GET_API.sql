@@ -1,11 +1,8 @@
-DROP PROCEDURE IF EXISTS SP_GET_API;
-
+﻿DROP PROCEDURE IF EXISTS SP_GET_API;
 DELIMITER $
-
 CREATE PROCEDURE SP_GET_API(
     IN  i_api_id  BIGINT  -- API ID
-)
-COMMENT 'API 상세 조회 - api + api_request + api_response 전체 반환'
+) COMMENT 'API 상세 조회 - api + api_request + api_response 전체 반환'
 BEGIN
 -- --------------------------------- --
 -- 명칭 : SP_GET_API

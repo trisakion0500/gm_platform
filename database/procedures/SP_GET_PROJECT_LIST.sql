@@ -1,7 +1,5 @@
-DROP PROCEDURE IF EXISTS SP_GET_PROJECT_LIST;
-
+﻿DROP PROCEDURE IF EXISTS SP_GET_PROJECT_LIST;
 DELIMITER $
-
 CREATE PROCEDURE SP_GET_PROJECT_LIST(
     IN  i_company_id       BIGINT,   -- 회사 ID 필터 (NULL=전체)
     IN  i_status           TINYINT,  -- 상태 필터 (NULL=전체)
@@ -9,8 +7,7 @@ CREATE PROCEDURE SP_GET_PROJECT_LIST(
     IN  i_page_size        INT,      -- 페이지 크기 (20/50/100)
     IN  i_role_code        INT,      -- 요청자 역할 코드 (10=SUPER_ADMIN)
     IN  i_user_company_id  BIGINT    -- 요청자 소속 회사 ID (SUPER_ADMIN 외 스코핑용)
-)
-COMMENT '프로젝트 목록 조회 - 페이지네이션, 역할별 스코핑, company 정보 포함'
+) COMMENT '프로젝트 목록 조회 - 페이지네이션, 역할별 스코핑, company 정보 포함'
 BEGIN
 -- --------------------------------- --
 -- 명칭 : SP_GET_PROJECT_LIST

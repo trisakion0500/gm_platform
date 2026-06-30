@@ -1,11 +1,8 @@
-DROP PROCEDURE IF EXISTS SP_GET_ACTIVE_CODE_ITEMS;
-
+﻿DROP PROCEDURE IF EXISTS SP_GET_ACTIVE_CODE_ITEMS;
 DELIMITER $
-
 CREATE PROCEDURE SP_GET_ACTIVE_CODE_ITEMS(
     IN  i_code_group_id  INT  -- 코드 그룹 ID
-)
-COMMENT 'API Request 렌더링용 활성 코드 아이템 조회 (code_value, code_name만 반환)'
+) COMMENT 'API Request 렌더링용 활성 코드 아이템 조회 (code_value, code_name만 반환)'
 BEGIN
 -- --------------------------------- --
 -- 명칭 : SP_GET_ACTIVE_CODE_ITEMS
