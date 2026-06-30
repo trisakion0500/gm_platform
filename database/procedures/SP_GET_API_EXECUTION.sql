@@ -1,10 +1,10 @@
 DROP PROCEDURE IF EXISTS SP_GET_API_EXECUTION;
 DELIMITER $
 CREATE PROCEDURE SP_GET_API_EXECUTION(
-    IN  i_api_execution_id    BIGINT,
-    IN  i_caller_role_code    INT,
-    IN  i_caller_user_id      BIGINT,
-    IN  i_caller_company_id   BIGINT
+    IN  i_api_execution_id    BIGINT,  -- 조회할 실행 이력 ID
+    IN  i_caller_role_code    INT,     -- 요청자 역할 코드
+    IN  i_caller_user_id      BIGINT,  -- 요청자 user_id (OPERATOR 가시성 검사용)
+    IN  i_caller_company_id   BIGINT   -- 요청자 company_id (접근 검사용)
 ) COMMENT 'API 실행 이력 상세 조회 - 역할별 가시성 검사'
 BEGIN
 -- --------------------------------- --

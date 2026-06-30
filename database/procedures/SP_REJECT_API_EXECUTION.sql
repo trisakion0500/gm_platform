@@ -1,9 +1,9 @@
 DROP PROCEDURE IF EXISTS SP_REJECT_API_EXECUTION;
 DELIMITER $
 CREATE PROCEDURE SP_REJECT_API_EXECUTION(
-    IN  i_api_execution_id  BIGINT,
-    IN  i_approve_user_id   BIGINT,
-    IN  i_reject_reason     VARCHAR(1000)
+    IN  i_api_execution_id  BIGINT,        -- 반려할 실행 이력 ID
+    IN  i_approve_user_id   BIGINT,        -- 반려자 user_id
+    IN  i_reject_reason     VARCHAR(1000)  -- 반려 사유
 ) COMMENT '실행 반려 - status 10→30, approve_user_id/reject_reason 저장'
 BEGIN
 -- --------------------------------- --

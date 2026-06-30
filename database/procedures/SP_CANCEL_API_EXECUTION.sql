@@ -1,9 +1,9 @@
 DROP PROCEDURE IF EXISTS SP_CANCEL_API_EXECUTION;
 DELIMITER $
 CREATE PROCEDURE SP_CANCEL_API_EXECUTION(
-    IN  i_api_execution_id  BIGINT,
-    IN  i_caller_user_id    BIGINT,
-    IN  i_reject_reason     VARCHAR(1000)
+    IN  i_api_execution_id  BIGINT,        -- 취소할 실행 이력 ID
+    IN  i_caller_user_id    BIGINT,        -- 취소 요청자 user_id (본인 검증용)
+    IN  i_reject_reason     VARCHAR(1000)  -- 취소 사유
 ) COMMENT '실행 취소 - status 10→60, 요청자 본인만 가능'
 BEGIN
 -- --------------------------------- --

@@ -1,14 +1,14 @@
 DROP PROCEDURE IF EXISTS SP_GET_API_EXECUTION_LIST;
 DELIMITER $
 CREATE PROCEDURE SP_GET_API_EXECUTION_LIST(
-    IN  i_project_id          BIGINT,
-    IN  i_api_id              BIGINT,   -- NULL=전체
-    IN  i_request_user_id     BIGINT,   -- NULL=전체 (OPERATOR는 서비스에서 강제 적용)
-    IN  i_status              TINYINT,  -- NULL=전체
-    IN  i_page                INT,
-    IN  i_page_size           INT,
-    IN  i_caller_role_code    INT,
-    IN  i_caller_company_id   BIGINT
+    IN  i_project_id          BIGINT,    -- 프로젝트 ID (필수)
+    IN  i_api_id              BIGINT,    -- API ID 필터 (NULL=전체)
+    IN  i_request_user_id     BIGINT,    -- 요청자 필터 (NULL=전체, OPERATOR는 서비스에서 강제 적용)
+    IN  i_status              TINYINT,   -- 상태 필터 (NULL=전체)
+    IN  i_page                INT,       -- 페이지 번호 (1부터)
+    IN  i_page_size           INT,       -- 페이지 크기 (20/50/100)
+    IN  i_caller_role_code    INT,       -- 요청자 역할 코드
+    IN  i_caller_company_id   BIGINT     -- 요청자 company_id (접근 검사용)
 ) COMMENT 'API 실행 이력 목록 조회 - 역할별 스코핑, 페이지네이션'
 BEGIN
 -- --------------------------------- --

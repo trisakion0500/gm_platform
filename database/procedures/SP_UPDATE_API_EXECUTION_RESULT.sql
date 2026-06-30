@@ -1,10 +1,10 @@
 DROP PROCEDURE IF EXISTS SP_UPDATE_API_EXECUTION_RESULT;
 DELIMITER $
 CREATE PROCEDURE SP_UPDATE_API_EXECUTION_RESULT(
-    IN  i_api_execution_id  BIGINT,
+    IN  i_api_execution_id  BIGINT,        -- 대상 실행 이력 ID
     IN  i_status            TINYINT,       -- 40=SUCCESS, 50=FAILED
-    IN  i_response_data     LONGTEXT,      -- NULL if failed
-    IN  i_error_message     VARCHAR(2000)  -- NULL if success
+    IN  i_response_data     LONGTEXT,      -- 응답 데이터 (실패 시 NULL)
+    IN  i_error_message     VARCHAR(2000)  -- 에러 메시지 (성공 시 NULL)
 ) COMMENT 'API 실행 결과 반영 - status 40/50, response_data/error_message 저장'
 BEGIN
 -- --------------------------------- --

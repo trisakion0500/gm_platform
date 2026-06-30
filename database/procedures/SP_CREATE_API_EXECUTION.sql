@@ -1,11 +1,11 @@
 DROP PROCEDURE IF EXISTS SP_CREATE_API_EXECUTION;
 DELIMITER $
 CREATE PROCEDURE SP_CREATE_API_EXECUTION(
-    IN  i_api_id            BIGINT,
-    IN  i_request_user_id   BIGINT,
-    IN  i_request_json      LONGTEXT,
-    IN  i_role_code         INT,
-    IN  i_company_id        BIGINT
+    IN  i_api_id            BIGINT,    -- 실행할 API ID
+    IN  i_request_user_id   BIGINT,    -- 요청자 user_id
+    IN  i_request_json      LONGTEXT,  -- 요청 파라미터 JSON
+    IN  i_role_code         INT,       -- 요청자 역할 코드
+    IN  i_company_id        BIGINT     -- 요청자 company_id (접근 검사용)
 ) COMMENT 'API 실행 생성 - 검증, 스냅샷 저장, 즉시실행 여부 반환'
 BEGIN
 -- --------------------------------- --

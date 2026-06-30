@@ -1,11 +1,11 @@
 DROP PROCEDURE IF EXISTS SP_GET_API_EXECUTION_PENDING;
 DELIMITER $
 CREATE PROCEDURE SP_GET_API_EXECUTION_PENDING(
-    IN  i_project_id          BIGINT,
-    IN  i_page                INT,
-    IN  i_page_size           INT,
-    IN  i_caller_role_code    INT,
-    IN  i_caller_company_id   BIGINT
+    IN  i_project_id          BIGINT,  -- 프로젝트 ID (필수)
+    IN  i_page                INT,     -- 페이지 번호 (1부터)
+    IN  i_page_size           INT,     -- 페이지 크기 (20/50/100)
+    IN  i_caller_role_code    INT,     -- 요청자 역할 코드
+    IN  i_caller_company_id   BIGINT   -- 요청자 company_id (접근 검사용)
 ) COMMENT '승인 대기 목록 조회 - status=10, requested_at ASC'
 BEGIN
 -- --------------------------------- --

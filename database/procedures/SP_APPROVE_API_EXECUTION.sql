@@ -1,8 +1,8 @@
 DROP PROCEDURE IF EXISTS SP_APPROVE_API_EXECUTION;
 DELIMITER $
 CREATE PROCEDURE SP_APPROVE_API_EXECUTION(
-    IN  i_api_execution_id  BIGINT,
-    IN  i_approve_user_id   BIGINT
+    IN  i_api_execution_id  BIGINT,  -- 승인할 실행 이력 ID
+    IN  i_approve_user_id   BIGINT   -- 승인자 user_id
 ) COMMENT '실행 승인 - status 10→20, approve_user_id/approved_at 저장, api_base_url 반환'
 BEGIN
 -- --------------------------------- --
