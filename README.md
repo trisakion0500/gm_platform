@@ -165,6 +165,7 @@ AI는 문서 초안 작성과 반복적인 코드 작업의 속도를 높이는 
   - ✅ User Role API — 목록 / 등록 / 수정
   - ⬜ API API — 목록 / 등록 / 상세 / 수정 / Request·Response 파라미터 관리 / 실행
   - ⬜ API Execution API — 목록 / 상세 / 승인·반려·취소
-  - ⬜ Code Group / Code Item API
+  - ✅ Code Group API — 목록 / 등록 / 상세 / 수정 / 활성 아이템 조회
+  - ✅ Code Item API — 목록 / 등록 / 상세 / 수정
   - ⬜ Audit Log API
 - ⬜ Frontend 구현
