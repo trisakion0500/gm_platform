@@ -271,6 +271,113 @@ export interface CompanyRow {
 }
 
 /**
+ * api 테이블 조회 행 타입
+ * @author trisakion
+ */
+export interface APIRow {
+  /** API ID */
+  api_id: number;
+  /** 프로젝트 ID(수정불가) */
+  project_id: number;
+  /** API 고유 코드 */
+  api_code: string;
+  /** API 이름 */
+  api_name: string;
+  /** 서비스 호출 Endpoint */
+  endpoint: string;
+  /** API 설명 */
+  description: string | null;
+  /** API 운영 단계 (20:개발, 30:승인, 40:운영) */
+  api_stage: number;
+  /** 승인 필요 여부 (0:즉시 실행, 1:승인 필요) */
+  is_required_approval: number;
+  /** 응답 표시 방식 (1:KEY_VALUE, 2:GRID) */
+  response_view_type: number;
+  /** 상태 (1:사용, 0:중지) */
+  status: number;
+  /** 화면 표시 순서 */
+  display_order: number;
+  /** 생성자 사용자 ID */
+  created_by: number;
+  /** 수정자 사용자 ID */
+  updated_by: number;
+  /** 생성일시 */
+  created_at: Date;
+  /** 수정일시 */
+  updated_at: Date;
+}
+
+/**
+ * api_request 테이블 조회 행 타입.
+ * @author trisakion
+ */
+export interface APIRequestRow {
+  /** API 요청 파라미터 ID */
+  api_request_id: number;
+  /** 소속 API ID */
+  api_id: number;
+  /** 파라미터명 (JSON Key) */
+  parameter_name: string;
+  /** 화면 표시명 */
+  parameter_label: string;
+  /** 데이터 타입 (1:STRING, 2:NUMBER, 3:BOOLEAN, 4:DATE, 5:DATETIME, 6:JSON) */
+  parameter_type: number;
+  /** 입력 컴포넌트 타입 (1:TEXT, 2:NUMBER, 3:DATE, 4:DATETIME, 5:SELECT, 6:RADIO, 7:CHECKBOX) */
+  component_type: number;
+  /** 코드 그룹 ID (0:사용안함) */
+  code_group_id: number;
+  /** 필수 여부 (0:선택, 1:필수) */
+  is_required: number;
+  /** 파라미터 설명 */
+  description: string | null;
+  /** 화면 표시 순서 */
+  display_order: number;
+  /** 상태 (1:사용, 0:중지) */
+  status: number;
+  /** 생성자 사용자 ID */
+  created_by: number;
+  /** 수정자 사용자 ID */
+  updated_by: number;
+  /** 생성 일시 */
+  created_at: Date;
+  /** 수정 일시 */
+  updated_at: Date;
+}
+
+/**
+ * api_response 테이블 조회 행 타입.
+ * @author trisakion
+ */
+export interface APIResponseRow {
+  /** API 응답 정의 ID */
+  api_response_id: number;
+  /** 소속 API ID */
+  api_id: number;
+  /** 응답 항목명 (JSON Key) */
+  parameter_name: string;
+  /** 화면 표시명 */
+  parameter_label: string;
+  /** 데이터 타입 (1:STRING, 2:NUMBER, 3:BOOLEAN, 4:DATE, 5:DATETIME, 6:JSON) */
+  parameter_type: number;
+  /** 코드 그룹 ID (0:사용안함) */
+  code_group_id: number;
+  /** 응답 항목 설명 */
+  description: string | null;
+  /** 화면 표시 순서 */
+  display_order: number;
+  /** 상태 (1:사용, 0:중지) */
+  status: number;
+  /** 생성자 사용자 ID */
+  created_by: number;
+  /** 수정자 사용자 ID */
+  updated_by: number;
+  /** 생성 일시 */
+  created_at: Date;
+  /** 수정 일시 */
+  updated_at: Date;
+}
+
+/**
  * 비즈니스 로직 오류를 표현하는 기본 오류 클래스.
  * result(비즈니스 오류 코드)와 httpStatus를 함께 보유하여 errorHandler에서 일관된 응답을 생성한다.
  * @author trisakion
