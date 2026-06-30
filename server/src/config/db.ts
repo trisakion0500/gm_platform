@@ -37,15 +37,15 @@ export async function callSP(
   if (statusRow?.RESULT === undefined) {
     throw new DBError(
       50001,
-      `${ERROR_MAP[50001].message} [${sp}]: RESULT column missing`,
-      ERROR_MAP[50001].httpStatus,
+      `${ERROR_MAP.DB_ERROR.message} [${sp}]: RESULT column missing`,
+      ERROR_MAP.DB_ERROR.httpStatus,
     );
   }
   if (statusRow.RESULT === 99) {
     throw new DBError(
       50001,
-      `${ERROR_MAP[50001].message} [${sp}]: ${statusRow.ERROR_MESSAGE ?? ""}`,
-      ERROR_MAP[50001].httpStatus,
+      `${ERROR_MAP.DB_ERROR.message} [${sp}]: ${statusRow.ERROR_MESSAGE ?? ""}`,
+      ERROR_MAP.DB_ERROR.httpStatus,
     );
   }
   const dataSets = sets.slice(1).filter((s) => Array.isArray(s));

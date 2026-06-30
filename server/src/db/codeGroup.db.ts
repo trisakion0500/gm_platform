@@ -40,7 +40,8 @@ export async function getCodeGroupList(
  */
 export async function getCodeGroup(codeGroupId: number): Promise<CodeGroupRow | null> {
   const [status, [data]] = await callSP('SP_GET_CODE_GROUP', [codeGroupId]);
-  if (status[0].RESULT === 31004) return null;
+  if (status[0].RESULT === 31004)
+    return null;
   return data[0] as unknown as CodeGroupRow;
 }
 
@@ -57,7 +58,8 @@ export async function updateCodeGroup(
   updatedBy: number,
 ): Promise<CodeGroupRow> {
   const [spStatus, [data]] = await callSP('SP_UPDATE_CODE_GROUP', [codeGroupId, codeGroupName, description, status, updatedBy]);
-  if (spStatus[0].RESULT === 31004) throw toDBError(ERROR_MAP.CODE_GROUP_NOT_FOUND);
+  if (spStatus[0].RESULT === 31004)
+    throw toDBError(ERROR_MAP.CODE_GROUP_NOT_FOUND);
   return data[0] as unknown as CodeGroupRow;
 }
 

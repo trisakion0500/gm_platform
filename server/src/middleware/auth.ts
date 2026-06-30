@@ -2,7 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import { verifyAccessToken } from '../utils/jwt';
 import { fail } from '../utils/response';
 import { getSessionByJti } from '../db/auth.db';
-import { ERROR_MAP } from '../constants/errors';
+import { ERROR_MAP, ErrorEntry } from '../constants/errors';
 
 /**
  * Bearer 토큰을 검증하고 req.user를 설정하는 인증 미들웨어.
@@ -51,7 +51,7 @@ export async function authenticate(req: Request, res: Response, next: NextFuncti
   }
 
   if (session.user_status !== 1) {
-    let entry = ERROR_MAP.UNAUTHORIZED;
+    let entry: ErrorEntry = ERROR_MAP.UNAUTHORIZED;
     switch (session.user_status) {
       case 0: entry = ERROR_MAP.PENDING_APPROVAL; break;
       case 2: entry = ERROR_MAP.SIGNUP_REJECTED; break;

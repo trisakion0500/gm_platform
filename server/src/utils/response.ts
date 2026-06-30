@@ -38,7 +38,9 @@ export const fail = (res: Response, entry: ErrorEntry): void => {
  * @returns 'YYYY-MM-DD HH:mm:ss' 형식의 문자열, null이면 null
  */
 export function formatDatetime(d: Date | string | null): string | null {
-  if (!d) return null;
-  if (typeof d === 'string') return d.slice(0, 19).replace('T', ' ');
+  if (!d)
+    return null;
+  if (typeof d === 'string')
+    return d.slice(0, 19).replace('T', ' ');
   return d.toISOString().slice(0, 19).replace('T', ' ');
 }

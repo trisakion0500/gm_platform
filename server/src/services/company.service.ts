@@ -53,7 +53,8 @@ export async function getCompany(
   userCompanyId: number,
 ): Promise<CompanyRow> {
   const company = await db.getCompany(companyId, roleCode, userCompanyId);
-  if (!company) throw toAppError(ERROR_MAP.COMPANY_NOT_FOUND);
+  if (!company)
+    throw toAppError(ERROR_MAP.COMPANY_NOT_FOUND);
   return company;
 }
 

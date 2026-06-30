@@ -59,7 +59,8 @@ export async function getProject(
   userCompanyId: number,
 ): Promise<ProjectRow> {
   const project = await db.getProject(projectId, roleCode, userCompanyId);
-  if (!project) throw toAppError(ERROR_MAP.PROJECT_NOT_FOUND);
+  if (!project)
+    throw toAppError(ERROR_MAP.PROJECT_NOT_FOUND);
   return project;
 }
 

@@ -33,7 +33,8 @@ export async function getCodeGroupList(
  */
 export async function getCodeGroup(codeGroupId: number): Promise<CodeGroupRow> {
   const codeGroup = await db.getCodeGroup(codeGroupId);
-  if (!codeGroup) throw toAppError(ERROR_MAP.CODE_GROUP_NOT_FOUND);
+  if (!codeGroup)
+    throw toAppError(ERROR_MAP.CODE_GROUP_NOT_FOUND);
   return codeGroup;
 }
 

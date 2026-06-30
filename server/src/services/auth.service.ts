@@ -17,11 +17,14 @@ import * as db from "../db/auth.db";
  */
 function parseRefreshExpiry(ttl: string): number {
   const match = /^(\d+)([dhm])$/.exec(ttl);
-  if (!match) return 7 * 24 * 60 * 60 * 1000;
+  if (!match)
+    return 7 * 24 * 60 * 60 * 1000;
   const n = parseInt(match[1], 10);
   const unit = match[2];
-  if (unit === "d") return n * 24 * 60 * 60 * 1000;
-  if (unit === "h") return n * 60 * 60 * 1000;
+  if (unit === "d")
+    return n * 24 * 60 * 60 * 1000;
+  if (unit === "h")
+    return n * 60 * 60 * 1000;
   return n * 60 * 1000;
 }
 
@@ -76,10 +79,12 @@ export async function signup(
  */
 export async function login(loginId: string, password: string) {
   const user = await db.getUserByLoginId(loginId);
-  if (!user) throw toAppError(ERROR_MAP.LOGIN_FAILED);
+  if (!user)
+    throw toAppError(ERROR_MAP.LOGIN_FAILED);
 
   const match = await comparePassword(password, user.password_hash);
-  if (!match) throw toAppError(ERROR_MAP.LOGIN_FAILED);
+  if (!match)
+    throw toAppError(ERROR_MAP.LOGIN_FAILED);
 
   if (user.status !== 1) {
     switch (user.status) {
@@ -137,10 +142,12 @@ export async function refresh(refreshToken: string) {
   const refreshTokenHash = hashRefreshToken(refreshToken);
   const session = await db.getSessionByRefresh(refreshTokenHash);
 
-  if (!session) throw toAppError(ERROR_MAP.REFRESH_TOKEN_EXPIRED);
+  if (!session)
+    throw toAppError(ERROR_MAP.REFRESH_TOKEN_EXPIRED);
   // SP_GET_SESSION_BY_REFRESH가 status=1 AND expired_at > NOW()로 필터링하므로 실질적으로 실행되지 않음
   // SP 변경 시 이 체크도 함께 검토할 것
-  if (session.session_status !== 1) throw toAppError(ERROR_MAP.INVALID_SESSION);
+  if (session.session_status !== 1)
+    throw toAppError(ERROR_MAP.INVALID_SESSION);
   if (session.user_status !== 1) {
     switch (session.user_status) {
       case 0: throw toAppError(ERROR_MAP.PENDING_APPROVAL);
@@ -172,7 +179,8 @@ export async function refresh(refreshToken: string) {
  */
 export async function getMe(userId: number): Promise<UserPublicRow> {
   const user = await db.getUserById(userId);
-  if (!user) throw toAppError(ERROR_MAP.USER_NOT_FOUND);
+  if (!user)
+    throw toAppError(ERROR_MAP.USER_NOT_FOUND);
   return user;
 }
 
@@ -190,10 +198,12 @@ export async function changePassword(
   newPassword: string,
 ): Promise<void> {
   const passwordHash = await db.getPasswordHashById(userId);
-  if (!passwordHash) throw toAppError(ERROR_MAP.USER_NOT_FOUND);
+  if (!passwordHash)
+    throw toAppError(ERROR_MAP.USER_NOT_FOUND);
 
   const match = await comparePassword(currentPassword, passwordHash);
-  if (!match) throw toAppError(ERROR_MAP.PASSWORD_MISMATCH);
+  if (!match)
+    throw toAppError(ERROR_MAP.PASSWORD_MISMATCH);
 
   const newHash = await hashPassword(newPassword);
   await db.updatePassword(userId, newHash);

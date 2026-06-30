@@ -36,8 +36,10 @@ export async function getUserList(
  */
 export async function getUser(userId: number, roleCode: number, userCompanyId: number): Promise<UserAdminRow> {
   const user = await db.getUser(userId);
-  if (!user) throw toAppError(ERROR_MAP.USER_NOT_FOUND);
-  if (roleCode !== 10 && user.company_id !== userCompanyId) throw toAppError(ERROR_MAP.USER_NOT_FOUND);
+  if (!user)
+    throw toAppError(ERROR_MAP.USER_NOT_FOUND);
+  if (roleCode !== 10 && user.company_id !== userCompanyId)
+    throw toAppError(ERROR_MAP.USER_NOT_FOUND);
   return user;
 }
 
@@ -85,7 +87,8 @@ export async function rejectUser(userId: number): Promise<void> {
  */
 export async function resetPassword(userId: number, newPassword: string): Promise<void> {
   const user = await db.getUser(userId);
-  if (!user) throw toAppError(ERROR_MAP.USER_NOT_FOUND);
+  if (!user)
+    throw toAppError(ERROR_MAP.USER_NOT_FOUND);
   const passwordHash = await bcrypt.hash(newPassword, 12);
   await db.resetPassword(userId, passwordHash);
 }

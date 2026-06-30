@@ -34,7 +34,8 @@ export async function getCodeItemList(
  */
 export async function getCodeItem(codeItemId: number): Promise<CodeItemRow> {
   const codeItem = await db.getCodeItem(codeItemId);
-  if (!codeItem) throw toAppError(ERROR_MAP.CODE_ITEM_NOT_FOUND);
+  if (!codeItem)
+    throw toAppError(ERROR_MAP.CODE_ITEM_NOT_FOUND);
   return codeItem;
 }
 

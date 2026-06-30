@@ -41,7 +41,8 @@ export async function getCodeItemList(
  */
 export async function getCodeItem(codeItemId: number): Promise<CodeItemRow | null> {
   const [status, [data]] = await callSP('SP_GET_CODE_ITEM', [codeItemId]);
-  if (status[0].RESULT === 31005) return null;
+  if (status[0].RESULT === 31005)
+    return null;
   return data[0] as unknown as CodeItemRow;
 }
 
@@ -59,6 +60,7 @@ export async function updateCodeItem(
   updatedBy: number,
 ): Promise<CodeItemRow> {
   const [spStatus, [data]] = await callSP('SP_UPDATE_CODE_ITEM', [codeItemId, codeName, description, displayOrder, status, updatedBy]);
-  if (spStatus[0].RESULT === 31005) throw toDBError(ERROR_MAP.CODE_ITEM_NOT_FOUND);
+  if (spStatus[0].RESULT === 31005)
+    throw toDBError(ERROR_MAP.CODE_ITEM_NOT_FOUND);
   return data[0] as unknown as CodeItemRow;
 }
