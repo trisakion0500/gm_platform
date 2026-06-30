@@ -290,6 +290,13 @@ api_stage = 20
 GET /api-requests/{api_request_id}
 ```
 
+### Permission
+
+- SUPER_ADMIN
+- DEVELOPER
+
+> APPROVER / OPERATOR는 `GET /apis/{api_id}` 응답에 requests 목록이 포함되므로 개별 조회 불필요.
+
 ---
 
 ## 2.3 Update API Request
@@ -400,6 +407,13 @@ api_stage = 20
 ```http
 GET /api-responses/{api_response_id}
 ```
+
+### Permission
+
+- SUPER_ADMIN
+- DEVELOPER
+
+> APPROVER / OPERATOR는 `GET /apis/{api_id}` 응답에 responses 목록이 포함되므로 개별 조회 불필요.
 
 ---
 
