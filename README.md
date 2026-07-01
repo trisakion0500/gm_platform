@@ -74,6 +74,7 @@ GM Platform은 회사 → 프로젝트 → API 구조로 다중 서비스를 단
 | 비밀번호    | bcrypt (rounds=12)             |
 | S2S 호출    | HTTP/HTTPS POST (JSON Payload) |
 | 로깅        | log_audit + log4js             |
+| API 문서    | Swagger UI (swagger-jsdoc)     |
 
 **Frontend**
 
@@ -169,4 +170,5 @@ AI는 문서 초안 작성과 반복적인 코드 작업의 속도를 높이는 
   - ✅ Code Group API — 목록 / 등록 / 상세 / 수정 / 활성 아이템 조회
   - ✅ Code Item API — 목록 / 등록 / 상세 / 수정
   - ✅ Audit Log API — 목록 / 상세
+  - ✅ Swagger UI — `GET /api/docs` (`SWAGGER_ENABLED=true` 시 활성화)
 - ⬜ Frontend 구현
