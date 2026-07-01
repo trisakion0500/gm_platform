@@ -2,10 +2,8 @@
 import "./config/env";
 import express from "express";
 import cors from "cors";
-import swaggerUi from "swagger-ui-express";
 import { env } from "./config/env";
 import { callSP } from "./config/db";
-import { swaggerSpec } from "./config/swagger";
 import logger from "./utils/logger";
 import { requestLogger } from "./middleware/requestLogger";
 import { errorHandler } from "./middleware/errorHandler";
@@ -16,8 +14,12 @@ const app = express();
 app.use(cors({ origin: env.cors.allowedOrigins }));
 app.use(express.json());
 app.use(requestLogger);
-if (env.swaggerEnabled)
+if (env.swaggerEnabled) {
+  // SWAGGER_ENABLED=true 일 때만 모듈 로드 → false 시 메모리에 올라오지 않음
+  const swaggerUi = require("swagger-ui-express");
+  const { swaggerSpec } = require("./config/swagger");
   app.use("/api/docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+}
 app.use("/api", router);
 app.use(errorHandler); // 라우터 등록 이후 마지막에 위치해야 모든 에러를 포착
 
