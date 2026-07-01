@@ -105,6 +105,7 @@ export async function updateUser(req: Request, res: Response, next: NextFunction
       user_name ?? null,
       email     ?? null,
       status    ?? null,
+      req.user!.user_id,
     );
     success(res, formatUser(user));
   } catch (err) {
@@ -127,7 +128,7 @@ export async function approveUser(req: Request, res: Response, next: NextFunctio
       fail(res, ERROR_MAP.INVALID_FORMAT);
       return;
     }
-    await userService.approveUser(userId);
+    await userService.approveUser(userId, req.user!.user_id);
     success(res, null);
   } catch (err) {
     next(err);
@@ -149,7 +150,7 @@ export async function rejectUser(req: Request, res: Response, next: NextFunction
       fail(res, ERROR_MAP.INVALID_FORMAT);
       return;
     }
-    await userService.rejectUser(userId);
+    await userService.rejectUser(userId, req.user!.user_id);
     success(res, null);
   } catch (err) {
     next(err);
@@ -176,7 +177,7 @@ export async function resetPassword(req: Request, res: Response, next: NextFunct
       fail(res, ERROR_MAP.REQUIRED_MISSING);
       return;
     }
-    await userService.resetPassword(userId, new_password);
+    await userService.resetPassword(userId, new_password, req.user!.user_id);
     success(res, null);
   } catch (err) {
     next(err);

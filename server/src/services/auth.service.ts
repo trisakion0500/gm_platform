@@ -7,6 +7,7 @@ import { formatDatetime } from "../utils/response";
 import { env } from "../config/env";
 import { toAppError, ERROR_MAP } from "../constants/errors";
 import * as db from "../db/auth.db";
+import * as audit from "./logAudit.service";
 
 /**
  * "7d", "24h", "30m" 형태의 TTL 문자열을 밀리초로 변환한다.
@@ -59,7 +60,7 @@ export async function signup(
   email: string,
 ): Promise<UserPublicRow> {
   const passwordHash = await hashPassword(password);
-  return db.signupUser(
+  const after = await db.signupUser(
     companyId,
     requestedProjectId,
     loginId,
@@ -67,6 +68,9 @@ export async function signup(
     userName,
     email,
   );
+  audit.logCreate('user', String(after.user_id), after.user_name,
+    after.company_id, null, after as unknown as Record<string, unknown>, after.user_id);
+  return after;
 }
 
 /**
@@ -190,13 +194,16 @@ export async function getMe(userId: number): Promise<UserPublicRow> {
  * @param userId 사용자 ID
  * @param currentPassword 현재 평문 비밀번호 (검증용)
  * @param newPassword 새 평문 비밀번호
+ * @param callerCompanyId 요청자 소속 회사 ID (audit 기록용)
  * @returns void
  */
 export async function changePassword(
   userId: number,
   currentPassword: string,
   newPassword: string,
+  callerCompanyId: number,
 ): Promise<void> {
+  const before = await db.getUserById(userId);
   const passwordHash = await db.getPasswordHashById(userId);
   if (!passwordHash)
     throw toAppError(ERROR_MAP.USER_NOT_FOUND);
@@ -207,4 +214,12 @@ export async function changePassword(
 
   const newHash = await hashPassword(newPassword);
   await db.updatePassword(userId, newHash);
+
+  const after = await db.getUserById(userId);
+  if (before && after)
+    audit.logUpdate('user', String(userId), before.user_name,
+      callerCompanyId, null,
+      before as unknown as Record<string, unknown>,
+      after  as unknown as Record<string, unknown>,
+      userId);
 }

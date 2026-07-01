@@ -1,6 +1,7 @@
 import { APIRow, APIRequestRow, APIResponseRow } from '../types';
 import { toAppError, ERROR_MAP } from '../constants/errors';
 import * as db from '../db/api.db';
+import * as audit from './logAudit.service';
 
 /**
  * API를 생성한다.
@@ -27,7 +28,9 @@ export async function createApi(
   displayOrder: number,
   createdBy: number,
 ): Promise<APIRow> {
-  return db.createApi(projectId, apiCode, apiName, endpoint, description, isRequiredApproval, responseViewType, displayOrder, createdBy);
+  const after = await db.createApi(projectId, apiCode, apiName, endpoint, description, isRequiredApproval, responseViewType, displayOrder, createdBy);
+  audit.logCreateApi(after.project_id, after as unknown as Record<string, unknown>, createdBy);
+  return after;
 }
 
 /**
@@ -98,7 +101,13 @@ export async function updateApi(
   status: number | null,
   updatedBy: number,
 ): Promise<APIRow> {
-  return db.updateApi(apiId, apiCode, apiName, endpoint, description, apiStage, isRequiredApproval, responseViewType, displayOrder, status, updatedBy);
+  const beforeResult = await db.getApi(apiId);
+  const after        = await db.updateApi(apiId, apiCode, apiName, endpoint, description, apiStage, isRequiredApproval, responseViewType, displayOrder, status, updatedBy);
+  audit.logUpdateApi(after.project_id,
+    beforeResult!.api as unknown as Record<string, unknown>,
+    after             as unknown as Record<string, unknown>,
+    updatedBy);
+  return after;
 }
 
 /**
@@ -128,7 +137,9 @@ export async function createApiRequest(
   displayOrder: number,
   createdBy: number,
 ): Promise<APIRequestRow> {
-  return db.createApiRequest(apiId, parameterName, parameterLabel, parameterType, componentType, codeGroupId, isRequired, description, displayOrder, createdBy);
+  const after = await db.createApiRequest(apiId, parameterName, parameterLabel, parameterType, componentType, codeGroupId, isRequired, description, displayOrder, createdBy);
+  audit.logCreateApiRequest(after.api_id, after as unknown as Record<string, unknown>, createdBy);
+  return after;
 }
 
 /**
@@ -173,7 +184,13 @@ export async function updateApiRequest(
   status: number | null,
   updatedBy: number,
 ): Promise<APIRequestRow> {
-  return db.updateApiRequest(apiRequestId, parameterName, parameterLabel, parameterType, componentType, codeGroupId, isRequired, description, displayOrder, status, updatedBy);
+  const before = await db.getApiRequest(apiRequestId);
+  const after  = await db.updateApiRequest(apiRequestId, parameterName, parameterLabel, parameterType, componentType, codeGroupId, isRequired, description, displayOrder, status, updatedBy);
+  audit.logUpdateApiRequest(after.api_id,
+    before! as unknown as Record<string, unknown>,
+    after   as unknown as Record<string, unknown>,
+    updatedBy);
+  return after;
 }
 
 /**
@@ -199,7 +216,9 @@ export async function createApiResponse(
   displayOrder: number,
   createdBy: number,
 ): Promise<APIResponseRow> {
-  return db.createApiResponse(apiId, parameterName, parameterLabel, parameterType, codeGroupId, description, displayOrder, createdBy);
+  const after = await db.createApiResponse(apiId, parameterName, parameterLabel, parameterType, codeGroupId, description, displayOrder, createdBy);
+  audit.logCreateApiResponse(after.api_id, after as unknown as Record<string, unknown>, createdBy);
+  return after;
 }
 
 /**
@@ -240,5 +259,11 @@ export async function updateApiResponse(
   status: number | null,
   updatedBy: number,
 ): Promise<APIResponseRow> {
-  return db.updateApiResponse(apiResponseId, parameterName, parameterLabel, parameterType, codeGroupId, description, displayOrder, status, updatedBy);
+  const before = await db.getApiResponse(apiResponseId);
+  const after  = await db.updateApiResponse(apiResponseId, parameterName, parameterLabel, parameterType, codeGroupId, description, displayOrder, status, updatedBy);
+  audit.logUpdateApiResponse(after.api_id,
+    before! as unknown as Record<string, unknown>,
+    after   as unknown as Record<string, unknown>,
+    updatedBy);
+  return after;
 }

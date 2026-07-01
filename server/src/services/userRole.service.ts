@@ -1,5 +1,6 @@
 import { UserRoleRow } from '../types';
 import * as db from '../db/userRole.db';
+import * as audit from './logAudit.service';
 
 /**
  * User Role 목록을 조회한다.
@@ -26,14 +27,19 @@ export async function getUserRoleList(
  * @param userId 사용자 ID
  * @param projectId 프로젝트 ID
  * @param roleCode 역할 코드 (20/30/40)
+ * @param callerUserId 작업 수행 사용자 ID
  * @returns 등록된 User Role 정보
  */
 export async function createUserRole(
   userId: number,
   projectId: number,
   roleCode: number,
+  callerUserId: number,
 ): Promise<UserRoleRow> {
-  return db.createUserRole(userId, projectId, roleCode);
+  const after = await db.createUserRole(userId, projectId, roleCode);
+  audit.logCreateUserRole(userId, projectId, after.login_id,
+    after as unknown as Record<string, unknown>, callerUserId);
+  return after;
 }
 
 /**
@@ -43,6 +49,7 @@ export async function createUserRole(
  * @param projectId 프로젝트 ID
  * @param roleCode 역할 코드 (null=변경 없음)
  * @param status 상태 (null=변경 없음)
+ * @param callerUserId 작업 수행 사용자 ID
  * @returns 수정된 User Role 정보
  */
 export async function updateUserRole(
@@ -50,6 +57,14 @@ export async function updateUserRole(
   projectId: number,
   roleCode: number | null,
   status: number | null,
+  callerUserId: number,
 ): Promise<UserRoleRow> {
-  return db.updateUserRole(userId, projectId, roleCode, status);
+  const beforeList = await db.getUserRoleList(userId, projectId, null, null, null);
+  const after      = await db.updateUserRole(userId, projectId, roleCode, status);
+  const before     = beforeList[0];
+  audit.logUpdateUserRole(userId, projectId, after.login_id,
+    before! as unknown as Record<string, unknown>,
+    after   as unknown as Record<string, unknown>,
+    callerUserId);
+  return after;
 }

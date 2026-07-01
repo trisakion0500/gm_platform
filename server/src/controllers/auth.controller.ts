@@ -128,7 +128,7 @@ export async function changePassword(req: Request, res: Response, next: NextFunc
       fail(res, ERROR_MAP.REQUIRED_MISSING);
       return;
     }
-    await authService.changePassword(req.user!.user_id, current_password, new_password);
+    await authService.changePassword(req.user!.user_id, current_password, new_password, req.user!.company_id);
     success(res, null);
   } catch (err) {
     next(err);

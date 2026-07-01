@@ -32,7 +32,7 @@ export async function createCompany(req: Request, res: Response, next: NextFunct
       fail(res, ERROR_MAP.REQUIRED_MISSING);
       return;
     }
-    const company = await companyService.createCompany(company_code, company_name, description ?? null);
+    const company = await companyService.createCompany(company_code, company_name, description ?? null, req.user!.user_id);
     success(res, formatCompany(company), 201);
   } catch (err) {
     next(err);
@@ -125,6 +125,7 @@ export async function updateCompany(req: Request, res: Response, next: NextFunct
       company_name ?? null,
       description ?? null,
       status ?? null,
+      req.user!.user_id,
     );
     success(res, formatCompany(company));
   } catch (err) {

@@ -2,7 +2,7 @@ import { callSP } from '../config/db';
 import { LogAuditRow } from '../types';
 import { toAppError, ERROR_MAP } from '../constants/errors';
 import { formatDatetime } from '../utils/response';
-import { logger } from '../utils/logger';
+import logger from '../utils/logger';
 import * as db from '../db/logAudit.db';
 
 const SKIP_FIELDS = new Set(['updated_at', 'updated_by', 'last_login_at']);
@@ -40,6 +40,7 @@ function hasGeneralChange(
 
 /**
  * project_id로 company_id를 조회한다. audit 내부에서만 사용한다.
+ * project 엔티티는 서비스 시그니처에 company_id가 없으므로 audit 기록 시 직접 조회가 필요하다.
  * @param projectId 조회할 프로젝트 ID
  * @returns company_id, 실패 시 null
  */
@@ -51,6 +52,8 @@ async function resolveCompanyId(projectId: number): Promise<number | null> {
 
 /**
  * api_id로 project_id와 company_id를 조회한다. audit 내부에서만 사용한다.
+ * api/api_request/api_response 엔티티는 서비스 시그니처에 company_id가 없으므로
+ * api → project → company 순으로 2단계 체인 조회가 필요하다.
  * @param apiId 조회할 API ID
  * @returns { projectId, companyId }, 실패 시 null
  */
@@ -66,6 +69,8 @@ async function resolveApiScope(apiId: number): Promise<{ projectId: number; comp
 
 /**
  * code_group_id로 project_id와 company_id를 조회한다. audit 내부에서만 사용한다.
+ * code_group/code_item 엔티티는 서비스 시그니처에 company_id가 없으므로
+ * code_group → project → company 순으로 2단계 체인 조회가 필요하다.
  * @param codeGroupId 조회할 코드 그룹 ID
  * @returns { projectId, companyId }, 실패 시 null
  */

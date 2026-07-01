@@ -1,6 +1,7 @@
 import { CompanyRow } from '../types';
 import { toAppError, ERROR_MAP } from '../constants/errors';
 import * as db from '../db/company.db';
+import * as audit from './logAudit.service';
 
 /**
  * 회사를 생성한다.
@@ -8,14 +9,19 @@ import * as db from '../db/company.db';
  * @param companyCode 회사 코드
  * @param companyName 회사명
  * @param description 설명 (없으면 null)
+ * @param callerUserId 작업 수행 사용자 ID
  * @returns 생성된 회사 정보
  */
 export async function createCompany(
   companyCode: string,
   companyName: string,
   description: string | null,
+  callerUserId: number,
 ): Promise<CompanyRow> {
-  return db.createCompany(companyCode, companyName, description);
+  const after = await db.createCompany(companyCode, companyName, description);
+  audit.logCreate('company', String(after.company_id), after.company_name,
+    after.company_id, null, after as unknown as Record<string, unknown>, callerUserId);
+  return after;
 }
 
 /**
@@ -66,6 +72,7 @@ export async function getCompany(
  * @param companyName 회사명 (null=변경 없음)
  * @param description 설명 (null=변경 없음)
  * @param status 상태 (null=변경 없음)
+ * @param callerUserId 작업 수행 사용자 ID
  * @returns 수정된 회사 정보
  */
 export async function updateCompany(
@@ -74,6 +81,14 @@ export async function updateCompany(
   companyName: string | null,
   description: string | null,
   status: number | null,
+  callerUserId: number,
 ): Promise<CompanyRow> {
-  return db.updateCompany(companyId, companyCode, companyName, description, status);
+  const before = await db.getCompany(companyId, 10, 0);
+  const after  = await db.updateCompany(companyId, companyCode, companyName, description, status);
+  audit.logUpdate('company', String(after.company_id), after.company_name,
+    after.company_id, null,
+    before! as unknown as Record<string, unknown>,
+    after   as unknown as Record<string, unknown>,
+    callerUserId);
+  return after;
 }

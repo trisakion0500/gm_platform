@@ -2,6 +2,7 @@ import bcrypt from 'bcrypt';
 import { UserAdminRow } from '../types';
 import { toAppError, ERROR_MAP } from '../constants/errors';
 import * as db from '../db/user.db';
+import * as audit from './logAudit.service';
 
 /**
  * 사용자 목록을 페이지네이션으로 조회한다.
@@ -50,6 +51,7 @@ export async function getUser(userId: number, roleCode: number, userCompanyId: n
  * @param userName 이름 (null=변경 없음)
  * @param email 이메일 (null=변경 없음)
  * @param status 상태 (null=변경 없음)
+ * @param callerUserId 작업 수행 사용자 ID
  * @returns 수정된 사용자 정보
  */
 export async function updateUser(
@@ -57,26 +59,48 @@ export async function updateUser(
   userName: string | null,
   email: string | null,
   status: number | null,
+  callerUserId: number,
 ): Promise<UserAdminRow> {
-  return db.updateUser(userId, userName, email, status);
+  const before = await db.getUser(userId);
+  const after  = await db.updateUser(userId, userName, email, status);
+  audit.logUpdate('user', String(after.user_id), after.user_name,
+    after.company_id, null,
+    before! as unknown as Record<string, unknown>,
+    after   as unknown as Record<string, unknown>,
+    callerUserId);
+  return after;
 }
 
 /**
  * 가입 승인 처리한다. 승인대기(status=0) 상태가 아닌 경우 AppError(30003)를 던진다.
  * @author trisakion
  * @param userId 승인할 사용자 ID
+ * @param callerUserId 작업 수행 사용자 ID
  */
-export async function approveUser(userId: number): Promise<void> {
-  return db.approveUser(userId);
+export async function approveUser(userId: number, callerUserId: number): Promise<void> {
+  const before = await db.getUser(userId);
+  const after  = await db.approveUser(userId);
+  audit.logUpdate('user', String(after.user_id), after.user_name,
+    after.company_id, null,
+    before! as unknown as Record<string, unknown>,
+    after   as unknown as Record<string, unknown>,
+    callerUserId);
 }
 
 /**
  * 가입 반려 처리한다. 승인대기(status=0) 상태가 아닌 경우 AppError(30003)를 던진다.
  * @author trisakion
  * @param userId 반려할 사용자 ID
+ * @param callerUserId 작업 수행 사용자 ID
  */
-export async function rejectUser(userId: number): Promise<void> {
-  return db.rejectUser(userId);
+export async function rejectUser(userId: number, callerUserId: number): Promise<void> {
+  const before = await db.getUser(userId);
+  const after  = await db.rejectUser(userId);
+  audit.logUpdate('user', String(after.user_id), after.user_name,
+    after.company_id, null,
+    before! as unknown as Record<string, unknown>,
+    after   as unknown as Record<string, unknown>,
+    callerUserId);
 }
 
 /**
@@ -84,11 +108,18 @@ export async function rejectUser(userId: number): Promise<void> {
  * @author trisakion
  * @param userId 초기화할 사용자 ID
  * @param newPassword 새 비밀번호 (평문)
+ * @param callerUserId 작업 수행 사용자 ID
  */
-export async function resetPassword(userId: number, newPassword: string): Promise<void> {
-  const user = await db.getUser(userId);
-  if (!user)
+export async function resetPassword(userId: number, newPassword: string, callerUserId: number): Promise<void> {
+  const before = await db.getUser(userId);
+  if (!before)
     throw toAppError(ERROR_MAP.USER_NOT_FOUND);
   const passwordHash = await bcrypt.hash(newPassword, 12);
   await db.resetPassword(userId, passwordHash);
+  const after = await db.getUser(userId);
+  audit.logUpdate('user', String(userId), before.user_name,
+    before.company_id, null,
+    before  as unknown as Record<string, unknown>,
+    after!  as unknown as Record<string, unknown>,
+    callerUserId);
 }

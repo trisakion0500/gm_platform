@@ -1,6 +1,7 @@
 import { ProjectRow } from '../types';
 import { toAppError, ERROR_MAP } from '../constants/errors';
 import * as db from '../db/project.db';
+import * as audit from './logAudit.service';
 
 /**
  * 프로젝트를 생성한다.
@@ -10,6 +11,7 @@ import * as db from '../db/project.db';
  * @param projectName 프로젝트명
  * @param apiBaseUrl API Base URL
  * @param description 설명 (없으면 null)
+ * @param callerUserId 작업 수행 사용자 ID
  * @returns 생성된 프로젝트 정보
  */
 export async function createProject(
@@ -18,8 +20,12 @@ export async function createProject(
   projectName: string,
   apiBaseUrl: string,
   description: string | null,
+  callerUserId: number,
 ): Promise<ProjectRow> {
-  return db.createProject(companyId, projectCode, projectName, apiBaseUrl, description);
+  const after = await db.createProject(companyId, projectCode, projectName, apiBaseUrl, description);
+  audit.logCreate('project', String(after.project_id), after.project_name,
+    after.company_id, after.project_id, after as unknown as Record<string, unknown>, callerUserId);
+  return after;
 }
 
 /**
@@ -73,6 +79,7 @@ export async function getProject(
  * @param apiBaseUrl API Base URL (null=변경 없음)
  * @param description 설명 (null=변경 없음)
  * @param status 상태 (null=변경 없음)
+ * @param callerUserId 작업 수행 사용자 ID
  * @returns 수정된 프로젝트 정보
  */
 export async function updateProject(
@@ -82,6 +89,14 @@ export async function updateProject(
   apiBaseUrl: string | null,
   description: string | null,
   status: number | null,
+  callerUserId: number,
 ): Promise<ProjectRow> {
-  return db.updateProject(projectId, projectCode, projectName, apiBaseUrl, description, status);
+  const before = await db.getProject(projectId, 10, 0);
+  const after  = await db.updateProject(projectId, projectCode, projectName, apiBaseUrl, description, status);
+  audit.logUpdate('project', String(after.project_id), after.project_name,
+    after.company_id, after.project_id,
+    before! as unknown as Record<string, unknown>,
+    after   as unknown as Record<string, unknown>,
+    callerUserId);
+  return after;
 }
