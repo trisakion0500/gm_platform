@@ -48,6 +48,12 @@ BEGIN
 
         SELECT 0 AS RESULT;
 
+        SELECT `user_id`, `company_id`, `requested_project_id`,
+               `login_id`, `user_name`, `email`,
+               `status`, `last_login_at`, `created_at`, `updated_at`
+        FROM `user`
+        WHERE `user_id` = i_user_id;
+
     END;
 
 END$

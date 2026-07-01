@@ -416,6 +416,35 @@ export interface APIExecutionRow {
 }
 
 /**
+ * log_audit 테이블 조회 행 타입.
+ * @author trisakion
+ */
+export interface LogAuditRow {
+  /** 감사 로그 ID */
+  log_audit_id: number;
+  /** 회사 ID */
+  company_id: number;
+  /** 프로젝트 ID (company/user 작업 시 null) */
+  project_id: number | null;
+  /** 대상 테이블명 */
+  table_name: string;
+  /** 대상 PK (복합키는 JSON 문자열) */
+  target_id: string;
+  /** 대상 표시명 */
+  target_name: string;
+  /** 작업 유형 (10:CREATE, 20:UPDATE, 30:STATUS_CHANGE) */
+  action_type: number;
+  /** 변경 전 데이터 JSON (CREATE 시 null, 상세 조회 시만 포함) */
+  before_json?: string | null;
+  /** 변경 후 데이터 JSON (상세 조회 시만 포함) */
+  after_json?: string;
+  /** 작업 수행 사용자 ID */
+  created_by: number;
+  /** 생성 일시 */
+  created_at: Date;
+}
+
+/**
  * 비즈니스 로직 오류를 표현하는 기본 오류 클래스.
  * result(비즈니스 오류 코드)와 httpStatus를 함께 보유하여 errorHandler에서 일관된 응답을 생성한다.
  * @author trisakion

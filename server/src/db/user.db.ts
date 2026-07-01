@@ -68,31 +68,35 @@ export async function updateUser(
 }
 
 /**
- * 가입 승인 처리한다 (status → 1).
+ * 가입 승인 처리하고 승인된 사용자 정보를 반환한다 (status → 1).
  * 사용자 미존재 시 DBError(31003), 승인대기 상태가 아닌 경우 DBError(30003)를 던진다.
  * @author trisakion
  * @param userId 승인할 사용자 ID
+ * @returns 승인된 사용자 정보
  */
-export async function approveUser(userId: number): Promise<void> {
-  const [status] = await callSP('SP_APPROVE_USER', [userId]);
+export async function approveUser(userId: number): Promise<UserAdminRow> {
+  const [status, [data]] = await callSP('SP_APPROVE_USER', [userId]);
   switch (status[0].RESULT) {
     case 31003: throw toDBError(ERROR_MAP.USER_NOT_FOUND);
     case 30003: throw toDBError(ERROR_MAP.INVALID_VALUE);
   }
+  return data[0] as unknown as UserAdminRow;
 }
 
 /**
- * 가입 반려 처리한다 (status → 2).
+ * 가입 반려 처리하고 반려된 사용자 정보를 반환한다 (status → 2).
  * 사용자 미존재 시 DBError(31003), 승인대기 상태가 아닌 경우 DBError(30003)를 던진다.
  * @author trisakion
  * @param userId 반려할 사용자 ID
+ * @returns 반려된 사용자 정보
  */
-export async function rejectUser(userId: number): Promise<void> {
-  const [status] = await callSP('SP_REJECT_USER', [userId]);
+export async function rejectUser(userId: number): Promise<UserAdminRow> {
+  const [status, [data]] = await callSP('SP_REJECT_USER', [userId]);
   switch (status[0].RESULT) {
     case 31003: throw toDBError(ERROR_MAP.USER_NOT_FOUND);
     case 30003: throw toDBError(ERROR_MAP.INVALID_VALUE);
   }
+  return data[0] as unknown as UserAdminRow;
 }
 
 /**

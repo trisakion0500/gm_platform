@@ -10,6 +10,7 @@ import apiRouter from './api';
 import apiRequestRouter from './apiRequest';
 import apiResponseRouter from './apiResponse';
 import apiExecutionRouter from './apiExecution';
+import logAuditRouter from './logAudit';
 
 const router = Router();
 
@@ -33,5 +34,6 @@ router.use('/apis',          apiRouter);
 router.use('/api-requests',   apiRequestRouter);
 router.use('/api-responses',  apiResponseRouter);
 router.use('/api-executions', apiExecutionRouter);
+router.use('/log-audits',    logAuditRouter);
 
 export default router;
