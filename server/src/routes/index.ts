@@ -14,6 +14,22 @@ import logAuditRouter from './logAudit';
 
 const router = Router();
 
+/**
+ * @swagger
+ * /health:
+ *   get:
+ *     tags: [Health]
+ *     summary: 서버 상태 확인
+ *     responses:
+ *       200:
+ *         description: 정상
+ *         content:
+ *           application/json:
+ *             example:
+ *               result: 0
+ *               data:
+ *                 status: ok
+ */
 router.get('/health', (_req: Request, res: Response) => {
   res.json({ result: 0, data: { status: 'ok' } });
 });

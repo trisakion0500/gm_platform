@@ -6,9 +6,189 @@ import * as ctrl from '../controllers/company.controller';
 
 const router = Router();
 
-router.post('/',              authenticate, requireRole(ROLE.SUPER_ADMIN),                        ctrl.createCompany);
-router.get('/',               authenticate, requireRole(ROLE.SUPER_ADMIN, ROLE.DEVELOPER),        ctrl.getCompanyList);
-router.get('/:company_id',    authenticate, requireRole(ROLE.SUPER_ADMIN, ROLE.DEVELOPER),        ctrl.getCompany);
-router.patch('/:company_id',  authenticate, requireRole(ROLE.SUPER_ADMIN),                        ctrl.updateCompany);
+/**
+ * @swagger
+ * /companies:
+ *   post:
+ *     tags: [Company]
+ *     summary: 회사 등록
+ *     security:
+ *       - bearerAuth: []
+ *     x-required-roles: SUPER_ADMIN
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [company_code, company_name]
+ *             properties:
+ *               company_code: { type: string, example: NEXON }
+ *               company_name: { type: string, example: 넥슨 }
+ *               description:  { type: string, nullable: true, example: 게임 회사 }
+ *     responses:
+ *       201:
+ *         description: 등록 성공
+ *         content:
+ *           application/json:
+ *             example:
+ *               result: 0
+ *               data:
+ *                 company_id: 1
+ *                 company_code: NEXON
+ *                 company_name: 넥슨
+ *                 description: 게임 회사
+ *                 status: 1
+ *                 created_at: '2025-01-01 00:00:00'
+ *                 updated_at: '2025-01-01 00:00:00'
+ *       400:
+ *         $ref: '#/components/responses/BadRequest'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       403:
+ *         $ref: '#/components/responses/Forbidden'
+ */
+router.post('/',             authenticate, requireRole(ROLE.SUPER_ADMIN),                 ctrl.createCompany);
+
+/**
+ * @swagger
+ * /companies:
+ *   get:
+ *     tags: [Company]
+ *     summary: 회사 목록 조회
+ *     description: |
+ *       DEVELOPER는 본인 소속 회사만 반환된다.
+ *       `page`와 `page_size`는 모두 필수이며, `page_size`는 20·50·100만 허용한다.
+ *     security:
+ *       - bearerAuth: []
+ *     x-required-roles: SUPER_ADMIN, DEVELOPER
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         required: true
+ *         schema: { type: integer, example: 1 }
+ *       - in: query
+ *         name: page_size
+ *         required: true
+ *         schema: { type: integer, enum: [20, 50, 100], example: 20 }
+ *       - in: query
+ *         name: status
+ *         schema: { type: integer, description: '1=사용, 0=중지', example: 1 }
+ *     responses:
+ *       200:
+ *         description: 조회 성공
+ *         content:
+ *           application/json:
+ *             example:
+ *               result: 0
+ *               data:
+ *                 total: 2
+ *                 page: 1
+ *                 page_size: 20
+ *                 total_pages: 1
+ *                 items:
+ *                   - company_id: 1
+ *                     company_code: NEXON
+ *                     company_name: 넥슨
+ *                     description: null
+ *                     status: 1
+ *                     created_at: '2025-01-01 00:00:00'
+ *                     updated_at: '2025-01-01 00:00:00'
+ *       400:
+ *         $ref: '#/components/responses/BadRequest'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       403:
+ *         $ref: '#/components/responses/Forbidden'
+ */
+router.get('/',              authenticate, requireRole(ROLE.SUPER_ADMIN, ROLE.DEVELOPER), ctrl.getCompanyList);
+
+/**
+ * @swagger
+ * /companies/{company_id}:
+ *   get:
+ *     tags: [Company]
+ *     summary: 회사 단건 조회
+ *     security:
+ *       - bearerAuth: []
+ *     x-required-roles: SUPER_ADMIN, DEVELOPER
+ *     parameters:
+ *       - in: path
+ *         name: company_id
+ *         required: true
+ *         schema: { type: integer, example: 1 }
+ *     responses:
+ *       200:
+ *         description: 조회 성공
+ *         content:
+ *           application/json:
+ *             example:
+ *               result: 0
+ *               data:
+ *                 company_id: 1
+ *                 company_code: NEXON
+ *                 company_name: 넥슨
+ *                 description: null
+ *                 status: 1
+ *                 created_at: '2025-01-01 00:00:00'
+ *                 updated_at: '2025-01-01 00:00:00'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       403:
+ *         $ref: '#/components/responses/Forbidden'
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
+ */
+router.get('/:company_id',   authenticate, requireRole(ROLE.SUPER_ADMIN, ROLE.DEVELOPER), ctrl.getCompany);
+
+/**
+ * @swagger
+ * /companies/{company_id}:
+ *   patch:
+ *     tags: [Company]
+ *     summary: 회사 수정
+ *     description: 전달한 필드만 업데이트된다. 생략하면 기존 값 유지.
+ *     security:
+ *       - bearerAuth: []
+ *     x-required-roles: SUPER_ADMIN
+ *     parameters:
+ *       - in: path
+ *         name: company_id
+ *         required: true
+ *         schema: { type: integer, example: 1 }
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               company_code: { type: string, example: NEXON }
+ *               company_name: { type: string, example: 넥슨코리아 }
+ *               description:  { type: string, nullable: true, example: null }
+ *               status:       { type: integer, description: '1=사용, 0=중지', example: 1 }
+ *     responses:
+ *       200:
+ *         description: 수정 성공
+ *         content:
+ *           application/json:
+ *             example:
+ *               result: 0
+ *               data:
+ *                 company_id: 1
+ *                 company_code: NEXON
+ *                 company_name: 넥슨코리아
+ *                 description: null
+ *                 status: 1
+ *                 created_at: '2025-01-01 00:00:00'
+ *                 updated_at: '2025-01-02 00:00:00'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       403:
+ *         $ref: '#/components/responses/Forbidden'
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
+ */
+router.patch('/:company_id', authenticate, requireRole(ROLE.SUPER_ADMIN),                 ctrl.updateCompany);
 
 export default router;

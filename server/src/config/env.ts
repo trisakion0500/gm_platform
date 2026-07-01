@@ -38,4 +38,5 @@ export const env = {
   log: {
     debugErrors: process.env.LOG_DEBUG_ERRORS === 'true',
   },
+  swaggerEnabled: process.env.SWAGGER_ENABLED === 'true',
 };
