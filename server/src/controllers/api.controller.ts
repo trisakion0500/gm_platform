@@ -57,6 +57,7 @@ export async function createApi(req: Request, res: Response, next: NextFunction)
       response_view_type ?? 1,
       display_order ?? 0,
       req.user!.user_id,
+      req.user!.role_code,
     );
     success(res, formatApi(api), 201);
   } catch (err) {
@@ -165,6 +166,7 @@ export async function updateApi(req: Request, res: Response, next: NextFunction)
       display_order ?? null,
       status ?? null,
       req.user!.user_id,
+      req.user!.role_code,
     );
     success(res, formatApi(api));
   } catch (err) {
@@ -202,6 +204,7 @@ export async function createApiRequest(req: Request, res: Response, next: NextFu
       description ?? null,
       display_order ?? 0,
       req.user!.user_id,
+      req.user!.role_code,
     );
     success(res, formatApiRequest(apiRequest), 201);
   } catch (err) {
@@ -237,6 +240,7 @@ export async function createApiResponse(req: Request, res: Response, next: NextF
       description ?? null,
       display_order ?? 0,
       req.user!.user_id,
+      req.user!.role_code,
     );
     success(res, formatApiResponse(apiResponse), 201);
   } catch (err) {

@@ -1,7 +1,9 @@
 import { APIRow, APIRequestRow, APIResponseRow } from '../types';
 import { toAppError, ERROR_MAP } from '../constants/errors';
+import { ROLE } from '../constants/roles';
 import * as db from '../db/api.db';
 import * as audit from './logAudit.service';
+import { assertProjectRole } from './projectRole.service';
 
 /**
  * API를 생성한다.
@@ -15,6 +17,7 @@ import * as audit from './logAudit.service';
  * @param responseViewType 응답 표시 방식
  * @param displayOrder 화면 표시 순서
  * @param createdBy 생성자 user_id
+ * @param callerRoleCode 생성자 JWT의 전역 role_code (SUPER_ADMIN 외에는 projectId 소속 DEVELOPER 여부를 재검증)
  * @returns 생성된 API 정보
  */
 export async function createApi(
@@ -27,7 +30,9 @@ export async function createApi(
   responseViewType: number,
   displayOrder: number,
   createdBy: number,
+  callerRoleCode: number,
 ): Promise<APIRow> {
+  await assertProjectRole(createdBy, callerRoleCode, projectId, [ROLE.DEVELOPER]);
   const after = await db.createApi(projectId, apiCode, apiName, endpoint, description, isRequiredApproval, responseViewType, displayOrder, createdBy);
   audit.logCreateApi(after.project_id, after as unknown as Record<string, unknown>, createdBy);
   return after;
@@ -86,6 +91,7 @@ export async function getApi(
  * @param displayOrder 화면 표시 순서 (null=변경 없음)
  * @param status 상태 (null=변경 없음)
  * @param updatedBy 수정자 user_id
+ * @param callerRoleCode 수정자 JWT의 전역 role_code (SUPER_ADMIN 외에는 해당 API 소속 프로젝트의 DEVELOPER 여부를 재검증)
  * @returns 수정된 API 정보
  */
 export async function updateApi(
@@ -100,12 +106,16 @@ export async function updateApi(
   displayOrder: number | null,
   status: number | null,
   updatedBy: number,
+  callerRoleCode: number,
 ): Promise<APIRow> {
   const beforeResult = await db.getApi(apiId);
-  const after        = await db.updateApi(apiId, apiCode, apiName, endpoint, description, apiStage, isRequiredApproval, responseViewType, displayOrder, status, updatedBy);
+  if (!beforeResult)
+    throw toAppError(ERROR_MAP.API_NOT_FOUND);
+  await assertProjectRole(updatedBy, callerRoleCode, beforeResult.api.project_id, [ROLE.DEVELOPER]);
+  const after = await db.updateApi(apiId, apiCode, apiName, endpoint, description, apiStage, isRequiredApproval, responseViewType, displayOrder, status, updatedBy);
   audit.logUpdateApi(after.project_id,
-    beforeResult!.api as unknown as Record<string, unknown>,
-    after             as unknown as Record<string, unknown>,
+    beforeResult.api as unknown as Record<string, unknown>,
+    after            as unknown as Record<string, unknown>,
     updatedBy);
   return after;
 }
@@ -123,6 +133,7 @@ export async function updateApi(
  * @param description 설명 (없으면 null)
  * @param displayOrder 화면 표시 순서
  * @param createdBy 생성자 user_id
+ * @param callerRoleCode 생성자 JWT의 전역 role_code (SUPER_ADMIN 외에는 해당 API 소속 프로젝트의 DEVELOPER 여부를 재검증)
  * @returns 생성된 API Request 파라미터 정보
  */
 export async function createApiRequest(
@@ -136,7 +147,12 @@ export async function createApiRequest(
   description: string | null,
   displayOrder: number,
   createdBy: number,
+  callerRoleCode: number,
 ): Promise<APIRequestRow> {
+  const scope = await audit.resolveApiScope(apiId);
+  if (!scope)
+    throw toAppError(ERROR_MAP.API_NOT_FOUND);
+  await assertProjectRole(createdBy, callerRoleCode, scope.projectId, [ROLE.DEVELOPER]);
   const after = await db.createApiRequest(apiId, parameterName, parameterLabel, parameterType, componentType, codeGroupId, isRequired, description, displayOrder, createdBy);
   audit.logCreateApiRequest(after.api_id, after as unknown as Record<string, unknown>, createdBy);
   return after;
@@ -169,6 +185,7 @@ export async function getApiRequest(apiRequestId: number): Promise<APIRequestRow
  * @param displayOrder 화면 표시 순서 (null=변경 없음)
  * @param status 상태 (null=변경 없음)
  * @param updatedBy 수정자 user_id
+ * @param callerRoleCode 수정자 JWT의 전역 role_code (SUPER_ADMIN 외에는 해당 API 소속 프로젝트의 DEVELOPER 여부를 재검증)
  * @returns 수정된 API Request 파라미터 정보
  */
 export async function updateApiRequest(
@@ -183,12 +200,19 @@ export async function updateApiRequest(
   displayOrder: number | null,
   status: number | null,
   updatedBy: number,
+  callerRoleCode: number,
 ): Promise<APIRequestRow> {
   const before = await db.getApiRequest(apiRequestId);
-  const after  = await db.updateApiRequest(apiRequestId, parameterName, parameterLabel, parameterType, componentType, codeGroupId, isRequired, description, displayOrder, status, updatedBy);
+  if (!before)
+    throw toAppError(ERROR_MAP.API_REQUEST_NOT_FOUND);
+  const scope = await audit.resolveApiScope(before.api_id);
+  if (!scope)
+    throw toAppError(ERROR_MAP.API_NOT_FOUND);
+  await assertProjectRole(updatedBy, callerRoleCode, scope.projectId, [ROLE.DEVELOPER]);
+  const after = await db.updateApiRequest(apiRequestId, parameterName, parameterLabel, parameterType, componentType, codeGroupId, isRequired, description, displayOrder, status, updatedBy);
   audit.logUpdateApiRequest(after.api_id,
-    before! as unknown as Record<string, unknown>,
-    after   as unknown as Record<string, unknown>,
+    before as unknown as Record<string, unknown>,
+    after  as unknown as Record<string, unknown>,
     updatedBy);
   return after;
 }
@@ -204,6 +228,7 @@ export async function updateApiRequest(
  * @param description 설명 (없으면 null)
  * @param displayOrder 화면 표시 순서
  * @param createdBy 생성자 user_id
+ * @param callerRoleCode 생성자 JWT의 전역 role_code (SUPER_ADMIN 외에는 해당 API 소속 프로젝트의 DEVELOPER 여부를 재검증)
  * @returns 생성된 API Response 파라미터 정보
  */
 export async function createApiResponse(
@@ -215,7 +240,12 @@ export async function createApiResponse(
   description: string | null,
   displayOrder: number,
   createdBy: number,
+  callerRoleCode: number,
 ): Promise<APIResponseRow> {
+  const scope = await audit.resolveApiScope(apiId);
+  if (!scope)
+    throw toAppError(ERROR_MAP.API_NOT_FOUND);
+  await assertProjectRole(createdBy, callerRoleCode, scope.projectId, [ROLE.DEVELOPER]);
   const after = await db.createApiResponse(apiId, parameterName, parameterLabel, parameterType, codeGroupId, description, displayOrder, createdBy);
   audit.logCreateApiResponse(after.api_id, after as unknown as Record<string, unknown>, createdBy);
   return after;
@@ -246,6 +276,7 @@ export async function getApiResponse(apiResponseId: number): Promise<APIResponse
  * @param displayOrder 화면 표시 순서 (null=변경 없음)
  * @param status 상태 (null=변경 없음)
  * @param updatedBy 수정자 user_id
+ * @param callerRoleCode 수정자 JWT의 전역 role_code (SUPER_ADMIN 외에는 해당 API 소속 프로젝트의 DEVELOPER 여부를 재검증)
  * @returns 수정된 API Response 파라미터 정보
  */
 export async function updateApiResponse(
@@ -258,12 +289,19 @@ export async function updateApiResponse(
   displayOrder: number | null,
   status: number | null,
   updatedBy: number,
+  callerRoleCode: number,
 ): Promise<APIResponseRow> {
   const before = await db.getApiResponse(apiResponseId);
-  const after  = await db.updateApiResponse(apiResponseId, parameterName, parameterLabel, parameterType, codeGroupId, description, displayOrder, status, updatedBy);
+  if (!before)
+    throw toAppError(ERROR_MAP.API_RESPONSE_NOT_FOUND);
+  const scope = await audit.resolveApiScope(before.api_id);
+  if (!scope)
+    throw toAppError(ERROR_MAP.API_NOT_FOUND);
+  await assertProjectRole(updatedBy, callerRoleCode, scope.projectId, [ROLE.DEVELOPER]);
+  const after = await db.updateApiResponse(apiResponseId, parameterName, parameterLabel, parameterType, codeGroupId, description, displayOrder, status, updatedBy);
   audit.logUpdateApiResponse(after.api_id,
-    before! as unknown as Record<string, unknown>,
-    after   as unknown as Record<string, unknown>,
+    before as unknown as Record<string, unknown>,
+    after  as unknown as Record<string, unknown>,
     updatedBy);
   return after;
 }

@@ -60,6 +60,7 @@ export async function updateApiRequest(req: Request, res: Response, next: NextFu
       display_order ?? null,
       status ?? null,
       req.user!.user_id,
+      req.user!.role_code,
     );
     success(res, formatApiRequest(apiRequest));
   } catch (err) {

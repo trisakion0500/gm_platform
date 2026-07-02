@@ -57,7 +57,7 @@ async function resolveCompanyId(projectId: number): Promise<number | null> {
  * @param apiId 조회할 API ID
  * @returns { projectId, companyId }, 실패 시 null
  */
-async function resolveApiScope(apiId: number): Promise<{ projectId: number; companyId: number } | null> {
+export async function resolveApiScope(apiId: number): Promise<{ projectId: number; companyId: number } | null> {
   const [status, [apiRows]] = await callSP('SP_GET_API', [apiId]);
   if (status[0].RESULT !== 0) return null;
   const projectId = (apiRows[0] as any)?.project_id;
@@ -74,7 +74,7 @@ async function resolveApiScope(apiId: number): Promise<{ projectId: number; comp
  * @param codeGroupId 조회할 코드 그룹 ID
  * @returns { projectId, companyId }, 실패 시 null
  */
-async function resolveCodeGroupScope(codeGroupId: number): Promise<{ projectId: number; companyId: number } | null> {
+export async function resolveCodeGroupScope(codeGroupId: number): Promise<{ projectId: number; companyId: number } | null> {
   const [status, [data]] = await callSP('SP_GET_CODE_GROUP', [codeGroupId]);
   if (status[0].RESULT !== 0) return null;
   const projectId = (data[0] as any)?.project_id;

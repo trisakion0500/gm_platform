@@ -1,7 +1,9 @@
 import { CodeItemRow } from '../types';
 import { toAppError, ERROR_MAP } from '../constants/errors';
+import { ROLE } from '../constants/roles';
 import * as db from '../db/codeItem.db';
 import * as audit from './logAudit.service';
+import { assertProjectRole } from './projectRole.service';
 
 /**
  * 코드 아이템을 생성한다.
@@ -12,6 +14,7 @@ import * as audit from './logAudit.service';
  * @param description 설명 (없으면 null)
  * @param displayOrder 화면 표시 순서
  * @param createdBy 생성자 user_id
+ * @param callerRoleCode 생성자 JWT의 전역 role_code (SUPER_ADMIN 외에는 해당 코드 그룹 소속 프로젝트의 DEVELOPER 여부를 재검증)
  * @returns 생성된 코드 아이템 정보
  */
 export async function createCodeItem(
@@ -21,7 +24,12 @@ export async function createCodeItem(
   description: string | null,
   displayOrder: number,
   createdBy: number,
+  callerRoleCode: number,
 ): Promise<CodeItemRow> {
+  const scope = await audit.resolveCodeGroupScope(codeGroupId);
+  if (!scope)
+    throw toAppError(ERROR_MAP.CODE_GROUP_NOT_FOUND);
+  await assertProjectRole(createdBy, callerRoleCode, scope.projectId, [ROLE.DEVELOPER]);
   const after = await db.createCodeItem(codeGroupId, codeValue, codeName, description, displayOrder, createdBy);
   audit.logCreateCodeItem(after.code_group_id, after as unknown as Record<string, unknown>, createdBy);
   return after;
@@ -63,6 +71,7 @@ export async function getCodeItem(codeItemId: number): Promise<CodeItemRow> {
  * @param displayOrder 화면 표시 순서 (null=변경 없음)
  * @param status 상태 (null=변경 없음)
  * @param updatedBy 수정자 user_id
+ * @param callerRoleCode 수정자 JWT의 전역 role_code (SUPER_ADMIN 외에는 해당 코드 아이템 소속 프로젝트의 DEVELOPER 여부를 재검증)
  * @returns 수정된 코드 아이템 정보
  */
 export async function updateCodeItem(
@@ -72,12 +81,19 @@ export async function updateCodeItem(
   displayOrder: number | null,
   status: number | null,
   updatedBy: number,
+  callerRoleCode: number,
 ): Promise<CodeItemRow> {
   const before = await db.getCodeItem(codeItemId);
-  const after  = await db.updateCodeItem(codeItemId, codeName, description, displayOrder, status, updatedBy);
+  if (!before)
+    throw toAppError(ERROR_MAP.CODE_ITEM_NOT_FOUND);
+  const scope = await audit.resolveCodeGroupScope(before.code_group_id);
+  if (!scope)
+    throw toAppError(ERROR_MAP.CODE_GROUP_NOT_FOUND);
+  await assertProjectRole(updatedBy, callerRoleCode, scope.projectId, [ROLE.DEVELOPER]);
+  const after = await db.updateCodeItem(codeItemId, codeName, description, displayOrder, status, updatedBy);
   audit.logUpdateCodeItem(after.code_group_id,
-    before! as unknown as Record<string, unknown>,
-    after   as unknown as Record<string, unknown>,
+    before as unknown as Record<string, unknown>,
+    after  as unknown as Record<string, unknown>,
     updatedBy);
   return after;
 }

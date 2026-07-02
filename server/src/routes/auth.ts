@@ -39,7 +39,6 @@ const router = Router();
  *                 user_name: 홍길동
  *                 email: john@example.com
  *                 status: 0
- *                 role_code: 40
  *                 last_login_at: null
  *                 created_at: '2025-01-01 00:00:00'
  *                 updated_at: '2025-01-01 00:00:00'
@@ -57,6 +56,8 @@ router.post('/signup',   ctrl.signup);
  *     description: |
  *       성공 시 `access_token`(JWT)과 `refresh_token`(UUID)을 반환한다.
  *       이후 요청은 `Authorization: Bearer {access_token}` 헤더를 사용한다.
+ *       `role_code`는 사용자가 활성 상태로 배정된 모든 프로젝트 중 최고 권한(MIN)이며,
+ *       JWT 페이로드에도 동일하게 포함된다. 세션 내내 고정되고 갱신되지 않는다.
  *     requestBody:
  *       required: true
  *       content:
@@ -78,6 +79,7 @@ router.post('/signup',   ctrl.signup);
  *                 access_token: eyJhbGciOiJIUzI1NiJ9...
  *                 refresh_token: 550e8400-e29b-41d4-a716-446655440000
  *                 expired_at: '2025-01-01 00:30:00'
+ *                 role_code: 10
  *       400:
  *         $ref: '#/components/responses/BadRequest'
  */
@@ -93,6 +95,7 @@ router.post('/login',    ctrl.login);
  *       `refresh_token`으로 새 `access_token`을 발급한다.
  *       `refresh_token` 자체는 갱신되지 않는다.
  *       매 재발급 시 DB의 JTI가 갱신되어 이전 access_token이 무효화된다.
+ *       `role_code`는 최초 로그인 시점의 값을 세션 테이블에서 그대로 재사용하며 재계산하지 않는다.
  *     requestBody:
  *       required: true
  *       content:
@@ -112,6 +115,7 @@ router.post('/login',    ctrl.login);
  *               data:
  *                 access_token: eyJhbGciOiJIUzI1NiJ9...
  *                 expired_at: '2025-01-01 00:30:00'
+ *                 role_code: 10
  *       400:
  *         $ref: '#/components/responses/BadRequest'
  */
@@ -144,6 +148,10 @@ router.post('/logout',   authenticate, ctrl.logout);
  *   get:
  *     tags: [Auth]
  *     summary: 내 정보 조회
+ *     description: |
+ *       user 테이블 원본 컬럼만 반환한다. `role_code`는 여기 포함되지 않는다 —
+ *       프로젝트별로 다를 수 있는 값이라 user 엔티티의 고정 속성이 아니며,
+ *       로그인/재발급 응답의 `role_code`(세션 고정값)를 사용해야 한다.
  *     security:
  *       - bearerAuth: []
  *     responses:
@@ -156,11 +164,11 @@ router.post('/logout',   authenticate, ctrl.logout);
  *               data:
  *                 user_id: 1
  *                 company_id: 1
+ *                 requested_project_id: null
  *                 login_id: sa
  *                 user_name: 관리자
  *                 email: sa@example.com
  *                 status: 1
- *                 role_code: 10
  *                 last_login_at: '2025-01-01 12:00:00'
  *                 created_at: '2025-01-01 00:00:00'
  *                 updated_at: '2025-01-01 00:00:00'

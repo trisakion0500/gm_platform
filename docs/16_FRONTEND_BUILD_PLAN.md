@@ -64,14 +64,14 @@
 - 응답: 성공 `{result:0, data}` / 실패 `{result:<code>, message}` — `result===0`으로 성공 판정
 - API base path: 서버가 `/api`로 마운트 → axios `baseURL = http://localhost:3000/api` (`VITE_API_BASE_URL` env로 분리)
 - 인증 헤더: `Authorization: Bearer <access_token>`
-- 로그인 응답에는 user 정보 없음 — 로그인 후 별도 `GET /auth/me` 호출 필요
-- refresh_token은 재발급되지 않음(최초 로그인 시 1회만 저장)
+- 로그인 응답에는 user 상세정보 없음(access_token/refresh_token/expired_at/role_code만) — user_name·email 등은 로그인 후 별도 `GET /auth/me` 호출 필요
+- refresh_token은 재발급되지 않음(최초 로그인 시 1회만 저장). `role_code`는 로그인/재발급 응답에 포함(세션 고정값)
 - 401 처리: `result===10003`(AT만료) → refresh 후 원요청 재시도(동시 요청은 큐잉). `10004/10005/10006/10007/10009` → 로그아웃 후 `/login` 리다이렉트
 - 목록 API 페이지네이션 응답: `data:{page, page_size, total_count, items:[]}` (필드명 고정)
 - 페이지네이션 미적용(배열 그대로) API: `GET /user-roles`, `GET /apis/:id`(requests/responses 포함 상세객체), `GET /code-groups?project_id=`, `GET /code-items?code_group_id=`, `GET /code-groups/:id/active-items`
-- `/auth/me` 응답에는 `company_code/company_name` 없음(role_code만 포함) — 회사명 필요 시 globalStore의 companyList에서 조인
+- `/auth/me` 응답에는 `role_code` 없음(user 테이블 원본 컬럼만) — role_code는 프로젝트마다 다를 수 있는 값이라 로그인/재발급 응답에서만 얻을 수 있다. company_code/company_name도 없어 회사명 필요 시 globalStore의 companyList에서 조인
 - 날짜 필드는 `'YYYY-MM-DD HH:mm:ss'` 문자열
-- role_code: 10=SUPER_ADMIN, 20=DEVELOPER, 30=APPROVER, 40=OPERATOR
+- role_code: 10=SUPER_ADMIN, 20=DEVELOPER, 30=APPROVER, 40=OPERATOR. 로그인 세션의 role_code는 사용자가 가진 모든 프로젝트 중 최고 권한(MIN)이라 프로젝트마다 실제 권한과 다를 수 있음(예: A프로젝트 DEVELOPER·B프로젝트 OPERATOR → 세션 role_code는 20). API/CodeGroup/CodeItem 쓰기 API는 서버가 project_id별 실제 user_role을 재검증하므로, 사이드바·버튼 노출은 세션 role_code만으로 판단하면 "버튼은 보이는데 저장 시 20001" 같은 불일치가 생길 수 있다 — Stage 5(API/코드그룹 화면)에서 선택된 프로젝트 기준 실제 역할 조회(`GET /user-roles?user_id=&project_id=`) 반영 여부를 결정할 것
 
 > **문서 vs 실제 라우트 차이**: 코드그룹/코드아이템 목록은 [09_API_SPEC_Part4.md](./09_API_SPEC_Part4.md) 표기(nested path)와 달리 실제로는 쿼리 파라미터 방식(`GET /code-groups?project_id=`, `GET /code-items?code_group_id=`) — CLAUDE.md와 일치하므로 이를 기준으로 구현한다.
 
@@ -157,6 +157,8 @@
 **axios 인터셉터**: 요청 인터셉터에서 authStore의 accessToken을 헤더에 첨부. 응답 인터셉터에서 `result===10003`이면 `isRefreshing` 플래그로 동시 요청을 대기열에 쌓고 refresh 1회만 수행 후 큐에 쌓인 요청 모두 재시도. `10004/10005/10006/10007/10009`는 즉시 로그아웃 처리 + `/login` 리다이렉트. `/auth/login`, `/auth/refresh` 요청 자체는 이 재시도 로직에서 제외.
 
 **타입 전략**: 백엔드 응답 필드명(snake_case)을 camelCase로 변환하지 않고 그대로 타입 단언 — API 계약과 1:1 대응시켜 유지보수 용이성 확보. `unwrap<T>()` 헬퍼로 모든 `*.api.ts`가 `.data.data`만 리턴하도록 통일.
+
+**authStore의 roleCode**: `/auth/me`가 role_code를 반환하지 않으므로(위 §2.1), `AuthUser` 타입에는 role_code가 없다. 대신 `roleCode`를 accessToken/refreshToken과 같은 레벨의 별도 상태로 두고 login()/refresh() 응답의 role_code로 `setTokens(accessToken, roleCode, refreshToken?)`에서 함께 갱신·persist한다. JWT를 클라이언트에서 디코딩하지 않는 이유는 프론트가 토큰 내부 구조를 몰라도 되게 하기 위함 — role_code는 응답 바디의 평범한 필드로만 다룬다.
 
 **가드 3종 구분**: `AuthGuard`(라우트 레벨, 미인증 차단) / `RoleGuard`(라우트 레벨, allow 배열 기반 403) / `PermissionGuard`(컴포넌트 레벨, 버튼·섹션 단위 조건부 렌더링).
 

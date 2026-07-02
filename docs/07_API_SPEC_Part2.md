@@ -527,3 +527,7 @@ status
 ## 등록/수정 응답
 
 항상 저장 완료된 최종 데이터를 반환한다.
+
+## 프로젝트 권한 재검증
+
+API/API Request/API Response 등록·수정(1.1, 1.4, 2.1, 2.3, 3.1, 3.3)의 Permission에 있는 DEVELOPER는, 대상 API가 속한 `project_id`에 대해 실제로 활성 `user_role`(role_code=20)을 보유한 경우만 허용된다. 로그인 세션의 `role_code`(여러 프로젝트 중 최고 권한, [05_AUTH_API.md](./05_AUTH_API.md) §2.4.1 참고)와 무관하게 요청마다 재검증하며, 미보유 시 20001을 반환한다. SUPER_ADMIN은 `user_role` 배정과 무관하게 항상 허용된다.

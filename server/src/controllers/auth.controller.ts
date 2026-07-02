@@ -34,7 +34,7 @@ export async function signup(req: Request, res: Response, next: NextFunction): P
  * POST /auth/login — 로그인
  * @author trisakion
  * @param req body: { login_id, password }
- * @param res 200 — { access_token, refresh_token, expired_at }
+ * @param res 200 — { access_token, refresh_token, expired_at, role_code }
  * @param next 오류 전달
  * @returns void
  */
@@ -73,7 +73,7 @@ export async function logout(req: Request, res: Response, next: NextFunction): P
  * POST /auth/refresh — Access Token 재발급
  * @author trisakion
  * @param req body: { refresh_token }
- * @param res 200 — { access_token, expired_at }
+ * @param res 200 — { access_token, expired_at, role_code }
  * @param next 오류 전달
  * @returns void
  */

@@ -37,6 +37,7 @@ export async function createCodeGroup(req: Request, res: Response, next: NextFun
       code_group_name,
       description ?? null,
       req.user!.user_id,
+      req.user!.role_code,
     );
     success(res, formatCodeGroup(codeGroup), 201);
   } catch (err) {
@@ -113,6 +114,7 @@ export async function updateCodeGroup(req: Request, res: Response, next: NextFun
       description ?? null,
       status ?? null,
       req.user!.user_id,
+      req.user!.role_code,
     );
     success(res, formatCodeGroup(codeGroup));
   } catch (err) {

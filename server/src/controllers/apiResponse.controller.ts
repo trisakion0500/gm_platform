@@ -58,6 +58,7 @@ export async function updateApiResponse(req: Request, res: Response, next: NextF
       display_order ?? null,
       status ?? null,
       req.user!.user_id,
+      req.user!.role_code,
     );
     success(res, formatApiResponse(apiResponse));
   } catch (err) {

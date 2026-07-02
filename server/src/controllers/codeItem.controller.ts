@@ -39,6 +39,7 @@ export async function createCodeItem(req: Request, res: Response, next: NextFunc
       description ?? null,
       displayOrder,
       req.user!.user_id,
+      req.user!.role_code,
     );
     success(res, formatCodeItem(codeItem), 201);
   } catch (err) {
@@ -116,6 +117,7 @@ export async function updateCodeItem(req: Request, res: Response, next: NextFunc
       display_order ?? null,
       status ?? null,
       req.user!.user_id,
+      req.user!.role_code,
     );
     success(res, formatCodeItem(codeItem));
   } catch (err) {

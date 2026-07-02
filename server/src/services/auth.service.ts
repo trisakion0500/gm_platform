@@ -79,7 +79,7 @@ export async function signup(
  * @author trisakion
  * @param loginId 로그인 ID
  * @param password 평문 비밀번호
- * @returns access_token — JWT 문자열, refresh_token — UUID v4 원문, expired_at — Access Token 만료일시
+ * @returns access_token — JWT 문자열, refresh_token — UUID v4 원문, expired_at — Access Token 만료일시, role_code — 사용자 최고 권한
  */
 export async function login(loginId: string, password: string) {
   const user = await db.getUserByLoginId(loginId);
@@ -122,6 +122,7 @@ export async function login(loginId: string, password: string) {
     access_token: token,
     refresh_token: refreshToken,
     expired_at: formatDatetime(expiredAt),
+    role_code: user.role_code,
   };
 }
 
@@ -140,7 +141,7 @@ export async function logout(sessionId: number): Promise<void> {
  * Refresh Token 만료, 세션 무효, 사용자 상태 이상 시 AppError를 던진다.
  * @author trisakion
  * @param refreshToken Refresh Token 원문 (UUID v4)
- * @returns access_token — 새 JWT 문자열, expired_at — 새 Access Token 만료일시
+ * @returns access_token — 새 JWT 문자열, expired_at — 새 Access Token 만료일시, role_code — 사용자 최고 권한
  */
 export async function refresh(refreshToken: string) {
   const refreshTokenHash = hashRefreshToken(refreshToken);
@@ -172,6 +173,7 @@ export async function refresh(refreshToken: string) {
   return {
     access_token: token,
     expired_at: formatDatetime(expiredAt),
+    role_code: session.role_code,
   };
 }
 
