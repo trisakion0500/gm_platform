@@ -57,11 +57,11 @@ router.post('/',             authenticate, requireRole(ROLE.SUPER_ADMIN),       
  *     tags: [Company]
  *     summary: 회사 목록 조회
  *     description: |
- *       DEVELOPER는 본인 소속 회사만 반환된다.
+ *       SUPER_ADMIN 외에는 본인 소속 회사만 반환된다.
  *       `page`와 `page_size`는 모두 필수이며, `page_size`는 20·50·100만 허용한다.
  *     security:
  *       - bearerAuth: []
- *     x-required-roles: SUPER_ADMIN, DEVELOPER
+ *     x-required-roles: SUPER_ADMIN, DEVELOPER, APPROVER, OPERATOR
  *     parameters:
  *       - in: query
  *         name: page
@@ -101,7 +101,7 @@ router.post('/',             authenticate, requireRole(ROLE.SUPER_ADMIN),       
  *       403:
  *         $ref: '#/components/responses/Forbidden'
  */
-router.get('/',              authenticate, requireRole(ROLE.SUPER_ADMIN, ROLE.DEVELOPER), ctrl.getCompanyList);
+router.get('/',              authenticate, requireRole(ROLE.SUPER_ADMIN, ROLE.DEVELOPER, ROLE.APPROVER, ROLE.OPERATOR), ctrl.getCompanyList);
 
 /**
  * @swagger
@@ -109,9 +109,10 @@ router.get('/',              authenticate, requireRole(ROLE.SUPER_ADMIN, ROLE.DE
  *   get:
  *     tags: [Company]
  *     summary: 회사 단건 조회
+ *     description: SUPER_ADMIN 외에는 본인 소속 회사만 조회 가능하다.
  *     security:
  *       - bearerAuth: []
- *     x-required-roles: SUPER_ADMIN, DEVELOPER
+ *     x-required-roles: SUPER_ADMIN, DEVELOPER, APPROVER, OPERATOR
  *     parameters:
  *       - in: path
  *         name: company_id
@@ -139,7 +140,7 @@ router.get('/',              authenticate, requireRole(ROLE.SUPER_ADMIN, ROLE.DE
  *       404:
  *         $ref: '#/components/responses/NotFound'
  */
-router.get('/:company_id',   authenticate, requireRole(ROLE.SUPER_ADMIN, ROLE.DEVELOPER), ctrl.getCompany);
+router.get('/:company_id',   authenticate, requireRole(ROLE.SUPER_ADMIN, ROLE.DEVELOPER, ROLE.APPROVER, ROLE.OPERATOR), ctrl.getCompany);
 
 /**
  * @swagger

@@ -30,14 +30,14 @@ export async function createProject(
 
 /**
  * 프로젝트 목록을 페이지네이션으로 조회한다.
- * SUPER_ADMIN은 전체, 그 외는 본인 소속 회사 프로젝트만 반환한다.
+ * SUPER_ADMIN은 전체, 그 외는 본인이 활성 user_role을 가진 프로젝트만 반환한다.
  * @author trisakion
  * @param companyId 회사 ID 필터 (null=전체)
  * @param status 상태 필터 (null=전체)
  * @param page 페이지 번호 (1부터)
  * @param pageSize 페이지 크기 (20/50/100)
  * @param roleCode 요청자 역할 코드
- * @param userCompanyId 요청자 소속 회사 ID (스코핑용)
+ * @param userId 요청자 user_id (스코핑용)
  * @returns { total_count, items }
  */
 export async function getProjectList(
@@ -46,9 +46,9 @@ export async function getProjectList(
   page: number,
   pageSize: number,
   roleCode: number,
-  userCompanyId: number,
+  userId: number,
 ): Promise<{ total_count: number; items: ProjectRow[] }> {
-  const [, [countRows, itemRows]] = await callSP('SP_GET_PROJECT_LIST', [companyId, status, page, pageSize, roleCode, userCompanyId]);
+  const [, [countRows, itemRows]] = await callSP('SP_GET_PROJECT_LIST', [companyId, status, page, pageSize, roleCode, userId]);
   return {
     total_count: (countRows[0] as unknown as { total_count: number }).total_count,
     items: itemRows as unknown as ProjectRow[],
@@ -61,15 +61,15 @@ export async function getProjectList(
  * @author trisakion
  * @param projectId 조회할 프로젝트 ID
  * @param roleCode 요청자 역할 코드
- * @param userCompanyId 요청자 소속 회사 ID (스코핑용)
+ * @param userId 요청자 user_id (스코핑용)
  * @returns 프로젝트 정보 (company 정보 포함), 없거나 접근 불가이면 null
  */
 export async function getProject(
   projectId: number,
   roleCode: number,
-  userCompanyId: number,
+  userId: number,
 ): Promise<ProjectRow | null> {
-  const [status, [data]] = await callSP('SP_GET_PROJECT', [projectId, roleCode, userCompanyId]);
+  const [status, [data]] = await callSP('SP_GET_PROJECT', [projectId, roleCode, userId]);
   switch (status[0].RESULT) {
     case 31002: return null;
   }

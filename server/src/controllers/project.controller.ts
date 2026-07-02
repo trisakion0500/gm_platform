@@ -77,7 +77,7 @@ export async function getProjectList(req: Request, res: Response, next: NextFunc
       pageNum,
       pageSizeNum,
       req.user!.role_code,
-      req.user!.company_id,
+      req.user!.user_id,
     );
     success(res, {
       ...result,
@@ -103,7 +103,7 @@ export async function getProject(req: Request, res: Response, next: NextFunction
       fail(res, ERROR_MAP.INVALID_FORMAT);
       return;
     }
-    const project = await projectService.getProject(projectId, req.user!.role_code, req.user!.company_id);
+    const project = await projectService.getProject(projectId, req.user!.role_code, req.user!.user_id);
     success(res, formatProject(project));
   } catch (err) {
     next(err);

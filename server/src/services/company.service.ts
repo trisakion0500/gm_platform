@@ -30,7 +30,7 @@ export async function createCompany(
  * @param status 상태 필터 (null=전체)
  * @param page 페이지 번호 (1부터)
  * @param pageSize 페이지 크기 (20/50/100)
- * @param roleCode 요청자 역할 코드 (10=SUPER_ADMIN, 20=DEVELOPER)
+ * @param roleCode 요청자 역할 코드 (10=SUPER_ADMIN 외에는 본인 소속 회사만 조회 가능)
  * @param companyId 요청자 소속 회사 ID (DEVELOPER 스코핑용)
  * @returns 페이지네이션 응답 { page, page_size, total_count, items }
  */
@@ -49,7 +49,7 @@ export async function getCompanyList(
  * 회사 단건을 조회한다. 존재하지 않거나 접근 불가 시 AppError(31001)를 던진다.
  * @author trisakion
  * @param companyId 조회할 회사 ID
- * @param roleCode 요청자 역할 코드 (10=SUPER_ADMIN, 20=DEVELOPER)
+ * @param roleCode 요청자 역할 코드 (10=SUPER_ADMIN 외에는 본인 소속 회사만 조회 가능)
  * @param userCompanyId 요청자 소속 회사 ID (DEVELOPER 스코핑용)
  * @returns 회사 정보
  */

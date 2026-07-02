@@ -119,6 +119,7 @@ router.get('/',              authenticate, requireRole(ROLE.SUPER_ADMIN, ROLE.DE
  *   get:
  *     tags: [Project]
  *     summary: 프로젝트 단건 조회
+ *     description: SUPER_ADMIN 외에는 본인이 활성 user_role을 가진 프로젝트만 조회 가능하다. 미보유 시 404(31002).
  *     security:
  *       - bearerAuth: []
  *     x-required-roles: SUPER_ADMIN, DEVELOPER, APPROVER, OPERATOR

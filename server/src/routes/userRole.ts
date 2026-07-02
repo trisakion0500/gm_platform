@@ -8,6 +8,39 @@ const router = Router();
 
 /**
  * @swagger
+ * /user-roles/me:
+ *   get:
+ *     tags: [UserRole]
+ *     summary: 내 프로젝트별 role_code 조회
+ *     description: |
+ *       호출자 본인의 role_code만 조회 가능하다 (다른 사용자 조회 불가).
+ *       SUPER_ADMIN은 user_role 배정 여부와 무관하게 항상 10을 반환한다.
+ *       활성 배정이 없으면 `role_code: null`을 반환한다 (오류 아님).
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: project_id
+ *         required: true
+ *         schema: { type: integer, example: 1 }
+ *     responses:
+ *       200:
+ *         description: 조회 성공
+ *         content:
+ *           application/json:
+ *             example:
+ *               result: 0
+ *               data:
+ *                 role_code: 20
+ *       400:
+ *         $ref: '#/components/responses/BadRequest'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ */
+router.get('/me',                     authenticate,                                          ctrl.getMyRole);
+
+/**
+ * @swagger
  * /user-roles:
  *   get:
  *     tags: [UserRole]

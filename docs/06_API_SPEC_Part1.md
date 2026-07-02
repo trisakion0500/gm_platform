@@ -124,6 +124,8 @@ GET /companies
 
 - SUPER_ADMIN
 - DEVELOPER
+- APPROVER
+- OPERATOR
 
 ### Query Parameters
 
@@ -143,7 +145,7 @@ ORDER BY status DESC,
 ### Business Rules
 
 - SUPER_ADMIN : 전체 회사 목록 반환
-- DEVELOPER : 본인 소속 company_id 의 회사만 반환
+- 그 외 : 본인 소속 company_id 의 회사만 반환
 
 ### Response
 
@@ -163,11 +165,13 @@ GET /companies/{company_id}
 
 - SUPER_ADMIN
 - DEVELOPER
+- APPROVER
+- OPERATOR
 
 ### Business Rules
 
 - SUPER_ADMIN : 모든 회사 조회 가능
-- DEVELOPER : 본인 소속 company_id 의 회사만 조회 가능
+- 그 외 : 본인 소속 company_id 의 회사만 조회 가능
 
 ---
 
@@ -278,6 +282,11 @@ GET /projects
 ORDER BY status DESC,
          project_name ASC
 ```
+
+### Business Rules
+
+- SUPER_ADMIN : 전체 프로젝트 목록 반환
+- 그 외 : 본인이 활성 user_role을 가진 프로젝트만 반환 (같은 회사 소속이어도 role 미배정 프로젝트는 제외)
 
 ### Response
 
@@ -779,6 +788,47 @@ project_id
 ### Response
 
 저장 후 최종 데이터 반환
+
+---
+
+## 6.4 Get My Role
+
+### Endpoint
+
+```http
+GET /user-roles/me
+```
+
+### Permission
+
+- 전체 역할 (본인 role_code만 조회 가능, 관리 목적 아님)
+
+### Query Parameters
+
+| Name       | Required |
+| ---------- | -------- |
+| project_id | Y        |
+
+### Business Rules
+
+- SUPER_ADMIN : user_role 배정 여부와 무관하게 항상 `role_code: 10` 반환
+- 그 외 : 호출자 본인의 해당 project_id 활성 user_role의 role_code 반환, 없으면 `role_code: null` (오류 아님)
+- 다른 사용자의 role_code는 조회 불가 (user_id 파라미터 없음 — 항상 토큰의 본인 user_id 기준)
+
+### Response
+
+```json
+{
+  "result": 0,
+  "data": {
+    "role_code": 20
+  }
+}
+```
+
+### 용도
+
+로그인 세션의 role_code(여러 프로젝트 중 최고 권한, [05_AUTH_API.md](./05_AUTH_API.md) §2.4.1 참고)는 특정 프로젝트에서의 실제 권한과 다를 수 있다. 프론트엔드가 헤더에서 프로젝트를 선택했을 때, 그 프로젝트에 대한 실제 role_code를 이 API로 조회해 메뉴·버튼 노출을 결정한다.
 
 ---
 

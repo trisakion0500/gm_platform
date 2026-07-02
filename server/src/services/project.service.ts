@@ -36,7 +36,7 @@ export async function createProject(
  * @param page 페이지 번호 (1부터)
  * @param pageSize 페이지 크기 (20/50/100)
  * @param roleCode 요청자 역할 코드
- * @param userCompanyId 요청자 소속 회사 ID (스코핑용)
+ * @param userId 요청자 user_id (스코핑용)
  * @returns 페이지네이션 응답 { page, page_size, total_count, items }
  */
 export async function getProjectList(
@@ -45,9 +45,9 @@ export async function getProjectList(
   page: number,
   pageSize: number,
   roleCode: number,
-  userCompanyId: number,
+  userId: number,
 ): Promise<{ page: number; page_size: number; total_count: number; items: ProjectRow[] }> {
-  const result = await db.getProjectList(companyId, status, page, pageSize, roleCode, userCompanyId);
+  const result = await db.getProjectList(companyId, status, page, pageSize, roleCode, userId);
   return { page, page_size: pageSize, ...result };
 }
 
@@ -56,15 +56,15 @@ export async function getProjectList(
  * @author trisakion
  * @param projectId 조회할 프로젝트 ID
  * @param roleCode 요청자 역할 코드
- * @param userCompanyId 요청자 소속 회사 ID (스코핑용)
+ * @param userId 요청자 user_id (스코핑용)
  * @returns 프로젝트 정보
  */
 export async function getProject(
   projectId: number,
   roleCode: number,
-  userCompanyId: number,
+  userId: number,
 ): Promise<ProjectRow> {
-  const project = await db.getProject(projectId, roleCode, userCompanyId);
+  const project = await db.getProject(projectId, roleCode, userId);
   if (!project)
     throw toAppError(ERROR_MAP.PROJECT_NOT_FOUND);
   return project;

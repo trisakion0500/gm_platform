@@ -18,6 +18,33 @@ function formatUserRole(ur: UserRoleRow) {
 }
 
 /**
+ * GET /user-roles/me — 내 프로젝트별 role_code 조회 (인증 필요, 전체 역할)
+ * @author trisakion
+ * @param req query: { project_id }
+ * @param res 200 — { role_code } (role_code는 활성 배정이 없으면 null)
+ * @param next 오류 전달
+ * @returns void
+ */
+export async function getMyRole(req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    const { project_id } = req.query;
+    if (!project_id) {
+      fail(res, ERROR_MAP.REQUIRED_MISSING);
+      return;
+    }
+    const projectId = Number(project_id);
+    if (!Number.isInteger(projectId) || projectId < 1) {
+      fail(res, ERROR_MAP.INVALID_FORMAT);
+      return;
+    }
+    const roleCode = await userRoleService.getMyRole(req.user!.user_id, req.user!.role_code, projectId);
+    success(res, { role_code: roleCode });
+  } catch (err) {
+    next(err);
+  }
+}
+
+/**
  * GET /user-roles — User Role 목록 조회 (SUPER_ADMIN: 전체, DEVELOPER: 본인 회사 스코핑)
  * @author trisakion
  * @param req query: { user_id?, project_id?, role_code?, status? }

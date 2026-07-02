@@ -71,7 +71,9 @@
 - 페이지네이션 미적용(배열 그대로) API: `GET /user-roles`, `GET /apis/:id`(requests/responses 포함 상세객체), `GET /code-groups?project_id=`, `GET /code-items?code_group_id=`, `GET /code-groups/:id/active-items`
 - `/auth/me` 응답에는 `role_code` 없음(user 테이블 원본 컬럼만) — role_code는 프로젝트마다 다를 수 있는 값이라 로그인/재발급 응답에서만 얻을 수 있다. company_code/company_name도 없어 회사명 필요 시 globalStore의 companyList에서 조인
 - 날짜 필드는 `'YYYY-MM-DD HH:mm:ss'` 문자열
-- role_code: 10=SUPER_ADMIN, 20=DEVELOPER, 30=APPROVER, 40=OPERATOR. 로그인 세션의 role_code는 사용자가 가진 모든 프로젝트 중 최고 권한(MIN)이라 프로젝트마다 실제 권한과 다를 수 있음(예: A프로젝트 DEVELOPER·B프로젝트 OPERATOR → 세션 role_code는 20). API/CodeGroup/CodeItem 쓰기 API는 서버가 project_id별 실제 user_role을 재검증하므로, 사이드바·버튼 노출은 세션 role_code만으로 판단하면 "버튼은 보이는데 저장 시 20001" 같은 불일치가 생길 수 있다 — Stage 5(API/코드그룹 화면)에서 선택된 프로젝트 기준 실제 역할 조회(`GET /user-roles?user_id=&project_id=`) 반영 여부를 결정할 것
+- role_code: 10=SUPER_ADMIN, 20=DEVELOPER, 30=APPROVER, 40=OPERATOR. 로그인 세션의 role_code는 사용자가 가진 모든 프로젝트 중 최고 권한(MIN)이라 프로젝트마다 실제 권한과 다를 수 있음(예: A프로젝트 DEVELOPER·B프로젝트 OPERATOR → 세션 role_code는 20). API/CodeGroup/CodeItem 쓰기 API는 서버가 project_id별 실제 user_role을 재검증하므로, 사이드바·버튼 노출은 세션 role_code만으로 판단하면 "버튼은 보이는데 저장 시 20001" 같은 불일치가 생길 수 있다 — Stage 5(API/코드그룹 화면)에서 선택된 프로젝트 기준 실제 역할 조회 방법(아래 항목) 반영 여부를 결정할 것
+- **회사·프로젝트 선택 콤보박스 데이터**: `GET /companies`는 이제 4개 역할 모두 호출 가능(SUPER_ADMIN=전체, 그 외=본인 회사만). `GET /projects`는 SUPER_ADMIN 외에는 "본인이 활성 user_role을 가진 프로젝트만" 반환(같은 회사 소속이어도 role 미배정 프로젝트는 제외) — globalStore의 companyList/projectList를 이 두 API로 그대로 채우면 됨.
+- **선택된 프로젝트의 실제 role_code**: `GET /user-roles/me?project_id=`로 조회한다(신설). SUPER_ADMIN은 배정 없이 항상 `role_code: 10`, 그 외는 활성 user_role 없으면 `role_code: null`. 프로젝트 변경 시(회사 변경 시 첫 프로젝트 자동 선택 포함) 이 API를 다시 호출해 globalStore의 현재 role_code를 갱신하고, 사이드바·버튼 노출은 세션 role_code가 아니라 이 값을 기준으로 판단한다.
 
 > **문서 vs 실제 라우트 차이**: 코드그룹/코드아이템 목록은 [09_API_SPEC_Part4.md](./09_API_SPEC_Part4.md) 표기(nested path)와 달리 실제로는 쿼리 파라미터 방식(`GET /code-groups?project_id=`, `GET /code-items?code_group_id=`) — CLAUDE.md와 일치하므로 이를 기준으로 구현한다.
 

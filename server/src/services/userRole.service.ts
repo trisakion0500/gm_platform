@@ -1,6 +1,27 @@
 import { UserRoleRow } from '../types';
+import { ROLE } from '../constants/roles';
 import * as db from '../db/userRole.db';
 import * as audit from './logAudit.service';
+
+/**
+ * 호출자 본인의 특정 프로젝트에 대한 role_code를 조회한다.
+ * SUPER_ADMIN은 user_role 배정과 무관하게 항상 10을 반환한다.
+ * @author trisakion
+ * @param callerUserId 호출자 user_id
+ * @param callerRoleCode 호출자 JWT의 전역 role_code
+ * @param projectId 조회할 project_id
+ * @returns role_code, 활성 배정이 없으면 null
+ */
+export async function getMyRole(
+  callerUserId: number,
+  callerRoleCode: number,
+  projectId: number,
+): Promise<number | null> {
+  if (callerRoleCode === ROLE.SUPER_ADMIN)
+    return ROLE.SUPER_ADMIN;
+  const roles = await db.getUserRoleList(callerUserId, projectId, null, 1, null);
+  return roles[0]?.role_code ?? null;
+}
 
 /**
  * User Role 목록을 조회한다.
