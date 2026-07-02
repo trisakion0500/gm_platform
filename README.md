@@ -119,6 +119,7 @@ GM Platform은 회사 → 프로젝트 → API 구조로 다중 서비스를 단
 | [13_LAYOUT.md](docs/13_LAYOUT.md)                   | 공통 레이아웃 구조                         |
 | [14_DEV_SETUP.md](docs/14_DEV_SETUP.md)             | 로컬 개발 환경 설정                        |
 | [15_PROJECT_STRUCTURE.md](docs/15_PROJECT_STRUCTURE.md) | 프로젝트 폴더 구조                     |
+| [16_FRONTEND_BUILD_PLAN.md](docs/16_FRONTEND_BUILD_PLAN.md) | 프론트엔드 구현 계획 (Stage 0~7)       |
 
 ---
 
@@ -171,4 +172,6 @@ AI는 문서 초안 작성과 반복적인 코드 작업의 속도를 높이는 
   - ✅ Code Item API — 목록 / 등록 / 상세 / 수정
   - ✅ Audit Log API — 목록 / 상세
   - ✅ Swagger UI — `GET /api/docs` (`SWAGGER_ENABLED=true` 시 활성화)
-- ⬜ Frontend 구현
+- 🔄 Frontend 구현 — [16_FRONTEND_BUILD_PLAN.md](docs/16_FRONTEND_BUILD_PLAN.md) 기준 Stage 0~7 진행 중
+  - ✅ Stage 0 — 프로젝트 스캐폴딩 (Vite + React 18 + TypeScript, 의존성 설치, CORS 연동 확인, 프로덕션 빌드 검증)
+  - ⬜ Stage 1~7 — 인증 인프라 / 라우터·레이아웃 / 관리 화면 / 업무 화면 / 회원가입·내 계정 / 마무리
