@@ -301,6 +301,8 @@ user.status = 0
 (가입승인대기)
 ```
 
+`login_id`는 영문(a-z, A-Z), 숫자(0-9), `_`, `.`, `-`만 허용한다. 그 외 문자 포함 시 30002(INVALID_FORMAT).
+
 ### Response
 
 생성된 User 전체 정보 반환

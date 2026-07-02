@@ -21,7 +21,7 @@ const router = Router();
  *             properties:
  *               company_id:           { type: integer, example: 1 }
  *               requested_project_id: { type: integer, nullable: true, example: null, description: '가입 신청 프로젝트 ID (선택)' }
- *               login_id:             { type: string, example: john }
+ *               login_id:             { type: string, pattern: '^[a-zA-Z0-9_.-]+$', description: '영문, 숫자, _, ., - 만 허용', example: john }
  *               password:             { type: string, format: password, example: 'P@ssw0rd' }
  *               user_name:            { type: string, example: 홍길동 }
  *               email:                { type: string, format: email, example: john@example.com }

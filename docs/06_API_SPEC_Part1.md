@@ -408,6 +408,7 @@ Anonymous
 - requested_project_id 선택 (NULL 허용)
   - 값이 있는 경우 존재 여부 확인
   - 값이 있는 경우 company_id 에 속해야 함
+- login_id 형식: 영문 대소문자, 숫자, `_`, `.`, `-`만 허용 (그 외 문자 포함 시 30002)
 - login_id 중복 불가
 - email 중복 불가
 

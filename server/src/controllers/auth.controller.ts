@@ -3,6 +3,9 @@ import * as authService from '../services/auth.service';
 import { success, fail, formatDatetime } from '../utils/response';
 import { ERROR_MAP } from '../constants/errors';
 
+// 영문, 숫자, _, ., - 만 허용
+const LOGIN_ID_PATTERN = /^[a-zA-Z0-9_.-]+$/;
+
 /**
  * POST /auth/signup — 회원가입
  * @author trisakion
@@ -16,6 +19,10 @@ export async function signup(req: Request, res: Response, next: NextFunction): P
     const { company_id, requested_project_id, login_id, password, user_name, email } = req.body;
     if (!company_id || !login_id || !password || !user_name || !email) {
       fail(res, ERROR_MAP.REQUIRED_MISSING);
+      return;
+    }
+    if (!LOGIN_ID_PATTERN.test(login_id)) {
+      fail(res, ERROR_MAP.INVALID_FORMAT);
       return;
     }
     const user = await authService.signup(company_id, requested_project_id ?? null, login_id, password, user_name, email);
