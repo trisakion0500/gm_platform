@@ -31,7 +31,8 @@ function hasGeneralChange(
   after: Record<string, unknown>,
 ): boolean {
   return Object.keys(after).some(k => {
-    if (k === 'status' || SKIP_FIELDS.has(k)) return false;
+    if (k === 'status' || SKIP_FIELDS.has(k))
+      return false;
     const bv = before[k] instanceof Date ? formatDatetime(before[k] as Date) : before[k];
     const av = after[k] instanceof Date ? formatDatetime(after[k] as Date) : after[k];
     return bv !== av;
@@ -46,7 +47,8 @@ function hasGeneralChange(
  */
 async function resolveCompanyId(projectId: number): Promise<number | null> {
   const [status, [data]] = await callSP('SP_GET_PROJECT', [projectId, 10, 0]);
-  if (status[0].RESULT !== 0) return null;
+  if (status[0].RESULT !== 0)
+    return null;
   return (data[0] as any)?.company_id ?? null;
 }
 
@@ -59,11 +61,14 @@ async function resolveCompanyId(projectId: number): Promise<number | null> {
  */
 export async function resolveApiScope(apiId: number): Promise<{ projectId: number; companyId: number } | null> {
   const [status, [apiRows]] = await callSP('SP_GET_API', [apiId]);
-  if (status[0].RESULT !== 0) return null;
+  if (status[0].RESULT !== 0)
+    return null;
   const projectId = (apiRows[0] as any)?.project_id;
-  if (!projectId) return null;
+  if (!projectId)
+    return null;
   const companyId = await resolveCompanyId(projectId);
-  if (!companyId) return null;
+  if (!companyId)
+    return null;
   return { projectId, companyId };
 }
 
@@ -76,11 +81,14 @@ export async function resolveApiScope(apiId: number): Promise<{ projectId: numbe
  */
 export async function resolveCodeGroupScope(codeGroupId: number): Promise<{ projectId: number; companyId: number } | null> {
   const [status, [data]] = await callSP('SP_GET_CODE_GROUP', [codeGroupId]);
-  if (status[0].RESULT !== 0) return null;
+  if (status[0].RESULT !== 0)
+    return null;
   const projectId = (data[0] as any)?.project_id;
-  if (!projectId) return null;
+  if (!projectId)
+    return null;
   const companyId = await resolveCompanyId(projectId);
-  if (!companyId) return null;
+  if (!companyId)
+    return null;
   return { projectId, companyId };
 }
 
@@ -172,7 +180,8 @@ export function logCreateUserRole(
 ): void {
   (async () => {
     const companyId = await resolveCompanyId(projectId);
-    if (!companyId) return;
+    if (!companyId)
+      return;
     await db.insertLogAudit(
       companyId, projectId, 'user_role',
       JSON.stringify({ user_id: userId, project_id: projectId }),
@@ -201,7 +210,8 @@ export function logUpdateUserRole(
 ): void {
   (async () => {
     const companyId = await resolveCompanyId(projectId);
-    if (!companyId) return;
+    if (!companyId)
+      return;
     const targetId   = JSON.stringify({ user_id: userId, project_id: projectId });
     const beforeJson = toAuditJson(before);
     const afterJson  = toAuditJson(after);
@@ -235,7 +245,8 @@ export function logCreateApi(
 ): void {
   (async () => {
     const companyId = await resolveCompanyId(projectId);
-    if (!companyId) return;
+    if (!companyId)
+      return;
     await db.insertLogAudit(
       companyId, projectId, 'api',
       String((after as any).api_id), (after as any).api_name as string,
@@ -260,7 +271,8 @@ export function logUpdateApi(
 ): void {
   (async () => {
     const companyId = await resolveCompanyId(projectId);
-    if (!companyId) return;
+    if (!companyId)
+      return;
     const targetId   = String((after as any).api_id);
     const targetName = (after as any).api_name as string;
     const beforeJson = toAuditJson(before);
@@ -295,7 +307,8 @@ export function logCreateApiRequest(
 ): void {
   (async () => {
     const scope = await resolveApiScope(apiId);
-    if (!scope) return;
+    if (!scope)
+      return;
     await db.insertLogAudit(
       scope.companyId, scope.projectId, 'api_request',
       String((after as any).api_request_id), (after as any).parameter_name as string,
@@ -320,7 +333,8 @@ export function logUpdateApiRequest(
 ): void {
   (async () => {
     const scope = await resolveApiScope(apiId);
-    if (!scope) return;
+    if (!scope)
+      return;
     const targetId   = String((after as any).api_request_id);
     const targetName = (after as any).parameter_name as string;
     const beforeJson = toAuditJson(before);
@@ -352,7 +366,8 @@ export function logCreateApiResponse(
 ): void {
   (async () => {
     const scope = await resolveApiScope(apiId);
-    if (!scope) return;
+    if (!scope)
+      return;
     await db.insertLogAudit(
       scope.companyId, scope.projectId, 'api_response',
       String((after as any).api_response_id), (after as any).parameter_name as string,
@@ -373,7 +388,8 @@ export function logUpdateApiResponse(
 ): void {
   (async () => {
     const scope = await resolveApiScope(apiId);
-    if (!scope) return;
+    if (!scope)
+      return;
     const targetId   = String((after as any).api_response_id);
     const targetName = (after as any).parameter_name as string;
     const beforeJson = toAuditJson(before);
@@ -405,7 +421,8 @@ export function logCreateCodeGroup(
 ): void {
   (async () => {
     const companyId = await resolveCompanyId(projectId);
-    if (!companyId) return;
+    if (!companyId)
+      return;
     await db.insertLogAudit(
       companyId, projectId, 'code_group',
       String((after as any).code_group_id), (after as any).code_group_name as string,
@@ -426,7 +443,8 @@ export function logUpdateCodeGroup(
 ): void {
   (async () => {
     const companyId = await resolveCompanyId(projectId);
-    if (!companyId) return;
+    if (!companyId)
+      return;
     const targetId   = String((after as any).code_group_id);
     const targetName = (after as any).code_group_name as string;
     const beforeJson = toAuditJson(before);
@@ -458,7 +476,8 @@ export function logCreateCodeItem(
 ): void {
   (async () => {
     const scope = await resolveCodeGroupScope(codeGroupId);
-    if (!scope) return;
+    if (!scope)
+      return;
     await db.insertLogAudit(
       scope.companyId, scope.projectId, 'code_item',
       String((after as any).code_item_id), (after as any).code_name as string,
@@ -479,7 +498,8 @@ export function logUpdateCodeItem(
 ): void {
   (async () => {
     const scope = await resolveCodeGroupScope(codeGroupId);
-    if (!scope) return;
+    if (!scope)
+      return;
     const targetId   = String((after as any).code_item_id);
     const targetName = (after as any).code_name as string;
     const beforeJson = toAuditJson(before);
