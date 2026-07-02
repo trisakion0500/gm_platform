@@ -1,0 +1,110 @@
+import { useEffect } from 'react';
+import { Avatar, Button, Dropdown, Layout, Select, Space, Typography } from 'antd';
+import { UserOutlined } from '@ant-design/icons';
+import { useNavigate } from 'react-router-dom';
+import * as companyApi from '../../api/company.api';
+import * as projectApi from '../../api/project.api';
+import * as userRoleApi from '../../api/userRole.api';
+import { useAuth } from '../../hooks/useAuth';
+import { usePermission } from '../../hooks/usePermission';
+import { useGlobalStore } from '../../stores/globalStore';
+import { ROLE, ROLE_LABEL } from '../../types';
+
+const { Header: AntHeader } = Layout;
+
+function Header() {
+  const navigate = useNavigate();
+  const { user, roleCode, logout } = useAuth();
+  const canManage = usePermission([ROLE.SUPER_ADMIN, ROLE.DEVELOPER, ROLE.APPROVER]);
+  const isSuperAdmin = roleCode === ROLE.SUPER_ADMIN;
+
+  const companyList = useGlobalStore((state) => state.companyList);
+  const projectList = useGlobalStore((state) => state.projectList);
+  const selectedCompanyId = useGlobalStore((state) => state.selectedCompanyId);
+  const selectedProjectId = useGlobalStore((state) => state.selectedProjectId);
+  const setCompanyList = useGlobalStore((state) => state.setCompanyList);
+  const setProjectList = useGlobalStore((state) => state.setProjectList);
+  const selectCompany = useGlobalStore((state) => state.selectCompany);
+  const selectProject = useGlobalStore((state) => state.selectProject);
+  const setProjectRoleCode = useGlobalStore((state) => state.setProjectRoleCode);
+  const projectRoleCode = useGlobalStore((state) => state.projectRoleCode);
+
+  // 회사/프로젝트 목록은 로그인 상태에서 1회 로드 — 역할별 스코핑은 서버가 이미 처리(SA: 전체, 그 외: 보유분만)
+  useEffect(() => {
+    companyApi.getCompanyList(1, 100).then(({ items }) => {
+      setCompanyList(items);
+      if (items.length > 0)
+        selectCompany(items[0].company_id);
+    });
+    projectApi.getProjectList(1, 100).then(({ items }) => setProjectList(items));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const projectsForCompany = projectList.filter((p) => p.company_id === selectedCompanyId);
+
+  // 회사 선택이 바뀌거나 목록이 로드되면, 선택된 프로젝트가 그 회사 소속이 아닐 경우 첫 항목으로 보정
+  useEffect(() => {
+    if (projectsForCompany.length === 0)
+      return;
+    if (!projectsForCompany.some((p) => p.project_id === selectedProjectId))
+      selectProject(projectsForCompany[0].project_id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedCompanyId, projectList]);
+
+  // 선택된 프로젝트가 바뀔 때마다 그 프로젝트에서 내 실제 role_code를 서버에서 다시 조회
+  useEffect(() => {
+    if (!selectedProjectId)
+      return;
+    userRoleApi.getMyRole(selectedProjectId).then(setProjectRoleCode);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedProjectId]);
+
+  const userMenuItems = [
+    { key: 'my-account', label: '내 계정' },
+    { key: 'logout', label: '로그아웃' },
+  ];
+
+  function handleUserMenuClick({ key }: { key: string }): void {
+    if (key === 'my-account')
+      navigate('/my-account');
+    if (key === 'logout')
+      logout();
+  }
+
+  return (
+    <AntHeader style={{ display: 'flex', alignItems: 'center', gap: 16, background: '#fff', borderBottom: '1px solid #f0f0f0' }}>
+      <Typography.Link onClick={() => navigate('/apis')} strong style={{ fontSize: 16, whiteSpace: 'nowrap' }}>
+        {import.meta.env.VITE_APP_NAME}
+      </Typography.Link>
+
+      <Select
+        style={{ width: 160 }}
+        value={selectedCompanyId ?? undefined}
+        disabled={!isSuperAdmin}
+        options={companyList.map((c) => ({ value: c.company_id, label: c.company_name }))}
+        onChange={selectCompany}
+      />
+
+      <Select
+        style={{ width: 200 }}
+        value={selectedProjectId ?? undefined}
+        options={projectsForCompany.map((p) => ({ value: p.project_id, label: p.project_name }))}
+        onChange={selectProject}
+      />
+
+      <div style={{ flex: 1 }} />
+
+      {canManage && <Button onClick={() => navigate('/admin')}>관리</Button>}
+
+      <Dropdown menu={{ items: userMenuItems, onClick: handleUserMenuClick }}>
+        <Space style={{ cursor: 'pointer' }}>
+          <Avatar size="small" icon={<UserOutlined />} />
+          {projectRoleCode !== null && `[${ROLE_LABEL[projectRoleCode]}]`}
+          {user?.user_name}
+        </Space>
+      </Dropdown>
+    </AntHeader>
+  );
+}
+
+export default Header;

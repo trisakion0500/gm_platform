@@ -101,24 +101,26 @@
 - `types/index.ts` 골격(ApiSuccess/PaginatedResponse/ROLE), `api/axios.ts` 최소 버전(baseURL만)
 - **검증 완료**: `npm run dev` 정상 기동, 서버·클라이언트 동시 기동 시 CORS preflight/실요청 정상, `npm run build` 프로덕션 빌드 통과
 
-## Stage 1 — 공통 인프라: 인증 처리
+## Stage 1 — 공통 인프라: 인증 처리 ✅ 완료
 
 > 그룹 D(인증·내 계정)의 회원가입·내 계정 화면은 Stage 6에서 완성하지만, **로그인만은 예외적으로 여기서 최소 기능(ID/PW 입력, 에러 메시지 표시)으로 먼저 만든다.** 이후 모든 Stage의 검증이 로그인 없이는 불가능하기 때문이다. 폼 디자인 다듬기·회원가입 연동 등 완성도를 높이는 작업만 Stage 6으로 미룬다.
 
-- `stores/authStore.ts` (zustand + persist: accessToken/refreshToken만 localStorage 저장, user는 부팅 시 `/auth/me` 재조회)
+- `stores/authStore.ts` (zustand + persist: accessToken/refreshToken/roleCode만 localStorage 저장, user는 부팅 시 `/auth/me` 재조회)
 - `api/auth.api.ts` (login/refresh/me/logout/password)
 - `api/axios.ts` 인터셉터 완성: 요청 시 토큰 첨부, 응답 401(`10003`) 시 refresh 후 재시도(동시 다발 요청 큐잉, `/auth/login`·`/auth/refresh` 자체는 재시도 로직 제외)
 - `pages/auth/LoginPage.tsx` 최소 버전 (선행 구현)
-- **검증**: 시드 계정(`sa/dev/apv/op`, pw `1234`)으로 로그인 → localStorage 토큰 저장 및 새로고침 시 세션 유지 확인. `JWT_ACCESS_EXPIRES_IN`을 서버 `.env`에서 일시적으로 `10s`로 낮춰 자동 refresh 동작을 네트워크 탭에서 확인 후 원복
+- **검증 완료**: 시드 계정(`sa/dev/apv/op`, pw `1234`)으로 로그인 → localStorage 토큰 저장 및 새로고침 시 세션 유지 확인. `JWT_ACCESS_EXPIRES_IN`을 서버 `.env`에서 일시적으로 `10s`로 낮춰 자동 refresh 동작을 네트워크 탭에서 확인 후 원복
 
-## Stage 2 — 공통 인프라: 라우터 · 레이아웃 · 가드 · 공통 컴포넌트
+## Stage 2 — 공통 인프라: 라우터 · 레이아웃 · 가드 · 공통 컴포넌트 ✅ 완료
 
-- `router/{index,AuthGuard,RoleGuard}.tsx` + GuestGuard(인증 상태로 auth 라우트 접근 차단) — [13_LAYOUT.md](./13_LAYOUT.md) §7 라우트 테이블 전체 등록(페이지는 placeholder 가능)
+- `router/{index,AuthGuard,RoleGuard}.tsx` + `GuestGuard`(인증 상태로 auth 라우트 접근 차단) — [13_LAYOUT.md](./13_LAYOUT.md) §7 라우트 테이블 전체 등록(페이지는 `pages/PagePlaceholder.tsx`로 대체, `pages/errors/{ForbiddenPage,NotFoundPage}.tsx` 신설)
 - `components/layout/{AuthLayout,MainLayout,AdminLayout,Header,Sidebar,Footer}.tsx`
-- `stores/globalStore.ts`(selectedCompanyId/selectedProjectId/companyList/projectList), `hooks/{useAuth,usePermission}.ts`
+  - `Header`: 로고(`VITE_APP_NAME`) · 회사/프로젝트 선택 · 관리 버튼 · `[역할]이름` 사용자 드롭다운. 로고 텍스트와 Footer의 저작권 문구·버전·문의 이메일은 `VITE_APP_NAME`/`VITE_FOOTER_COPYRIGHT`/`VITE_APP_VERSION`/`VITE_SUPPORT_EMAIL` 환경변수로 분리(`client/.env`)
+  - `Sidebar`: `variant='main'|'admin'` prop으로 메뉴 목록 전환, roleCode 기준 필터링 + 현재 경로 기준 최장 접두사 매치로 선택 상태 표시
+- `stores/globalStore.ts`(selectedCompanyId/selectedProjectId/companyList/projectList/projectRoleCode), `hooks/{useAuth,usePermission}.ts`, `api/{company,project,userRole}.api.ts`(목록 조회 전용 — 등록/수정은 Stage 3에서 추가)
 - `components/common/{PermissionGuard,PageHeader,StatusBadge,DataTable,FormModal,ConfirmModal}.tsx`
-  - `DataTable`: `fetcher(page, pageSize) => Promise<PaginatedResponse<T>>`를 받아 `items/page/page_size/total_count`를 antd `Table` pagination으로 변환하는 공통 래퍼 — 이후 모든 목록 화면이 파싱 로직 재작성 없이 재사용
-- **검증**: 4개 역할 계정으로 각각 로그인 → 사이드바/헤더 메뉴 노출이 역할별 스펙과 일치하는지 확인. 미인증 상태 라우트 접근, OPERATOR의 `/admin` 접근 차단 확인
+  - `DataTable`: `fetcher(page, pageSize) => Promise<PaginatedResponse<T>>`를 받아 `items/page/page_size/total_count`를 antd `Table` pagination으로 변환하는 공통 래퍼 — 이후 모든 목록 화면이 파싱 로직 재작성 없이 재사용. 필터 변경 시 재조회는 컴포넌트 자체 옵션 대신 호출부가 `key` prop을 바꿔 재마운트시키는 방식으로 유도(불필요한 내부 상태 추가 방지)
+- **검증 완료**: 4개 역할 계정으로 각각 로그인 → 사이드바/헤더 메뉴 노출이 역할별 스펙과 일치(Playwright로 20개 시나리오 확인). 미인증 상태 라우트 접근 → `/login` 리다이렉트, OPERATOR의 `/admin` 접근 → `/403` 확인. 프로젝트 선택 변경 시 헤더의 `[역할]` 라벨이 `GET /user-roles/me` 재조회 결과로 갱신되는지 확인(최초 구현 시 세션 전역 roleCode를 잘못 참조하던 버그를 발견해 수정)
 
 ## Stage 3 — 그룹 A: 회사 · 프로젝트 관리 (List/New/Detail 표준 패턴 확정)
 
@@ -163,6 +165,8 @@
 **authStore의 roleCode**: `/auth/me`가 role_code를 반환하지 않으므로(위 §2.1), `AuthUser` 타입에는 role_code가 없다. 대신 `roleCode`를 accessToken/refreshToken과 같은 레벨의 별도 상태로 두고 login()/refresh() 응답의 role_code로 `setTokens(accessToken, roleCode, refreshToken?)`에서 함께 갱신·persist한다. JWT를 클라이언트에서 디코딩하지 않는 이유는 프론트가 토큰 내부 구조를 몰라도 되게 하기 위함 — role_code는 응답 바디의 평범한 필드로만 다룬다.
 
 **가드 3종 구분**: `AuthGuard`(라우트 레벨, 미인증 차단) / `RoleGuard`(라우트 레벨, allow 배열 기반 403) / `PermissionGuard`(컴포넌트 레벨, 버튼·섹션 단위 조건부 렌더링).
+
+**세션 roleCode vs 프로젝트 roleCode**: `authStore.roleCode`는 로그인 세션 전체에 고정된 값(사용자가 가진 프로젝트 중 최고 권한)이라 헤더의 회사/프로젝트 선택 가능 여부(`isSuperAdmin`)·관리 버튼 노출(`canManage`) 판단에는 적합하지만, "지금 선택한 프로젝트에서 실제 권한"과는 다르다. `globalStore.projectRoleCode`는 `selectedProjectId`가 바뀔 때마다 `GET /user-roles/me`로 다시 조회한 값으로, 헤더의 `[역할]이름` 표시는 반드시 이 값을 사용해야 한다(세션 roleCode를 쓰면 프로젝트를 바꿔도 라벨이 갱신되지 않는 버그가 된다).
 
 ---
 

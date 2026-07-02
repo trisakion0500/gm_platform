@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { Alert, Button, Card, Form, Input, Spin, Typography } from 'antd';
+import { useState } from 'react';
+import { Alert, Button, Card, Form, Input, Typography } from 'antd';
 import type { AxiosError } from 'axios';
 import * as authApi from '../../api/auth.api';
 import { useAuthStore } from '../../stores/authStore';
@@ -11,54 +11,25 @@ interface LoginFormValues {
 }
 
 function LoginPage() {
-  const { accessToken, roleCode, user, setTokens, setUser, clear } = useAuthStore();
-  const [checkingSession, setCheckingSession] = useState(true);
+  const setTokens = useAuthStore((state) => state.setTokens);
+  const setUser = useAuthStore((state) => state.setUser);
   const [submitting, setSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  // user는 저장하지 않으므로, 새로고침 시 남아있는 accessToken으로 /auth/me를 재조회해 세션을 복원한다
-  useEffect(() => {
-    if (!accessToken) {
-      setCheckingSession(false);
-      return;
-    }
-    authApi
-      .me()
-      .then(setUser)
-      .catch(() => clear())
-      .finally(() => setCheckingSession(false));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
+  // 성공 시 accessToken이 채워지면 GuestGuard가 /apis로 리다이렉트한다 — 여기서 직접 navigate하지 않음
   async function handleSubmit(values: LoginFormValues): Promise<void> {
     setErrorMessage(null);
     setSubmitting(true);
     try {
       const { access_token, refresh_token, role_code } = await authApi.login(values.login_id, values.password);
       setTokens(access_token, role_code, refresh_token);
-      const me = await authApi.me();
-      setUser(me);
+      setUser(await authApi.me());
     } catch (err) {
       const message = (err as AxiosError<ApiFailure>).response?.data?.message ?? '로그인에 실패했습니다.';
       setErrorMessage(message);
     } finally {
       setSubmitting(false);
     }
-  }
-
-  if (checkingSession)
-    return <Spin fullscreen />;
-
-  if (user) {
-    return (
-      <Card style={{ maxWidth: 400, margin: '80px auto' }}>
-        <Typography.Title level={4}>로그인 됨</Typography.Title>
-        <Typography.Paragraph>
-          {user.user_name} ({user.login_id}) — role_code: {roleCode}
-        </Typography.Paragraph>
-        <Button onClick={clear}>로그아웃 (임시)</Button>
-      </Card>
-    );
   }
 
   return (

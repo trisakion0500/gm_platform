@@ -174,4 +174,6 @@ AI는 문서 초안 작성과 반복적인 코드 작업의 속도를 높이는 
   - ✅ Swagger UI — `GET /api/docs` (`SWAGGER_ENABLED=true` 시 활성화)
 - 🔄 Frontend 구현 — [16_FRONTEND_BUILD_PLAN.md](docs/16_FRONTEND_BUILD_PLAN.md) 기준 Stage 0~7 진행 중
   - ✅ Stage 0 — 프로젝트 스캐폴딩 (Vite + React 18 + TypeScript, 의존성 설치, CORS 연동 확인, 프로덕션 빌드 검증)
-  - ⬜ Stage 1~7 — 인증 인프라 / 라우터·레이아웃 / 관리 화면 / 업무 화면 / 회원가입·내 계정 / 마무리
+  - ✅ Stage 1 — 인증 인프라 (authStore, axios 인터셉터의 401 자동 refresh, 로그인 화면)
+  - ✅ Stage 2 — 라우터·레이아웃·가드·공통 컴포넌트 (AuthGuard/RoleGuard/GuestGuard, Header/Sidebar/Footer, globalStore, PermissionGuard/DataTable/FormModal 등)
+  - ⬜ Stage 3~7 — 관리 화면 / 업무 화면 / 회원가입·내 계정 / 마무리
