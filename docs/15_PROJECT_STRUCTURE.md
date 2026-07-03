@@ -171,7 +171,7 @@ client/
 │   │   │   │   ├── ProjectNewPage.tsx     # 프로젝트 등록 폼
 │   │   │   │   └── ProjectDetailPage.tsx  # 프로젝트 상세 조회 및 수정 (SUPER_ADMIN)
 │   │   │   ├── users/
-│   │   │   │   ├── UserListPage.tsx       # 사용자 목록 / 가입 승인 대기 탭 전환
+│   │   │   │   ├── UserListPage.tsx       # 사용자 목록 (상태 콤보박스 필터)
 │   │   │   │   └── UserDetailPage.tsx     # 사용자 상세 / 수정 / 승인·반려 / 권한 관리
 │   │   │   └── audit-logs/
 │   │   │       ├── AuditLogListPage.tsx   # 감사 로그 목록 (테이블 / 작업유형 / 작업자 / 기간 필터)

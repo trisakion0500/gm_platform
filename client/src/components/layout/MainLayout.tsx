@@ -8,13 +8,13 @@ const { Sider, Content } = Layout;
 
 function MainLayout() {
   return (
-    <Layout style={{ minHeight: '100vh' }}>
+    <Layout style={{ height: '100vh', overflow: 'hidden' }}>
       <Header />
-      <Layout>
+      <Layout style={{ overflow: 'hidden' }}>
         <Sider width={200} theme="light">
           <Sidebar variant="main" />
         </Sider>
-        <Content style={{ padding: 24 }}>
+        <Content style={{ padding: 24, overflow: 'auto', display: 'flex', flexDirection: 'column' }}>
           <Outlet />
         </Content>
       </Layout>

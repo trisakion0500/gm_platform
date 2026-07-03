@@ -43,25 +43,27 @@ function ProjectListPage() {
           </PermissionGuard>
         }
       />
-      <Select
-        style={{ width: 200, marginBottom: 16, marginRight: 8 }}
-        value={companyId ?? 'ALL'}
-        onChange={(value) => setCompanyId(value === 'ALL' ? undefined : (value as number))}
-        options={[
-          { value: 'ALL', label: '전체 회사' },
-          ...companyList.map((c) => ({ value: c.company_id, label: c.company_name })),
-        ]}
-      />
-      <Select
-        style={{ width: 160, marginBottom: 16 }}
-        value={status ?? 'ALL'}
-        onChange={(value) => setStatus(value === 'ALL' ? undefined : (value as number))}
-        options={[
-          { value: 'ALL', label: '전체' },
-          { value: 1, label: '활성' },
-          { value: 0, label: '비활성' },
-        ]}
-      />
+      <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
+        <Select
+          style={{ width: 200 }}
+          value={companyId ?? 'ALL'}
+          onChange={(value) => setCompanyId(value === 'ALL' ? undefined : (value as number))}
+          options={[
+            { value: 'ALL', label: '전체 회사' },
+            ...companyList.map((c) => ({ value: c.company_id, label: c.company_name })),
+          ]}
+        />
+        <Select
+          style={{ width: 160 }}
+          value={status ?? 'ALL'}
+          onChange={(value) => setStatus(value === 'ALL' ? undefined : (value as number))}
+          options={[
+            { value: 'ALL', label: '전체' },
+            { value: 1, label: '활성' },
+            { value: 0, label: '비활성' },
+          ]}
+        />
+      </div>
       <DataTable<ProjectRow>
         key={`${companyId ?? 'all'}-${status ?? 'all'}`}
         columns={COLUMNS}

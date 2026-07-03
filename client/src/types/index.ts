@@ -54,3 +54,48 @@ export interface ProjectRow {
   created_at: string;
   updated_at: string;
 }
+
+export interface UserRow {
+  user_id: number;
+  company_id: number;
+  company_code: string;
+  company_name: string;
+  requested_project_id?: number | null;
+  login_id: string;
+  user_name: string;
+  email: string;
+  phone_number: string;
+  department: string | null;
+  position: string | null;
+  status: number;
+  last_login_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface UserRoleRow {
+  user_id: number;
+  login_id: string;
+  user_name: string;
+  project_id: number;
+  project_code: string;
+  project_name: string;
+  role_code: number;
+  status: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface LogAuditRow {
+  log_audit_id: number;
+  company_id: number;
+  project_id: number | null;
+  table_name: string;
+  target_id: string;
+  target_name: string;
+  action_type: number;
+  before_json?: string | null;
+  after_json?: string;
+  created_by: number;
+  created_at: string;
+}
