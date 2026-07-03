@@ -26,6 +26,7 @@ const ADMIN_MENU: MenuDef[] = [
   { key: '/admin/projects', label: '프로젝트', allow: [ROLE.SUPER_ADMIN, ROLE.DEVELOPER] },
   { key: '/admin/users', label: '사용자', allow: [ROLE.SUPER_ADMIN, ROLE.DEVELOPER] },
   { key: '/admin/code-groups', label: '코드그룹', allow: [ROLE.SUPER_ADMIN, ROLE.DEVELOPER] },
+  { key: '/admin/apis', label: 'API', allow: [ROLE.SUPER_ADMIN, ROLE.DEVELOPER] },
   { key: '/admin/audit-logs', label: '감사로그', allow: [ROLE.SUPER_ADMIN, ROLE.DEVELOPER, ROLE.APPROVER] },
 ];
 

@@ -17,6 +17,11 @@ interface ListFilterState {
   userListStatus: number | undefined;
   setUserListStatus: (status: number | undefined) => void;
 
+  apiListStatus: number | undefined;
+  setApiListStatus: (status: number | undefined) => void;
+  apiListStage: number | undefined;
+  setApiListStage: (stage: number | undefined) => void;
+
   auditLogFilter: AuditLogFilter;
   setAuditLogFilter: (filter: AuditLogFilter) => void;
 
@@ -35,6 +40,11 @@ export const useListFilterStore = create<ListFilterState>()((set) => ({
   userListStatus: undefined,
   setUserListStatus: (userListStatus) => set({ userListStatus }),
 
+  apiListStatus: undefined,
+  setApiListStatus: (apiListStatus) => set({ apiListStatus }),
+  apiListStage: undefined,
+  setApiListStage: (apiListStage) => set({ apiListStage }),
+
   auditLogFilter: {},
   setAuditLogFilter: (auditLogFilter) => set({ auditLogFilter }),
 
@@ -44,6 +54,8 @@ export const useListFilterStore = create<ListFilterState>()((set) => ({
       companyListStatus: undefined,
       projectListStatus: undefined,
       userListStatus: undefined,
+      apiListStatus: undefined,
+      apiListStage: undefined,
       auditLogFilter: {},
     }),
 }));

@@ -121,6 +121,82 @@ export interface UserRoleRow {
   updated_at: string;
 }
 
+export interface ApiRow {
+  api_id: number;
+  project_id: number;
+  api_code: string;
+  api_name: string;
+  endpoint: string;
+  description: string | null;
+  api_stage: number;
+  is_required_approval: number;
+  response_view_type: number;
+  status: number;
+  display_order: number;
+  created_by: number;
+  updated_by: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ApiRequestRow {
+  api_request_id: number;
+  api_id: number;
+  parameter_name: string;
+  parameter_label: string;
+  parameter_type: number;
+  component_type: number;
+  code_group_id: number;
+  is_required: number;
+  description: string | null;
+  display_order: number;
+  status: number;
+  created_by: number;
+  updated_by: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ApiResponseRow {
+  api_response_id: number;
+  api_id: number;
+  parameter_name: string;
+  parameter_label: string;
+  parameter_type: number;
+  code_group_id: number;
+  description: string | null;
+  display_order: number;
+  status: number;
+  created_by: number;
+  updated_by: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ApiDetail {
+  api: ApiRow;
+  requests: ApiRequestRow[];
+  responses: ApiResponseRow[];
+}
+
+export interface ApiExecutionRow {
+  api_execution_id: number;
+  api_id: number;
+  api_name: string;
+  endpoint: string;
+  request_user_id: number;
+  approve_user_id: number | null;
+  status: number;
+  request_json?: string;
+  response_data?: string | null;
+  reject_reason: string | null;
+  error_message: string | null;
+  requested_at: string;
+  approved_at: string | null;
+  executed_at: string | null;
+  updated_at: string;
+}
+
 export interface LogAuditRow {
   log_audit_id: number;
   company_id: number;
