@@ -142,3 +142,29 @@ export async function getActiveCodeItems(req: Request, res: Response, next: Next
     next(err);
   }
 }
+
+/**
+ * GET /code-groups/active-with-items?project_id= — 프로젝트의 활성 코드그룹+아이템 일괄 조회 (전 역할)
+ * @author trisakion
+ * @param req query: { project_id }
+ * @param res 200 — { items: [{ code_group_id, code_group_code, code_group_name, items: [{code_value, code_name}] }] }
+ * @param next 오류 전달
+ */
+export async function getActiveCodeGroupsWithItems(req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    const { project_id } = req.query;
+    if (!project_id) {
+      fail(res, ERROR_MAP.REQUIRED_MISSING);
+      return;
+    }
+    const projectId = Number(project_id);
+    if (!Number.isInteger(projectId) || projectId < 1) {
+      fail(res, ERROR_MAP.INVALID_FORMAT);
+      return;
+    }
+    const items = await codeGroupService.getActiveCodeGroupsWithItems(projectId);
+    success(res, { items });
+  } catch (err) {
+    next(err);
+  }
+}

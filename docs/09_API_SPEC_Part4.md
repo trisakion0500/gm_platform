@@ -362,6 +362,65 @@ ORDER BY display_order ASC
 
 ---
 
+## 4.2 프로젝트 단위 활성 코드그룹 + 아이템 일괄 조회
+
+### Endpoint
+
+```http
+GET /code-groups/active-with-items?project_id={id}
+```
+
+### Permission
+
+```text
+SUPER_ADMIN
+DEVELOPER
+APPROVER
+OPERATOR
+```
+
+### Description
+
+코드그룹 관리 화면(`/admin/code-groups`)은 SUPER_ADMIN/DEVELOPER 전용이라 접근할 수 없는 APPROVER/OPERATOR가
+API Request/Response의 SELECT/RADIO/CHECKBOX 값을 참조할 때 사용하는 조회 전용 엔드포인트.
+
+`GET /code-groups/{code_group_id}/active-items`를 그룹 개수만큼 반복 호출하는 N+1 대신,
+프로젝트 내 활성(status=1) 코드그룹 전체와 각 그룹의 활성 아이템을 한 번에 반환한다.
+
+### Condition
+
+```sql
+code_group.status = 1
+code_item.status = 1  -- 아이템이 없는 그룹도 포함(빈 배열)
+```
+
+### Sorting
+
+```sql
+ORDER BY code_group_name ASC, display_order ASC
+```
+
+### Response
+
+```json
+{
+  "result": 0,
+  "data": [
+    {
+      "code_group_id": 1,
+      "code_group_code": "GRADE",
+      "code_group_name": "등급",
+      "items": [
+        { "code_value": "LEGEND", "code_name": "전설" },
+        { "code_value": "UNIQUE", "code_name": "유니크" }
+      ]
+    }
+  ]
+}
+```
+
+---
+
 # 5. 공통 비즈니스 규칙
 
 ## Code Group

@@ -1,5 +1,5 @@
 import { callSP } from '../config/db';
-import { CodeGroupRow, ActiveCodeItemRow } from '../types';
+import { CodeGroupRow, ActiveCodeItemRow, ActiveCodeGroupItemFlatRow } from '../types';
 import { toDBError, ERROR_MAP } from '../constants/errors';
 
 /**
@@ -89,4 +89,15 @@ export async function updateCodeGroup(
 export async function getActiveCodeItems(codeGroupId: number): Promise<ActiveCodeItemRow[]> {
   const [, [data]] = await callSP('SP_GET_ACTIVE_CODE_ITEMS', [codeGroupId]);
   return data as unknown as ActiveCodeItemRow[];
+}
+
+/**
+ * 프로젝트의 활성 코드그룹 + 각 그룹의 활성 아이템을 flat 행으로 반환한다 (그룹핑은 서비스 레이어에서 처리).
+ * @author trisakion
+ * @param projectId 조회할 프로젝트 ID
+ * @returns flat 행 목록 (아이템 없는 그룹은 code_value/code_name이 null)
+ */
+export async function getActiveCodeGroupsWithItems(projectId: number): Promise<ActiveCodeGroupItemFlatRow[]> {
+  const [, [data]] = await callSP('SP_GET_ACTIVE_CODE_GROUPS_WITH_ITEMS', [projectId]);
+  return data as unknown as ActiveCodeGroupItemFlatRow[];
 }

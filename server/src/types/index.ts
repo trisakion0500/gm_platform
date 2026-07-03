@@ -262,6 +262,39 @@ export interface ActiveCodeItemRow {
 }
 
 /**
+ * SP_GET_ACTIVE_CODE_GROUPS_WITH_ITEMS 반환 행(flat) 타입.
+ * 코드그룹당 아이템 수만큼 행이 반복되며, 아이템이 없는 그룹은 code_value/code_name이 null.
+ * @author trisakion
+ */
+export interface ActiveCodeGroupItemFlatRow {
+  /** 코드 그룹 ID */
+  code_group_id: number;
+  /** 코드 그룹 코드 */
+  code_group_code: string;
+  /** 코드 그룹명 */
+  code_group_name: string;
+  /** 코드 값 (그룹에 아이템이 없으면 null) */
+  code_value: string | null;
+  /** 코드명 (그룹에 아이템이 없으면 null) */
+  code_name: string | null;
+}
+
+/**
+ * GET /code-groups/active-with-items 응답 타입 (flat 행을 그룹별로 묶은 결과).
+ * @author trisakion
+ */
+export interface ActiveCodeGroupWithItems {
+  /** 코드 그룹 ID */
+  code_group_id: number;
+  /** 코드 그룹 코드 */
+  code_group_code: string;
+  /** 코드 그룹명 */
+  code_group_name: string;
+  /** 해당 그룹의 활성 아이템 목록 */
+  items: ActiveCodeItemRow[];
+}
+
+/**
  * company 테이블 조회 행 타입.
  * @author trisakion
  */

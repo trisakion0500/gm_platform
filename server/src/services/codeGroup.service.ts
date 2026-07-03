@@ -1,4 +1,4 @@
-import { CodeGroupRow, ActiveCodeItemRow } from '../types';
+import { CodeGroupRow, ActiveCodeItemRow, ActiveCodeGroupWithItems } from '../types';
 import { toAppError, ERROR_MAP } from '../constants/errors';
 import { ROLE } from '../constants/roles';
 import * as db from '../db/codeGroup.db';
@@ -96,4 +96,30 @@ export async function updateCodeGroup(
  */
 export async function getActiveCodeItems(codeGroupId: number): Promise<ActiveCodeItemRow[]> {
   return db.getActiveCodeItems(codeGroupId);
+}
+
+/**
+ * 프로젝트의 활성 코드그룹 + 활성 아이템을 그룹 단위로 묶어서 반환한다.
+ * APPROVER·OPERATOR가 API Request/Response 파라미터의 SELECT/RADIO/CHECKBOX 값을 참조할 때 사용 —
+ * 코드그룹 관리 화면(`/admin/code-groups`)은 SUPER_ADMIN/DEVELOPER 전용이라, 이 엔드포인트로 별도 조회 경로를 제공한다.
+ * @author trisakion
+ * @param projectId 조회할 프로젝트 ID
+ * @returns 코드그룹별로 묶인 활성 아이템 목록
+ */
+export async function getActiveCodeGroupsWithItems(projectId: number): Promise<ActiveCodeGroupWithItems[]> {
+  const rows = await db.getActiveCodeGroupsWithItems(projectId);
+  const groups = new Map<number, ActiveCodeGroupWithItems>();
+  for (const row of rows) {
+    if (!groups.has(row.code_group_id)) {
+      groups.set(row.code_group_id, {
+        code_group_id: row.code_group_id,
+        code_group_code: row.code_group_code,
+        code_group_name: row.code_group_name,
+        items: [],
+      });
+    }
+    if (row.code_value !== null)
+      groups.get(row.code_group_id)!.items.push({ code_value: row.code_value, code_name: row.code_name! });
+  }
+  return Array.from(groups.values());
 }

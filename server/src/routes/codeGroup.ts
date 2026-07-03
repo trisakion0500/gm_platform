@@ -101,6 +101,51 @@ router.get('/',                            authenticate, requireRole(ROLE.SUPER_
 
 /**
  * @swagger
+ * /code-groups/active-with-items:
+ *   get:
+ *     tags: [CodeGroup]
+ *     summary: 프로젝트의 활성 코드그룹 + 활성 아이템 일괄 조회
+ *     description: |
+ *       프로젝트 내 status=1인 코드그룹과, 각 그룹의 status=1인 아이템을 한 번에 반환한다.
+ *       `/admin/code-groups`(SUPER_ADMIN/DEVELOPER 전용 관리 화면)에 접근할 수 없는 APPROVER/OPERATOR가
+ *       API Request/Response의 SELECT·RADIO·CHECKBOX 값을 참조하기 위한 조회 전용 경로이다.
+ *       반드시 `/:code_group_id` 라우트보다 먼저 등록해야 한다(그렇지 않으면 "active-with-items"가 code_group_id로 잘못 매칭됨).
+ *     security:
+ *       - bearerAuth: []
+ *     x-required-roles: SUPER_ADMIN, DEVELOPER, APPROVER, OPERATOR
+ *     parameters:
+ *       - in: query
+ *         name: project_id
+ *         required: true
+ *         schema: { type: integer, example: 1 }
+ *     responses:
+ *       200:
+ *         description: 조회 성공
+ *         content:
+ *           application/json:
+ *             example:
+ *               result: 0
+ *               data:
+ *                 items:
+ *                   - code_group_id: 1
+ *                     code_group_code: GENDER
+ *                     code_group_name: 성별
+ *                     items:
+ *                       - code_value: M
+ *                         code_name: 남성
+ *                       - code_value: F
+ *                         code_name: 여성
+ *       400:
+ *         $ref: '#/components/responses/BadRequest'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       403:
+ *         $ref: '#/components/responses/Forbidden'
+ */
+router.get('/active-with-items',           authenticate, requireRole(ROLE.SUPER_ADMIN, ROLE.DEVELOPER, ROLE.APPROVER, ROLE.OPERATOR), ctrl.getActiveCodeGroupsWithItems);
+
+/**
+ * @swagger
  * /code-groups/{code_group_id}:
  *   get:
  *     tags: [CodeGroup]
