@@ -13,6 +13,7 @@ import ProjectListPage from '../pages/admin/projects/ProjectListPage';
 import ProjectNewPage from '../pages/admin/projects/ProjectNewPage';
 import ProjectDetailPage from '../pages/admin/projects/ProjectDetailPage';
 import UserListPage from '../pages/admin/users/UserListPage';
+import UserDetailPage from '../pages/admin/users/UserDetailPage';
 import PagePlaceholder from '../pages/PagePlaceholder';
 import ForbiddenPage from '../pages/errors/ForbiddenPage';
 import NotFoundPage from '../pages/errors/NotFoundPage';
@@ -69,7 +70,7 @@ function AppRouter() {
                 </Route>
                 <Route path="projects/:project_id" element={<ProjectDetailPage />} />
                 <Route path="users" element={<UserListPage />} />
-                <Route path="users/:user_id" element={<PagePlaceholder title="사용자 상세" />} />
+                <Route path="users/:user_id" element={<UserDetailPage />} />
               </Route>
 
               <Route path="audit-logs" element={<PagePlaceholder title="감사로그" />} />
