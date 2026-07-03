@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import DataTable from '../../../components/common/DataTable';
 import PageHeader from '../../../components/common/PageHeader';
 import StatusBadge from '../../../components/common/StatusBadge';
+import { useGlobalStore } from '../../../stores/globalStore';
 import * as userApi from '../../../api/user.api';
 import type { UserRow } from '../../../types';
 
@@ -29,28 +30,41 @@ const COLUMNS: ColumnsType<UserRow> = [
 
 function UserListPage() {
   const navigate = useNavigate();
+  const companyList = useGlobalStore((state) => state.companyList);
+  const [companyId, setCompanyId] = useState<number | undefined>(undefined);
   const [status, setStatus] = useState<number | undefined>(undefined);
 
   return (
     <>
       <PageHeader title="사용자 목록" />
-      <Select
-        style={{ width: 160, marginBottom: 16 }}
-        value={status ?? 'ALL'}
-        onChange={(value) => setStatus(value === 'ALL' ? undefined : (value as number))}
-        options={[
-          { value: 'ALL', label: '전체' },
-          { value: 0, label: '승인대기' },
-          { value: 1, label: '정상' },
-          { value: 2, label: '반려' },
-          { value: 3, label: '사용중지' },
-        ]}
-      />
+      <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
+        <Select
+          style={{ width: 200 }}
+          value={companyId ?? 'ALL'}
+          onChange={(value) => setCompanyId(value === 'ALL' ? undefined : (value as number))}
+          options={[
+            { value: 'ALL', label: '전체 회사' },
+            ...companyList.map((c) => ({ value: c.company_id, label: c.company_name })),
+          ]}
+        />
+        <Select
+          style={{ width: 160 }}
+          value={status ?? 'ALL'}
+          onChange={(value) => setStatus(value === 'ALL' ? undefined : (value as number))}
+          options={[
+            { value: 'ALL', label: '전체' },
+            { value: 0, label: '승인대기' },
+            { value: 1, label: '정상' },
+            { value: 2, label: '반려' },
+            { value: 3, label: '사용중지' },
+          ]}
+        />
+      </div>
       <DataTable<UserRow>
-        key={status ?? 'all'}
+        key={`${companyId ?? 'all'}-${status ?? 'all'}`}
         columns={COLUMNS}
         rowKey="user_id"
-        fetcher={(page, pageSize) => userApi.getUserList(page, pageSize, status)}
+        fetcher={(page, pageSize) => userApi.getUserList(page, pageSize, status, companyId)}
         onRowClick={(record) => navigate(`/admin/users/${record.user_id}`)}
       />
     </>

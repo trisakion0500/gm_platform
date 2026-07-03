@@ -1,14 +1,18 @@
 import { useEffect, useState } from 'react';
-import { Alert, Button, Descriptions, Form, Input, Modal, Space, Spin } from 'antd';
+import { Alert, Button, Descriptions, Form, Input, Modal, Select, Space, Spin, Table } from 'antd';
+import type { ColumnsType } from 'antd/es/table';
 import type { AxiosError } from 'axios';
 import { useNavigate, useParams } from 'react-router-dom';
 import ConfirmModal from '../../../components/common/ConfirmModal';
 import PageHeader from '../../../components/common/PageHeader';
 import PermissionGuard from '../../../components/common/PermissionGuard';
 import StatusBadge from '../../../components/common/StatusBadge';
+import { usePermission } from '../../../hooks/usePermission';
 import * as userApi from '../../../api/user.api';
-import type { ApiFailure, UserRow } from '../../../types';
-import { ROLE } from '../../../types';
+import * as userRoleApi from '../../../api/userRole.api';
+import * as projectApi from '../../../api/project.api';
+import type { ApiFailure, ProjectRow, UserRoleRow, UserRow } from '../../../types';
+import { ROLE, ROLE_LABEL } from '../../../types';
 
 const STATUS_MAP = {
   0: { label: '승인대기', color: 'gold' },
@@ -16,6 +20,17 @@ const STATUS_MAP = {
   2: { label: '반려', color: 'red' },
   3: { label: '사용중지', color: 'default' },
 };
+
+const ROLE_STATUS_MAP = {
+  1: { label: '활성', color: 'green' },
+  0: { label: '비활성', color: 'default' },
+};
+
+const ASSIGNABLE_ROLE_OPTIONS = [
+  { value: ROLE.DEVELOPER, label: ROLE_LABEL[ROLE.DEVELOPER] },
+  { value: ROLE.APPROVER, label: ROLE_LABEL[ROLE.APPROVER] },
+  { value: ROLE.OPERATOR, label: ROLE_LABEL[ROLE.OPERATOR] },
+];
 
 interface UserEditFormValues {
   user_name: string;
@@ -29,6 +44,24 @@ interface ResetPasswordFormValues {
   new_password: string;
 }
 
+interface CreateRoleFormValues {
+  project_id: number;
+  role_code: number;
+}
+
+interface EditRoleFormValues {
+  role_code: number;
+  status: number;
+}
+
+const ROLE_COLUMNS: ColumnsType<UserRoleRow> = [
+  { title: '프로젝트코드', dataIndex: 'project_code' },
+  { title: '프로젝트명', dataIndex: 'project_name' },
+  { title: '역할', dataIndex: 'role_code', render: (roleCode: number) => ROLE_LABEL[roleCode as keyof typeof ROLE_LABEL] ?? roleCode },
+  { title: '상태', dataIndex: 'status', render: (status: number) => <StatusBadge status={status} map={ROLE_STATUS_MAP} /> },
+  { title: '등록일', dataIndex: 'created_at' },
+];
+
 type ConfirmAction = 'approve' | 'reject' | 'suspend' | 'resume';
 
 const CONFIRM_CONTENT: Record<ConfirmAction, { title: string; content: string; danger?: boolean }> = {
@@ -41,6 +74,7 @@ const CONFIRM_CONTENT: Record<ConfirmAction, { title: string; content: string; d
 function UserDetailPage() {
   const { user_id } = useParams();
   const navigate = useNavigate();
+  const isSuperAdmin = usePermission([ROLE.SUPER_ADMIN]);
   const [user, setUser] = useState<UserRow | null>(null);
   const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -48,6 +82,65 @@ function UserDetailPage() {
   const [submitting, setSubmitting] = useState(false);
   const [confirmAction, setConfirmAction] = useState<ConfirmAction | null>(null);
   const [resetPasswordOpen, setResetPasswordOpen] = useState(false);
+  const [userRoles, setUserRoles] = useState<UserRoleRow[]>([]);
+  const [rolesLoading, setRolesLoading] = useState(true);
+  const [createRoleOpen, setCreateRoleOpen] = useState(false);
+  const [assignableProjects, setAssignableProjects] = useState<ProjectRow[]>([]);
+  const [editingRole, setEditingRole] = useState<UserRoleRow | null>(null);
+
+  function loadUserRoles(): void {
+    setRolesLoading(true);
+    userRoleApi
+      .getUserRoleList({ user_id: Number(user_id) })
+      .then(setUserRoles)
+      .finally(() => setRolesLoading(false));
+  }
+
+  useEffect(() => {
+    loadUserRoles();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user_id]);
+
+  async function openCreateRoleModal(): Promise<void> {
+    if (!user)
+      return;
+    const result = await projectApi.getProjectList(1, 100, user.company_id, 1);
+    const assignedProjectIds = new Set(userRoles.map((r) => r.project_id));
+    setAssignableProjects(result.items.filter((p) => !assignedProjectIds.has(p.project_id)));
+    setCreateRoleOpen(true);
+  }
+
+  async function handleCreateRole(values: CreateRoleFormValues): Promise<void> {
+    setSubmitting(true);
+    try {
+      await userRoleApi.createUserRole({ user_id: Number(user_id), project_id: values.project_id, role_code: values.role_code });
+      setCreateRoleOpen(false);
+      loadUserRoles();
+    } catch (err) {
+      const message = (err as AxiosError<ApiFailure>).response?.data?.message ?? '권한 등록에 실패했습니다.';
+      setErrorMessage(message);
+      setCreateRoleOpen(false);
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  async function handleUpdateRole(values: EditRoleFormValues): Promise<void> {
+    if (!editingRole)
+      return;
+    setSubmitting(true);
+    try {
+      await userRoleApi.updateUserRole(Number(user_id), editingRole.project_id, values);
+      setEditingRole(null);
+      loadUserRoles();
+    } catch (err) {
+      const message = (err as AxiosError<ApiFailure>).response?.data?.message ?? '권한 수정에 실패했습니다.';
+      setErrorMessage(message);
+      setEditingRole(null);
+    } finally {
+      setSubmitting(false);
+    }
+  }
 
   function loadUser(): void {
     setLoading(true);
@@ -201,6 +294,17 @@ function UserDetailPage() {
     );
   }
 
+  const roleColumns: ColumnsType<UserRoleRow> = isSuperAdmin
+    ? [
+        ...ROLE_COLUMNS,
+        {
+          title: '관리',
+          key: 'action',
+          render: (_, record) => <Button size="small" onClick={() => setEditingRole(record)}>수정</Button>,
+        },
+      ]
+    : ROLE_COLUMNS;
+
   return (
     <>
       <PageHeader
@@ -246,6 +350,22 @@ function UserDetailPage() {
         <Descriptions.Item label="수정일">{user.updated_at}</Descriptions.Item>
       </Descriptions>
 
+      <PageHeader
+        title="권한 (User Role)"
+        extra={
+          <PermissionGuard allow={[ROLE.SUPER_ADMIN]}>
+            <Button onClick={openCreateRoleModal}>권한 등록</Button>
+          </PermissionGuard>
+        }
+      />
+      <Table<UserRoleRow>
+        columns={roleColumns}
+        dataSource={userRoles}
+        rowKey="project_id"
+        loading={rolesLoading}
+        pagination={false}
+      />
+
       {confirmAction && (
         <ConfirmModal
           open
@@ -286,6 +406,73 @@ function UserDetailPage() {
             </Space>
           </Form.Item>
         </Form>
+      </Modal>
+
+      <Modal
+        open={createRoleOpen}
+        title="권한 등록"
+        confirmLoading={submitting}
+        onCancel={() => setCreateRoleOpen(false)}
+        destroyOnClose
+        footer={null}
+      >
+        <Form<CreateRoleFormValues> layout="vertical" onFinish={handleCreateRole} disabled={submitting}>
+          <Form.Item name="project_id" label="프로젝트" rules={[{ required: true, message: '프로젝트를 선택하세요.' }]}>
+            <Select
+              options={assignableProjects.map((p) => ({ value: p.project_id, label: p.project_name }))}
+              placeholder="프로젝트 선택"
+            />
+          </Form.Item>
+          <Form.Item name="role_code" label="역할" rules={[{ required: true, message: '역할을 선택하세요.' }]}>
+            <Select options={ASSIGNABLE_ROLE_OPTIONS} placeholder="역할 선택" />
+          </Form.Item>
+          <Form.Item>
+            <Space>
+              <Button type="primary" htmlType="submit" loading={submitting}>
+                등록
+              </Button>
+              <Button onClick={() => setCreateRoleOpen(false)}>취소</Button>
+            </Space>
+          </Form.Item>
+        </Form>
+      </Modal>
+
+      <Modal
+        open={!!editingRole}
+        title={`권한 수정 - ${editingRole?.project_name ?? ''}`}
+        confirmLoading={submitting}
+        onCancel={() => setEditingRole(null)}
+        destroyOnClose
+        footer={null}
+      >
+        {editingRole && (
+          <Form<EditRoleFormValues>
+            layout="vertical"
+            initialValues={{ role_code: editingRole.role_code, status: editingRole.status }}
+            onFinish={handleUpdateRole}
+            disabled={submitting}
+          >
+            <Form.Item name="role_code" label="역할" rules={[{ required: true, message: '역할을 선택하세요.' }]}>
+              <Select options={ASSIGNABLE_ROLE_OPTIONS} />
+            </Form.Item>
+            <Form.Item name="status" label="상태" rules={[{ required: true, message: '상태를 선택하세요.' }]}>
+              <Select
+                options={[
+                  { value: 1, label: '활성' },
+                  { value: 0, label: '비활성' },
+                ]}
+              />
+            </Form.Item>
+            <Form.Item>
+              <Space>
+                <Button type="primary" htmlType="submit" loading={submitting}>
+                  저장
+                </Button>
+                <Button onClick={() => setEditingRole(null)}>취소</Button>
+              </Space>
+            </Form.Item>
+          </Form>
+        )}
       </Modal>
     </>
   );
