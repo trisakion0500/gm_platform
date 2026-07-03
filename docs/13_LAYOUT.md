@@ -220,7 +220,7 @@ MainLayout, AdminLayout 하단 공통.
 | RoleGuard | 라우트 단위 role 검사, 미충족 시 403 페이지로 처리 |
 | PermissionGuard | role 조건 충족 시만 children 렌더링 (버튼 등 UI 요소 노출 제어) |
 | PageHeader | 페이지 제목 + 우측 액션 버튼 영역 |
-| DataTable | Ant Design Table 래퍼 — 페이지네이션 / 로딩 처리, `ResizeObserver` 기반 동적 높이 산정으로 flex-column 부모 내부에서만 스크롤 |
+| DataTable | Ant Design Table 래퍼 — 페이지네이션 / 로딩 처리, `ResizeObserver` 기반 동적 높이 산정으로 flex-column 부모 내부에서만 스크롤. 헤더 타이틀은 전역 CSS(`index.css`)로 중앙정렬(데이터 셀은 그대로 좌측 정렬) |
 | StatusBadge | status 값을 색상 뱃지로 표시 |
 | ConfirmModal | 승인 / 반려 / 삭제 등 확인 모달 |
 

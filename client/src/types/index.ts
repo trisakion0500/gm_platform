@@ -90,12 +90,13 @@ export interface LogAuditRow {
   log_audit_id: number;
   company_id: number;
   project_id: number | null;
+  project_name: string | null;
   table_name: string;
   target_id: string;
   target_name: string;
   action_type: number;
   before_json?: string | null;
   after_json?: string;
-  created_by: number;
+  created_by_name: string | null;
   created_at: string;
 }

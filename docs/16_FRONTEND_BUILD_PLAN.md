@@ -139,7 +139,7 @@
 - `UserListPage`의 상태 필터는 Tabs가 아니라 Select 콤보박스(전체/승인대기/정상/반려/사용중지)로 구현 — Company/Project 목록과 동일한 패턴
 - User Role 등록/수정은 계획대로 `UserDetailPage` 내 서브 테이블로 구현 — 목록(조회는 SUPER_ADMIN·DEVELOPER, 등록/수정은 SUPER_ADMIN만), 승인/반려/사용중지·재개/비밀번호 강제초기화 액션 버튼도 같은 페이지에 포함
 - 회원가입 시 `phone_number`(필수, AES-256-CBC 암호화 저장)·`department`·`position`(선택) 입력이 추가됨에 따라 `UserListPage`/`UserDetailPage`에도 해당 컬럼 반영
-- `AuditLogListPage`는 로그ID/테이블/작업유형/작업자ID/기간 필터를 제공하며, 회사·프로젝트 필터는 Stage 3와 동일하게 헤더 전역 선택을 그대로 사용(감사로그는 프로젝트 선택도 필터로 적용)
+- `AuditLogListPage`는 로그ID/테이블/작업유형/기간 필터를 제공하며, 회사·프로젝트 필터는 Stage 3와 동일하게 헤더 전역 선택을 그대로 사용(감사로그는 프로젝트 선택도 필터로 적용). 목록·상세 모두 `project_id`/`created_by` 원시 PK 대신 `SP_GET_LOG_AUDIT_LIST`/`SP_GET_LOG_AUDIT`가 `project`/`user` 테이블을 LEFT JOIN해 반환하는 `project_name`/`created_by_name`을 표시(작업자 필터는 실효성이 낮아 제거)
 - **검증 완료**: 가입승인/반려, 비밀번호 강제초기화, 정지↔재개(1↔3) 전이, 권한부여(User Role 등록) 각각을 UI로 수행 후 감사로그 목록/상세에서 올바른 action_type(10=생성/20=수정/30=상태변경)으로 즉시 기록되는지 API·UI 양쪽에서 교차 확인
 
 ## Stage 5 — 그룹 C: API 정의 · 실행 · 코드그룹

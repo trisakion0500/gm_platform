@@ -3,7 +3,6 @@ import { create } from 'zustand';
 export interface AuditLogFilter {
   tableName?: string;
   actionType?: number;
-  createdBy?: number;
   fromDate?: string;
   toDate?: string;
 }

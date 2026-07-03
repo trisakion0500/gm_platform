@@ -7,7 +7,6 @@ export interface LogAuditListFilter {
   table_name?: string;
   target_id?: string;
   action_type?: number;
-  created_by?: number;
   from_created_at?: string;
   to_created_at?: string;
 }

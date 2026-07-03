@@ -81,8 +81,8 @@ function AuditLogDetailPage() {
         <Descriptions.Item label="대상ID">{log.target_id}</Descriptions.Item>
         <Descriptions.Item label="대상명">{log.target_name}</Descriptions.Item>
         <Descriptions.Item label="회사ID">{log.company_id}</Descriptions.Item>
-        <Descriptions.Item label="프로젝트ID">{log.project_id ?? '-'}</Descriptions.Item>
-        <Descriptions.Item label="작업자ID">{log.created_by}</Descriptions.Item>
+        <Descriptions.Item label="프로젝트">{log.project_name ?? '-'}</Descriptions.Item>
+        <Descriptions.Item label="작업자">{log.created_by_name ?? '-'}</Descriptions.Item>
         <Descriptions.Item label="작업일시">{log.created_at}</Descriptions.Item>
       </Descriptions>
 

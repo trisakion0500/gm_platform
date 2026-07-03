@@ -1,4 +1,4 @@
-import { DatePicker, Input, Select } from 'antd';
+import { DatePicker, Select } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import dayjs from 'dayjs';
 import type { Dayjs } from 'dayjs';
@@ -36,8 +36,8 @@ const COLUMNS: ColumnsType<LogAuditRow> = [
   { title: '테이블', dataIndex: 'table_name', render: (tableName: string) => TABLE_NAME_LABEL[tableName] ?? tableName },
   { title: '대상명', dataIndex: 'target_name' },
   { title: '작업유형', dataIndex: 'action_type', render: (actionType: number) => <StatusBadge status={actionType} map={ACTION_TYPE_MAP} /> },
-  { title: '프로젝트ID', dataIndex: 'project_id', render: (projectId: number | null) => projectId ?? '-' },
-  { title: '작업자ID', dataIndex: 'created_by' },
+  { title: '프로젝트', dataIndex: 'project_name', render: (projectName: string | null) => projectName ?? '-' },
+  { title: '작업자', dataIndex: 'created_by_name', render: (name: string | null) => name ?? '-' },
   { title: '작업일시', dataIndex: 'created_at' },
 ];
 
@@ -73,16 +73,6 @@ function AuditLogListPage() {
             { value: 30, label: '상태변경' },
           ]}
         />
-        <Input
-          style={{ width: 140 }}
-          placeholder="작업자ID"
-          allowClear
-          value={filter.createdBy ?? ''}
-          onChange={(e) => {
-            const value = e.target.value;
-            setFilter({ ...filter, createdBy: value === '' ? undefined : Number(value) });
-          }}
-        />
         <DatePicker.RangePicker
           showTime
           value={dateRange}
@@ -96,7 +86,7 @@ function AuditLogListPage() {
         />
       </div>
       <DataTable<LogAuditRow>
-        key={`${companyId ?? 'all'}-${projectId ?? 'all'}-${filter.tableName ?? 'all'}-${filter.actionType ?? 'all'}-${filter.createdBy ?? 'all'}-${filter.fromDate ?? ''}-${filter.toDate ?? ''}`}
+        key={`${companyId ?? 'all'}-${projectId ?? 'all'}-${filter.tableName ?? 'all'}-${filter.actionType ?? 'all'}-${filter.fromDate ?? ''}-${filter.toDate ?? ''}`}
         columns={COLUMNS}
         rowKey="log_audit_id"
         fetcher={(page, pageSize) =>
@@ -105,7 +95,6 @@ function AuditLogListPage() {
             project_id: projectId ?? undefined,
             table_name: filter.tableName,
             action_type: filter.actionType,
-            created_by: filter.createdBy,
             from_created_at: filter.fromDate,
             to_created_at: filter.toDate,
           })
