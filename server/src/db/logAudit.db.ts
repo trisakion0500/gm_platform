@@ -42,7 +42,6 @@ export async function insertLogAudit(
  * @param tableName 테이블명 필터 (null=전체)
  * @param targetId 대상 ID 필터 (null=전체)
  * @param actionType 작업 유형 필터 (null=전체)
- * @param createdBy 작업자 ID 필터 (null=전체)
  * @param fromCreatedAt 시작 일시 (null=제한없음)
  * @param toCreatedAt 종료 일시 (null=제한없음)
  * @param page 페이지 번호 (1부터)
@@ -57,7 +56,6 @@ export async function getLogAuditList(
   tableName: string | null,
   targetId: string | null,
   actionType: number | null,
-  createdBy: number | null,
   fromCreatedAt: Date | null,
   toCreatedAt: Date | null,
   page: number,
@@ -66,7 +64,7 @@ export async function getLogAuditList(
   callerCompanyId: number,
 ): Promise<{ total_count: number; items: LogAuditRow[] }> {
   const [, [countRows, itemRows]] = await callSP('SP_GET_LOG_AUDIT_LIST', [
-    companyId, projectId, tableName, targetId, actionType, createdBy,
+    companyId, projectId, tableName, targetId, actionType,
     fromCreatedAt, toCreatedAt, page, pageSize, callerRoleCode, callerCompanyId,
   ]);
   return {

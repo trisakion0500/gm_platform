@@ -19,11 +19,13 @@ BEGIN
 
         SELECT 0 AS RESULT;
 
-        SELECT `log_audit_id`, `company_id`, `project_id`, `table_name`,
-               `target_id`, `target_name`, `action_type`,
-               `before_json`, `after_json`, `created_by`, `created_at`
-        FROM `log_audit`
-        WHERE `log_audit_id` = i_log_audit_id;
+        SELECT la.`log_audit_id`, la.`company_id`, la.`project_id`, p.`project_name`,
+               la.`table_name`, la.`target_id`, la.`target_name`, la.`action_type`,
+               la.`before_json`, la.`after_json`, u.`user_name` AS `created_by_name`, la.`created_at`
+        FROM `log_audit` la
+        LEFT JOIN `project` p ON p.`project_id` = la.`project_id`
+        LEFT JOIN `user`    u ON u.`user_id`    = la.`created_by`
+        WHERE la.`log_audit_id` = i_log_audit_id;
 
     END;
 

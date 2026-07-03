@@ -438,6 +438,8 @@ export interface LogAuditRow {
   company_id: number;
   /** 프로젝트 ID (company/user 작업 시 null) */
   project_id: number | null;
+  /** 프로젝트명 (project_id가 null이면 null) */
+  project_name: string | null;
   /** 대상 테이블명 */
   table_name: string;
   /** 대상 PK (복합키는 JSON 문자열) */
@@ -450,8 +452,8 @@ export interface LogAuditRow {
   before_json?: string | null;
   /** 변경 후 데이터 JSON (상세 조회 시만 포함) */
   after_json?: string;
-  /** 작업 수행 사용자 ID */
-  created_by: number;
+  /** 작업 수행 사용자 이름 (탈퇴 등으로 사용자가 없으면 null) */
+  created_by_name: string | null;
   /** 생성 일시 */
   created_at: Date;
 }

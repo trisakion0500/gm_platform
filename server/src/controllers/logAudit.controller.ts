@@ -19,7 +19,7 @@ function formatLogAudit(r: LogAuditRow) {
 /**
  * GET /log-audits — 감사 로그 목록 조회 (SUPER_ADMIN, DEVELOPER, APPROVER)
  * @author trisakion
- * @param req query: { page, page_size, company_id?, project_id?, table_name?, target_id?, action_type?, created_by?, from_created_at?, to_created_at? }
+ * @param req query: { page, page_size, company_id?, project_id?, table_name?, target_id?, action_type?, from_created_at?, to_created_at? }
  * @param res 200 — 페이지네이션 응답
  * @param next 오류 전달
  * @returns void
@@ -27,7 +27,7 @@ function formatLogAudit(r: LogAuditRow) {
 export async function getLogAuditList(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
     const { page, page_size, company_id, project_id, table_name, target_id,
-            action_type, created_by, from_created_at, to_created_at } = req.query;
+            action_type, from_created_at, to_created_at } = req.query;
     if (!page || !page_size) {
       fail(res, ERROR_MAP.REQUIRED_MISSING);
       return;
@@ -48,7 +48,6 @@ export async function getLogAuditList(req: Request, res: Response, next: NextFun
       table_name    !== undefined ? String(table_name)    : null,
       target_id     !== undefined ? String(target_id)     : null,
       action_type   !== undefined ? Number(action_type)   : null,
-      created_by    !== undefined ? Number(created_by)    : null,
       from_created_at !== undefined ? new Date(String(from_created_at)) : null,
       to_created_at   !== undefined ? new Date(String(to_created_at))   : null,
       pageNum,

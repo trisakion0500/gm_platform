@@ -161,7 +161,6 @@ GET /log-audits
 | table_name      | N    | 대상 테이블명                                      |
 | target_id       | N    | 대상 식별자                                        |
 | action_type     | N    | 작업 유형 (10:CREATE, 20:UPDATE, 30:STATUS_CHANGE) |
-| created_by      | N    | 작업자 ID                                          |
 | from_created_at | N    | 시작 일시                                          |
 | to_created_at   | N    | 종료 일시                                          |
 | page            | Y    | 페이지 번호                                        |
@@ -197,11 +196,12 @@ GET /log-audits?table_name=api&target_id=100&page=1&page_size=1
         "log_audit_id": 1001,
         "company_id": 1,
         "project_id": 100,
+        "project_name": "메인 프로젝트",
         "table_name": "api",
         "target_id": "100",
         "target_name": "Get User List",
         "action_type": 20,
-        "created_by": 10,
+        "created_by_name": "홍길동",
         "created_at": "2026-06-22 10:00:00"
       }
     ]
@@ -244,6 +244,7 @@ GET /log-audits/{log_audit_id}
     "log_audit_id": 1001,
     "company_id": 1,
     "project_id": 100,
+    "project_name": "메인 프로젝트",
     "table_name": "api",
     "target_id": "100",
     "target_name": "Get User List",
@@ -254,7 +255,7 @@ GET /log-audits/{log_audit_id}
     "after_json": {
       "...": "생략"
     },
-    "created_by": 10,
+    "created_by_name": "홍길동",
     "created_at": "2026-06-22 10:00:00"
   }
 }

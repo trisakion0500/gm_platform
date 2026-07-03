@@ -528,7 +528,6 @@ export function logUpdateCodeItem(
  * @param tableName 테이블명 필터 (null=전체)
  * @param targetId 대상 ID 필터 (null=전체)
  * @param actionType 작업 유형 필터 (null=전체)
- * @param createdBy 작업자 ID 필터 (null=전체)
  * @param fromCreatedAt 시작 일시 (null=제한없음)
  * @param toCreatedAt 종료 일시 (null=제한없음)
  * @param page 페이지 번호
@@ -543,7 +542,6 @@ export async function getLogAuditList(
   tableName: string | null,
   targetId: string | null,
   actionType: number | null,
-  createdBy: number | null,
   fromCreatedAt: Date | null,
   toCreatedAt: Date | null,
   page: number,
@@ -552,7 +550,7 @@ export async function getLogAuditList(
   callerCompanyId: number,
 ): Promise<{ page: number; page_size: number; total_count: number; items: LogAuditRow[] }> {
   const result = await db.getLogAuditList(
-    companyId, projectId, tableName, targetId, actionType, createdBy,
+    companyId, projectId, tableName, targetId, actionType,
     fromCreatedAt, toCreatedAt, page, pageSize, callerRoleCode, callerCompanyId,
   );
   return { page, page_size: pageSize, ...result };

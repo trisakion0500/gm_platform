@@ -49,11 +49,12 @@ const router = Router();
  *                   - log_audit_id: 1
  *                     company_id: 1
  *                     project_id: null
+ *                     project_name: null
  *                     table_name: company
  *                     target_id: '1'
  *                     target_name: 회사A
  *                     action_type: 10
- *                     created_by: 1
+ *                     created_by_name: sa
  *                     created_at: '2025-01-01 00:00:00'
  *       400:
  *         $ref: '#/components/responses/BadRequest'
@@ -92,13 +93,14 @@ router.get('/',              authenticate, requireRole(ROLE.SUPER_ADMIN, ROLE.DE
  *                 log_audit_id: 1
  *                 company_id: 1
  *                 project_id: null
+ *                 project_name: null
  *                 table_name: company
  *                 target_id: '1'
  *                 target_name: 회사A
  *                 action_type: 10
  *                 before_json: null
  *                 after_json: '{"company_name":"회사A","status":1}'
- *                 created_by: 1
+ *                 created_by_name: sa
  *                 created_at: '2025-01-01 00:00:00'
  *       401:
  *         $ref: '#/components/responses/Unauthorized'
