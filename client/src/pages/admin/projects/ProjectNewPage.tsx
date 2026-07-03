@@ -20,6 +20,8 @@ interface ProjectFormValues {
 function ProjectNewPage() {
   const navigate = useNavigate();
   const companyList = useGlobalStore((state) => state.companyList);
+  const projectList = useGlobalStore((state) => state.projectList);
+  const setProjectList = useGlobalStore((state) => state.setProjectList);
   const [submitting, setSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
@@ -28,6 +30,7 @@ function ProjectNewPage() {
     setSubmitting(true);
     try {
       const project = await projectApi.createProject(values);
+      setProjectList([...projectList, project]);
       navigate(`/admin/projects/${project.project_id}`);
     } catch (err) {
       const message = (err as AxiosError<ApiFailure>).response?.data?.message ?? '프로젝트 등록에 실패했습니다.';

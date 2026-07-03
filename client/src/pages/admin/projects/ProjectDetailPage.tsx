@@ -6,6 +6,7 @@ import PageHeader from '../../../components/common/PageHeader';
 import PermissionGuard from '../../../components/common/PermissionGuard';
 import StatusBadge from '../../../components/common/StatusBadge';
 import * as projectApi from '../../../api/project.api';
+import { useGlobalStore } from '../../../stores/globalStore';
 import type { ApiFailure, ProjectRow } from '../../../types';
 import { ROLE } from '../../../types';
 
@@ -27,6 +28,8 @@ interface ProjectEditFormValues {
 function ProjectDetailPage() {
   const { project_id } = useParams();
   const navigate = useNavigate();
+  const projectList = useGlobalStore((state) => state.projectList);
+  const setProjectList = useGlobalStore((state) => state.setProjectList);
   const [project, setProject] = useState<ProjectRow | null>(null);
   const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -50,6 +53,7 @@ function ProjectDetailPage() {
     try {
       const updated = await projectApi.updateProject(Number(project_id), values);
       setProject(updated);
+      setProjectList(projectList.map((p) => (p.project_id === updated.project_id ? updated : p)));
       setEditing(false);
     } catch (err) {
       const message = (err as AxiosError<ApiFailure>).response?.data?.message ?? '프로젝트 수정에 실패했습니다.';

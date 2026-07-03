@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import * as authApi from '../api/auth.api';
 import { useAuthStore } from '../stores/authStore';
 import { useGlobalStore } from '../stores/globalStore';
+import { useListFilterStore } from '../stores/listFilterStore';
 
 // 새로고침 시 accessToken은 localStorage에 남아있지만 user는 저장하지 않으므로 /auth/me로 복원한다
 export function useAuth() {
@@ -11,6 +12,7 @@ export function useAuth() {
   const setUser = useAuthStore((state) => state.setUser);
   const clear = useAuthStore((state) => state.clear);
   const resetGlobal = useGlobalStore((state) => state.reset);
+  const resetListFilter = useListFilterStore((state) => state.reset);
   const [loading, setLoading] = useState(!!accessToken && !user);
 
   useEffect(() => {
@@ -32,6 +34,7 @@ export function useAuth() {
     } finally {
       clear();
       resetGlobal();
+      resetListFilter();
     }
   }
 

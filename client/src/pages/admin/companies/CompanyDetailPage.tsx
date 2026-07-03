@@ -6,6 +6,7 @@ import PageHeader from '../../../components/common/PageHeader';
 import PermissionGuard from '../../../components/common/PermissionGuard';
 import StatusBadge from '../../../components/common/StatusBadge';
 import * as companyApi from '../../../api/company.api';
+import { useGlobalStore } from '../../../stores/globalStore';
 import type { ApiFailure, CompanyRow } from '../../../types';
 import { ROLE } from '../../../types';
 
@@ -26,6 +27,8 @@ interface CompanyEditFormValues {
 function CompanyDetailPage() {
   const { company_id } = useParams();
   const navigate = useNavigate();
+  const companyList = useGlobalStore((state) => state.companyList);
+  const setCompanyList = useGlobalStore((state) => state.setCompanyList);
   const [company, setCompany] = useState<CompanyRow | null>(null);
   const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -49,6 +52,7 @@ function CompanyDetailPage() {
     try {
       const updated = await companyApi.updateCompany(Number(company_id), values);
       setCompany(updated);
+      setCompanyList(companyList.map((c) => (c.company_id === updated.company_id ? updated : c)));
       setEditing(false);
     } catch (err) {
       const message = (err as AxiosError<ApiFailure>).response?.data?.message ?? '회사 수정에 실패했습니다.';

@@ -4,6 +4,7 @@ import type { AxiosError } from 'axios';
 import { useNavigate } from 'react-router-dom';
 import PageHeader from '../../../components/common/PageHeader';
 import * as companyApi from '../../../api/company.api';
+import { useGlobalStore } from '../../../stores/globalStore';
 import type { ApiFailure } from '../../../types';
 
 const COMPANY_CODE_PATTERN = /^[a-zA-Z0-9_.-]+$/;
@@ -16,6 +17,8 @@ interface CompanyFormValues {
 
 function CompanyNewPage() {
   const navigate = useNavigate();
+  const companyList = useGlobalStore((state) => state.companyList);
+  const setCompanyList = useGlobalStore((state) => state.setCompanyList);
   const [submitting, setSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
@@ -24,6 +27,7 @@ function CompanyNewPage() {
     setSubmitting(true);
     try {
       const company = await companyApi.createCompany(values);
+      setCompanyList([...companyList, company]);
       navigate(`/admin/companies/${company.company_id}`);
     } catch (err) {
       const message = (err as AxiosError<ApiFailure>).response?.data?.message ?? '회사 등록에 실패했습니다.';
