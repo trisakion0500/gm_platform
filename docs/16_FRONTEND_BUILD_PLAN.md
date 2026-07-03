@@ -82,12 +82,13 @@
 [13_LAYOUT.md](./13_LAYOUT.md)(공통 레이아웃 구조) 그대로 따른다. 요약:
 
 - `AuthLayout`(/login, /signup, 사이드바 없음) / `MainLayout`(/apis, /executions, /code-groups, /my-account) / `AdminLayout`(/admin/*, OPERATOR 접근불가)
-- Header: 로고→/apis, 회사선택(SUPER_ADMIN만 드롭다운), 프로젝트선택(회사기준, 회사변경시 초기화), [관리]버튼(OPERATOR 제외), 사용자명 드롭다운(내계정/로그아웃)
+- Header: 로고→/apis, 회사선택(SUPER_ADMIN만 드롭다운, "전체 회사" 옵션 포함), 프로젝트선택(회사기준, 회사변경시 초기화, SUPER_ADMIN만 "전체 프로젝트" 선택 가능), [관리]버튼(OPERATOR 제외), 사용자명 드롭다운(내계정/로그아웃)
+- 관리 화면 중 `/admin/projects`, `/admin/users`, `/admin/audit-logs` 목록은 회사(감사로그는 프로젝트도) 필터를 화면 자체에 두지 않고 이 헤더 선택을 그대로 사용한다(Stage 3에서 확정된 패턴)
 - 가드: 미인증→/login, 인증상태로 /login·/signup→/apis, OPERATOR가 /admin/*→403, APPROVER가 companies/projects/users→403, `/admin` 진입 시 역할별 첫 메뉴로 리다이렉트(SA/DEV→/admin/companies, APV→/admin/audit-logs)
 
 ## 2.3 API 스펙
 
-51개 엔드포인트(Auth 6 / Company 4 / Project 4 / User 6 / UserRole 3 / API 4 / ApiRequest 3 / ApiResponse 3 / ApiExecution 7 / CodeGroup 4 / CodeItem 4+active-items 1 / LogAudit 2)의 요청/응답 필드는 [04_API_COMMON.md](./04_API_COMMON.md), [05_AUTH_API.md](./05_AUTH_API.md), [06_API_SPEC_Part1.md](./06_API_SPEC_Part1.md)~[10_API_SPEC_Part5.md](./10_API_SPEC_Part5.md) 기준. `*.api.ts` 작성 시 문서보다 실제 서버 컨트롤러/서비스 코드를 우선 신뢰한다.
+52개 엔드포인트(Auth 6 / Company 4 / Project 4 / User 6 / UserRole 4[me 포함] / API 4 / ApiRequest 3 / ApiResponse 3 / ApiExecution 7[`/apis/:id/execute` 포함] / CodeGroup 4 / CodeItem 4+active-items 1 / LogAudit 2)의 요청/응답 필드는 [04_API_COMMON.md](./04_API_COMMON.md), [05_AUTH_API.md](./05_AUTH_API.md), [06_API_SPEC_Part1.md](./06_API_SPEC_Part1.md)~[10_API_SPEC_Part5.md](./10_API_SPEC_Part5.md) 기준. `*.api.ts` 작성 시 문서보다 실제 서버 컨트롤러/서비스 코드를 우선 신뢰한다.
 
 ---
 
@@ -122,19 +123,24 @@
   - `DataTable`: `fetcher(page, pageSize) => Promise<PaginatedResponse<T>>`를 받아 `items/page/page_size/total_count`를 antd `Table` pagination으로 변환하는 공통 래퍼 — 이후 모든 목록 화면이 파싱 로직 재작성 없이 재사용. 필터 변경 시 재조회는 컴포넌트 자체 옵션 대신 호출부가 `key` prop을 바꿔 재마운트시키는 방식으로 유도(불필요한 내부 상태 추가 방지)
 - **검증 완료**: 4개 역할 계정으로 각각 로그인 → 사이드바/헤더 메뉴 노출이 역할별 스펙과 일치(Playwright로 20개 시나리오 확인). 미인증 상태 라우트 접근 → `/login` 리다이렉트, OPERATOR의 `/admin` 접근 → `/403` 확인. 프로젝트 선택 변경 시 헤더의 `[역할]` 라벨이 `GET /user-roles/me` 재조회 결과로 갱신되는지 확인(최초 구현 시 세션 전역 roleCode를 잘못 참조하던 버그를 발견해 수정)
 
-## Stage 3 — 그룹 A: 회사 · 프로젝트 관리 (List/New/Detail 표준 패턴 확정)
+## Stage 3 — 그룹 A: 회사 · 프로젝트 관리 (List/New/Detail 표준 패턴 확정) ✅ 완료
 
 - `api/company.api.ts`, `api/project.api.ts`
 - `pages/admin/companies/*`, `pages/admin/projects/*`
 - List(PageHeader+필터+DataTable) / New(Form) / Detail(조회↔수정 토글) 패턴을 여기서 최종 확정 — 이후 그룹 B/C는 이 패턴을 반복 적용
-- **검증**: SA로 등록→목록→상세→수정→상태변경 end-to-end, DEV 계정은 등록 버튼 비노출·조회만 가능한지 확인
+- 목록 화면의 회사 필터는 화면 자체 콤보박스가 아니라 헤더의 전역 회사 선택(`globalStore.selectedCompanyId`)을 그대로 사용하도록 변경 — 헤더에 이미 있는 콤보박스와 중복되는 UI를 만들지 않기 위함. 상태 필터 등 화면 고유 필터만 `stores/listFilterStore.ts`(zustand)에 보관해 등록/상세 이동 후에도 유지(로그아웃 시 초기화)
+- 회사/프로젝트 등록·수정 시 `globalStore.companyList`/`projectList`를 직접 동기화(각 New/Detail 페이지에서 `setCompanyList`/`setProjectList` 호출) — 그렇지 않으면 헤더 콤보박스에 새 항목이 즉시 반영되지 않는 문제가 있었음
+- **검증 완료**: SA로 등록→목록→상세→수정→상태변경 end-to-end, DEV 계정은 등록 버튼 비노출·조회만 가능한지 확인. 헤더 "전체 회사" 선택 시 목록이 전체 조회로 전환되는지, 목록↔상세 이동 시 필터가 유지되는지, 로그아웃 후 재로그인 시 필터가 초기화되는지 확인
 
-## Stage 4 — 그룹 B: 사용자 · 권한 · 감사로그
+## Stage 4 — 그룹 B: 사용자 · 권한 · 감사로그 ✅ 완료
 
 - `api/user.api.ts`, `api/userRole.api.ts`, `api/logAudit.api.ts`
-- `pages/admin/users/*`(목록 내 승인대기 탭), `pages/admin/audit-logs/*`
-- User Role 등록/수정은 UserDetailPage 내 서브 테이블로 구현
-- **검증**: 가입승인/반려, 비밀번호 강제초기화, 정지↔재개(1↔3) 전이, 권한부여가 동작하는지, 감사로그에 방금 액션이 기록되는지 확인
+- `pages/admin/users/*`, `pages/admin/audit-logs/*`
+- `UserListPage`의 상태 필터는 Tabs가 아니라 Select 콤보박스(전체/승인대기/정상/반려/사용중지)로 구현 — Company/Project 목록과 동일한 패턴
+- User Role 등록/수정은 계획대로 `UserDetailPage` 내 서브 테이블로 구현 — 목록(조회는 SUPER_ADMIN·DEVELOPER, 등록/수정은 SUPER_ADMIN만), 승인/반려/사용중지·재개/비밀번호 강제초기화 액션 버튼도 같은 페이지에 포함
+- 회원가입 시 `phone_number`(필수, AES-256-CBC 암호화 저장)·`department`·`position`(선택) 입력이 추가됨에 따라 `UserListPage`/`UserDetailPage`에도 해당 컬럼 반영
+- `AuditLogListPage`는 로그ID/테이블/작업유형/작업자ID/기간 필터를 제공하며, 회사·프로젝트 필터는 Stage 3와 동일하게 헤더 전역 선택을 그대로 사용(감사로그는 프로젝트 선택도 필터로 적용)
+- **검증 완료**: 가입승인/반려, 비밀번호 강제초기화, 정지↔재개(1↔3) 전이, 권한부여(User Role 등록) 각각을 UI로 수행 후 감사로그 목록/상세에서 올바른 action_type(10=생성/20=수정/30=상태변경)으로 즉시 기록되는지 API·UI 양쪽에서 교차 확인
 
 ## Stage 5 — 그룹 C: API 정의 · 실행 · 코드그룹
 

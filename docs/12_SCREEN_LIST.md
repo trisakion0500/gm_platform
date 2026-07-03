@@ -315,9 +315,9 @@ GM-Tool 프론트엔드 화면 목록 및 역할별 접근 권한 정의.
 - **주요 기능:** 프로젝트 선택, 코드 그룹 목록 조회 (상태 필터, 페이지네이션), 등록 버튼 (SUPER_ADMIN/DEVELOPER), 상세 이동
 - **연관 API:**
 
-  | Method | Endpoint                           | 설명                              |
-  | ------ | ---------------------------------- | --------------------------------- |
-  | GET    | /projects/{project_id}/code-groups | 코드 그룹 목록 (project_id 필수)  |
+  | Method | Endpoint                     | 설명                              |
+  | ------ | ----------------------------- | --------------------------------- |
+  | GET    | /code-groups?project_id={id} | 코드 그룹 목록 (project_id 필수) |
 
 ---
 
@@ -328,13 +328,13 @@ GM-Tool 프론트엔드 화면 목록 및 역할별 접근 권한 정의.
 - **주요 기능:** 코드 그룹 정보 조회·수정 (SUPER_ADMIN/DEVELOPER), 코드 아이템 목록 조회, 코드 아이템 등록·수정 (SUPER_ADMIN/DEVELOPER)
 - **연관 API:**
 
-  | Method | Endpoint                           | 설명              |
-  | ------ | ---------------------------------- | ----------------- |
-  | GET    | /code-groups/{code_group_id}       | 코드 그룹 상세    |
-  | PATCH  | /code-groups/{code_group_id}       | 코드 그룹 수정    |
-  | GET    | /code-groups/{code_group_id}/items | 코드 아이템 목록  |
-  | POST   | /code-groups/{code_group_id}/items | 코드 아이템 등록  |
-  | PATCH  | /code-items/{code_item_id}         | 코드 아이템 수정  |
+  | Method | Endpoint                        | 설명              |
+  | ------ | -------------------------------- | ----------------- |
+  | GET    | /code-groups/{code_group_id}    | 코드 그룹 상세    |
+  | PATCH  | /code-groups/{code_group_id}    | 코드 그룹 수정    |
+  | GET    | /code-items?code_group_id={id}  | 코드 아이템 목록 (code_group_id 필수) |
+  | POST   | /code-items                     | 코드 아이템 등록  |
+  | PATCH  | /code-items/{code_item_id}      | 코드 아이템 수정  |
 
 ---
 

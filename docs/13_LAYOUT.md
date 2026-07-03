@@ -192,20 +192,24 @@ MainLayout, AdminLayout 하단 공통.
 
 ## authStore
 
+`accessToken`/`refreshToken`/`roleCode`만 `localStorage`에 persist(`zustand/middleware`)되며, `user`는 저장하지 않고 부팅 시 `/auth/me`로 재조회한다. `isAuthenticated`라는 저장 필드는 없으며 `!!accessToken`으로 파생 계산한다(`useAuth` 훅).
+
 | 필드 | 타입 | 설명 |
-| --------------- | -------------- | ---------------------------- |
-| user | User \| null | 로그인 사용자 정보 (id, name, role) |
+| ------------ | -------------- | ------------------------------------------- |
+| user | AuthUser \| null | `/auth/me` 응답(원본 컬럼만, role_code 미포함) |
 | accessToken | string \| null | JWT Access Token |
-| isAuthenticated | boolean | 인증 여부 |
+| refreshToken | string \| null | Refresh Token (UUID v4) |
+| roleCode | RoleCode \| null | 로그인/재발급 응답의 role_code(세션 고정값) |
 
 ## globalStore
 
 | 필드 | 타입 | 설명 |
 | ----------------- | -------------- | ------------------------------ |
-| selectedCompanyId | number \| null | 헤더에서 선택된 회사 |
-| selectedProjectId | number \| null | 헤더에서 선택된 프로젝트 |
-| companyList | Company[] | 회사 목록 캐시 |
-| projectList | Project[] | 선택 회사 기준 프로젝트 목록 캐시 |
+| selectedCompanyId | number \| null | 헤더에서 선택된 회사 (null=SUPER_ADMIN의 "전체 회사") |
+| selectedProjectId | number \| null | 헤더에서 선택된 프로젝트 (null=SUPER_ADMIN의 "전체 프로젝트") |
+| companyList | CompanyRow[] | 회사 목록 캐시 (로그인 시 1회 로드, 등록/수정 시 직접 동기화) |
+| projectList | ProjectRow[] | 프로젝트 목록 캐시 (로그인 시 1회 로드, 등록/수정 시 직접 동기화) |
+| projectRoleCode | RoleCode \| null | 선택된 프로젝트에서 호출자의 실제 role_code (`GET /user-roles/me`) |
 
 ---
 
@@ -213,9 +217,11 @@ MainLayout, AdminLayout 하단 공통.
 
 | 컴포넌트 | 설명 |
 | -------------- | ------------------------------------------------ |
-| PermissionGuard | role 조건 충족 시만 children 렌더링 |
+| RoleGuard | 라우트 단위 role 검사, 미충족 시 403 페이지로 처리 |
+| PermissionGuard | role 조건 충족 시만 children 렌더링 (버튼 등 UI 요소 노출 제어) |
 | PageHeader | 페이지 제목 + 우측 액션 버튼 영역 |
-| DataTable | Ant Design Table 래퍼 (페이지네이션 / 로딩 / 빈 상태 공통 처리) |
+| DataTable | Ant Design Table 래퍼 — 페이지네이션 / 로딩 처리, `ResizeObserver` 기반 동적 높이 산정으로 flex-column 부모 내부에서만 스크롤 |
 | StatusBadge | status 값을 색상 뱃지로 표시 |
-| FormModal | 등록/수정 공통 모달 (React Hook Form 연동) |
 | ConfirmModal | 승인 / 반려 / 삭제 등 확인 모달 |
+
+> 등록/수정 화면은 공통 `FormModal` 컴포넌트(React Hook Form 연동, Stage 2에서 스캐폴딩)를 사용하지 않는다. Stage 3에서 확정된 실제 패턴은 각 페이지가 antd `Form`을 직접 사용하는 것 — 등록은 별도 라우트 페이지(New), 수정은 상세 페이지 내 조회↔수정 토글이다. `FormModal.tsx`/`react-hook-form`은 코드베이스에 남아있으나 실제 화면에서는 쓰이지 않는다.

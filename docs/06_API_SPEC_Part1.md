@@ -455,8 +455,7 @@ GET /users
 
 | Name                 | Required | Description                    |
 | -------------------- | -------- | ------------------------------ |
-| company_id           | N        |                                |
-| requested_project_id | N        |                                |
+| company_id           | N        | SUPER_ADMIN만 유효 (DEVELOPER는 항상 본인 소속 회사로 고정 스코핑) |
 | status               | N        | DEVELOPER도 자유롭게 필터 가능 (본인 소속 회사 스코핑은 별개로 적용) |
 | page                 | Y        |                                |
 | page_size            | Y        | 20/50/100 중 선택. 기본 20     |
@@ -625,6 +624,8 @@ login_id
 3 → 1 : 가능
 ```
 
+> `SP_UPDATE_USER`는 status 값에 대한 전이 검증을 하지 않는다(COALESCE로 그대로 반영). 위 표는 프론트엔드(UserDetailPage)가 상태별로 노출하는 액션 버튼 기준의 설계 의도이며, API를 직접 호출하면 임의의 status 값 전달이 가능하다.
+
 ### Business Rules
 
 - status = 3 (사용중지) 변경 시 해당 사용자의 모든 활성 Session 즉시 종료
@@ -725,6 +726,7 @@ POST /user-roles
 
 - user_id 존재
 - project_id 존재
+- user와 project의 company_id 일치 필요 (다른 회사 소속 프로젝트에는 등록 불가)
 - role_code = 20,30,40
 
 ### Business Rules
@@ -749,6 +751,7 @@ GET /user-roles
 ### Permission
 
 - SUPER_ADMIN
+- DEVELOPER (본인 소속 회사로 스코핑)
 
 ### Query Parameters
 
@@ -799,6 +802,7 @@ project_id
 
 - 물리 삭제 없음
 - status=0 으로 권한 중지
+- role_code를 10(SUPER_ADMIN)으로 변경 불가 (30003)
 
 ### Response
 

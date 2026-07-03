@@ -25,11 +25,17 @@ gm_platform/
 server/
 ├── src/
 │   ├── config/
-│   │   ├── db.ts            # mysql2 커넥션 풀 설정
-│   │   └── env.ts           # 환경변수 로드 및 검증
+│   │   ├── db.ts            # mysql2 커넥션 풀 설정, callSP() 래퍼
+│   │   ├── env.ts           # 환경변수 로드 및 검증
+│   │   └── swagger.ts       # Swagger UI 설정 및 공통 컴포넌트 스키마 (SWAGGER_ENABLED=true 시에만 require)
+│   │
+│   ├── constants/
+│   │   ├── errors.ts        # ERROR_MAP, toAppError(), toDBError()
+│   │   └── roles.ts         # ROLE 상수 (10/20/30/40)
 │   │
 │   ├── middleware/
 │   │   ├── auth.ts          # JWT 검증, req.user에 사용자 정보 주입
+│   │   ├── role.ts          # requireRole() — 라우트 단위 역할 권한 검사
 │   │   ├── errorHandler.ts  # 전역 에러 처리 (Express 에러 미들웨어)
 │   │   └── requestLogger.ts # HTTP 요청/응답 로깅 (log4js)
 │   │
@@ -66,11 +72,10 @@ server/
 │   │   ├── auth.service.ts          # 인증 비즈니스 로직 (JWT 발급, 세션 관리, 비밀번호 검증)
 │   │   ├── company.service.ts       # 회사 비즈니스 로직 (역할별 스코핑 포함)
 │   │   ├── project.service.ts       # 프로젝트 비즈니스 로직
+│   │   ├── projectRole.service.ts   # assertProjectRole() — project_id 단위 실제 user_role 재검증 공통 함수
 │   │   ├── user.service.ts          # 사용자 비즈니스 로직 (가입 승인 워크플로우)
 │   │   ├── userRole.service.ts      # 사용자 권한 비즈니스 로직
-│   │   ├── api.service.ts           # API 정의 비즈니스 로직 (핵심 필드 수정 시 api_stage 롤백)
-│   │   ├── apiRequest.service.ts    # Request 파라미터 비즈니스 로직
-│   │   ├── apiResponse.service.ts   # Response 파라미터 비즈니스 로직
+│   │   ├── api.service.ts           # API / Request / Response 파라미터 비즈니스 로직 (핵심 필드 수정 시 api_stage 롤백) — apiRequest/apiResponse 전용 service 파일은 없고 여기에 통합됨
 │   │   ├── apiExecution.service.ts  # 실행 비즈니스 로직 (즉시 실행 / 승인 워크플로우 분기)
 │   │   ├── codeGroup.service.ts     # 코드 그룹 비즈니스 로직
 │   │   ├── codeItem.service.ts      # 코드 아이템 비즈니스 로직
@@ -82,9 +87,7 @@ server/
 │   │   ├── project.db.ts       # 프로젝트 조회 / 등록 / 수정 SP·FN 호출
 │   │   ├── user.db.ts          # 사용자 조회 / 등록 / 수정 SP·FN 호출
 │   │   ├── userRole.db.ts      # 권한 조회 / 등록 / 수정 SP·FN 호출
-│   │   ├── api.db.ts           # API 조회 / 등록 / 수정 SP·FN 호출
-│   │   ├── apiRequest.db.ts    # Request 파라미터 조회 / 등록 / 수정 SP·FN 호출
-│   │   ├── apiResponse.db.ts   # Response 파라미터 조회 / 등록 / 수정 SP·FN 호출
+│   │   ├── api.db.ts           # API / Request / Response 파라미터 조회·등록·수정 SP·FN 호출 (apiRequest/apiResponse 전용 db 파일은 없고 여기에 통합됨)
 │   │   ├── apiExecution.db.ts  # 실행 이력 조회 / 등록 / 상태 변경 SP·FN 호출
 │   │   ├── codeGroup.db.ts     # 코드 그룹 조회 / 등록 / 수정 SP·FN 호출
 │   │   ├── codeItem.db.ts      # 코드 아이템 조회 / 등록 / 수정 SP·FN 호출
@@ -97,8 +100,13 @@ server/
 │   ├── utils/
 │   │   ├── jwt.ts           # Access Token / Refresh Token 발급 및 검증
 │   │   ├── bcrypt.ts        # 비밀번호 해시 생성 및 비교
+│   │   ├── crypto.ts        # AES-256-CBC 암호화/복호화 (user.phone_number 등 개인정보)
+│   │   ├── mask.ts          # 로그 등에서 민감 값 마스킹
 │   │   ├── response.ts      # 공통 응답 포맷 생성 (success / error)
 │   │   └── logger.ts        # log4js 인스턴스 (콘솔 + 파일 출력)
+│   │
+│   ├── scripts/
+│   │   └── encrypt.ts       # `npm run encrypt -- "평문"` — ENCRYPTION_KEY로 값을 암호화해 출력 (시드 데이터 생성용)
 │   │
 │   └── app.ts               # Express 앱 초기화, DB 연결 확인, 서버 기동
 │
@@ -141,9 +149,9 @@ client/
 │   │
 │   ├── components/
 │   │   ├── common/
-│   │   │   ├── DataTable.tsx        # Ant Design Table 래퍼 (페이지네이션 / 로딩 / 빈 상태 공통 처리)
+│   │   │   ├── DataTable.tsx        # Ant Design Table 래퍼 — 페이지네이션, ResizeObserver 기반 동적 높이 산정
 │   │   │   ├── StatusBadge.tsx      # status 값을 색상 뱃지로 표시
-│   │   │   ├── FormModal.tsx        # 등록 / 수정 공통 모달 (React Hook Form 연동)
+│   │   │   ├── FormModal.tsx        # (미사용) React Hook Form 연동 모달 스캐폴딩 — 실제 등록/수정 화면은 antd Form 직접 사용
 │   │   │   ├── ConfirmModal.tsx     # 승인 / 반려 / 삭제 확인 모달
 │   │   │   ├── PageHeader.tsx       # 페이지 제목 + 우측 액션 버튼 영역
 │   │   │   └── PermissionGuard.tsx  # role 조건 충족 시만 children 렌더링
@@ -161,20 +169,25 @@ client/
 │   │   │   ├── LoginPage.tsx        # 로그인 ID / 비밀번호 입력, 상태별 오류 메시지
 │   │   │   └── SignupPage.tsx       # 회사 / 프로젝트 선택, 사용자 정보 입력, 가입 후 승인 대기 안내
 │   │   │
+│   │   ├── errors/
+│   │   │   ├── ForbiddenPage.tsx    # 403 — 권한 없는 role의 route 접근 시
+│   │   │   └── NotFoundPage.tsx     # 404 — 정의되지 않은 route 접근 시
+│   │   ├── PagePlaceholder.tsx      # 아직 구현되지 않은 Stage 화면의 임시 표시 컴포넌트 (title prop만 렌더링)
+│   │   │
 │   │   ├── admin/
 │   │   │   ├── companies/
 │   │   │   │   ├── CompanyListPage.tsx    # 회사 목록 조회 (상태 필터, 페이지네이션)
 │   │   │   │   ├── CompanyNewPage.tsx     # 회사 등록 폼
 │   │   │   │   └── CompanyDetailPage.tsx  # 회사 상세 조회 및 수정 (SUPER_ADMIN)
 │   │   │   ├── projects/
-│   │   │   │   ├── ProjectListPage.tsx    # 프로젝트 목록 조회 (회사 필터, 상태 필터)
+│   │   │   │   ├── ProjectListPage.tsx    # 프로젝트 목록 조회 (상태 필터 — 회사 필터는 헤더 전역 선택 사용)
 │   │   │   │   ├── ProjectNewPage.tsx     # 프로젝트 등록 폼
 │   │   │   │   └── ProjectDetailPage.tsx  # 프로젝트 상세 조회 및 수정 (SUPER_ADMIN)
 │   │   │   ├── users/
 │   │   │   │   ├── UserListPage.tsx       # 사용자 목록 (상태 콤보박스 필터)
 │   │   │   │   └── UserDetailPage.tsx     # 사용자 상세 / 수정 / 승인·반려 / 권한 관리
 │   │   │   └── audit-logs/
-│   │   │       ├── AuditLogListPage.tsx   # 감사 로그 목록 (테이블 / 작업유형 / 작업자 / 기간 필터)
+│   │   │       ├── AuditLogListPage.tsx   # 감사 로그 목록 (로그ID / 테이블 / 작업유형 / 작업자 / 기간 필터, 회사·프로젝트는 헤더 전역 선택 사용)
 │   │   │       └── AuditLogDetailPage.tsx # before_json / after_json 비교 조회
 │   │   │
 │   │   └── main/
@@ -193,8 +206,9 @@ client/
 │   │           └── MyAccountPage.tsx        # 내 정보 조회 / 비밀번호 변경 / 로그아웃
 │   │
 │   ├── stores/
-│   │   ├── authStore.ts      # 로그인 사용자 정보 (user, accessToken, isAuthenticated)
-│   │   └── globalStore.ts    # 헤더 전역 선택 상태 (selectedCompanyId, selectedProjectId, 목록 캐시)
+│   │   ├── authStore.ts        # 로그인 사용자 정보 (user, accessToken, refreshToken, roleCode) — 일부 필드만 localStorage persist
+│   │   ├── globalStore.ts      # 헤더 전역 선택 상태 (selectedCompanyId, selectedProjectId, projectRoleCode, 목록 캐시)
+│   │   └── listFilterStore.ts  # 목록 화면 검색조건(상태 필터 등) — local state 대신 저장해 등록/상세 이동 후에도 유지, 로그아웃 시 초기화
 │   │
 │   ├── hooks/
 │   │   ├── useAuth.ts        # authStore 접근 및 인증 관련 액션 추상화
@@ -203,6 +217,7 @@ client/
 │   ├── router/
 │   │   ├── index.tsx         # React Router 전체 라우트 정의
 │   │   ├── AuthGuard.tsx     # 미인증 상태로 보호 Route 접근 시 /login 리다이렉트
+│   │   ├── GuestGuard.tsx    # 인증 상태로 /login, /signup 접근 시 /apis 리다이렉트
 │   │   └── RoleGuard.tsx     # 권한 없는 role 접근 시 403 페이지 처리
 │   │
 │   ├── types/
@@ -212,6 +227,7 @@ client/
 │   │   └── format.ts         # 날짜 / 숫자 / 상태값 포맷 변환 함수
 │   │
 │   ├── App.tsx               # 라우터 마운트, 전역 Provider 설정
+│   ├── index.css             # 전역 CSS 리셋 (html/body/#root margin·height) — 브라우저 기본 body 마진으로 인한 잔여 스크롤 방지
 │   └── main.tsx              # 앱 진입점, React DOM 렌더링
 │
 ├── .env                      # 환경변수 (Git 제외)

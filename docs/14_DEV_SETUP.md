@@ -72,6 +72,8 @@ npm install
 `server/.env` 파일을 생성하고 아래 항목을 설정한다.
 
 ```env
+NODE_ENV=development
+
 DB_HOST=127.0.0.1
 DB_PORT=3306
 DB_USER=root
@@ -79,10 +81,18 @@ DB_PASSWORD=your_db_password
 DB_NAME=gm_platform
 
 JWT_SECRET=your_jwt_secret_key
+JWT_ACCESS_EXPIRES_IN=15m
+JWT_REFRESH_EXPIRES_IN=7d
 
 ENCRYPTION_KEY=your_64_char_hex_encryption_key
 
 CORS_ALLOWED_ORIGINS=http://localhost:5173
+
+PORT=3000
+
+LOG_DEBUG_ERRORS=false
+
+SWAGGER_ENABLED=true
 ```
 
 `ENCRYPTION_KEY`는 `phone_number` 등 개인정보를 AES-256-CBC로 암호화하는 데 사용하는 32바이트 hex 키다. 아래 명령으로 생성한다.
@@ -113,22 +123,26 @@ npm run dev
 
 # 6. 프론트엔드 설정
 
-## 5.1 패키지 설치
+## 6.1 패키지 설치
 
 ```bash
 cd client
 npm install
 ```
 
-## 5.2 환경변수 설정
+## 6.2 환경변수 설정
 
 `client/.env` 파일을 생성하고 아래 항목을 설정한다.
 
 ```env
-VITE_API_BASE_URL=http://localhost:3000
+VITE_API_BASE_URL=http://localhost:3000/api
+VITE_APP_NAME=GM Platform
+VITE_FOOTER_COPYRIGHT=© 2026 GM Platform
+VITE_APP_VERSION=v1.0.0
+VITE_SUPPORT_EMAIL=trisakion@gmail.com
 ```
 
-## 5.3 실행
+## 6.3 실행
 
 ```bash
 npm run dev
@@ -143,5 +157,5 @@ npm run dev
 | 항목 | 확인 방법 |
 | ----------- | --------------------------------------- |
 | DB 연결 | 서버 기동 로그에서 DB 연결 성공 메시지 확인 |
-| 로그인 | `admin` 계정으로 `/login` 접속 |
+| 로그인 | `sa` 계정(pw `1234`)으로 `/login` 접속 |
 | SUPER_ADMIN | 로그인 후 `[관리]` 버튼 노출 확인 |

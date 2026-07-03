@@ -46,8 +46,8 @@
 ## 2.4 토큰 정책
 
 ```text
-Access Token 만료시간 : 30분
-Refresh Token 만료시간 : 7일
+Access Token 만료시간 : 15분 (JWT_ACCESS_EXPIRES_IN 기본값)
+Refresh Token 만료시간 : 7일 (JWT_REFRESH_EXPIRES_IN 기본값)
 ```
 
 ---
@@ -423,6 +423,9 @@ User 상태 검증
     "login_id": "trisakion",
     "user_name": "홍길동",
     "email": "test@test.com",
+    "phone_number": "010-1234-5678",
+    "department": "개발팀",
+    "position": "사원",
     "status": 1,
     "last_login_at": "2026-06-22 10:00:00",
     "created_at": "2026-06-20 10:00:00",

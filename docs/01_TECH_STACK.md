@@ -24,7 +24,7 @@
 | Framework     | React 18 + TypeScript |
 | Build         | Vite                  |
 | UI 컴포넌트   | Ant Design (antd)     |
-| 폼 상태 관리  | React Hook Form       |
+| 폼 상태 관리  | Ant Design Form (antd `Form`)       |
 | 상태 관리     | Zustand               |
 | HTTP          | Axios                 |
 
@@ -33,12 +33,18 @@
 ## 환경변수 관리 항목
 
 ```text
+NODE_ENV
 DB_HOST
 DB_PORT
 DB_USER
 DB_PASSWORD
 DB_NAME
 JWT_SECRET
+JWT_ACCESS_EXPIRES_IN
+JWT_REFRESH_EXPIRES_IN
 ENCRYPTION_KEY
 CORS_ALLOWED_ORIGINS
+PORT
+LOG_DEBUG_ERRORS
+SWAGGER_ENABLED
 ```
