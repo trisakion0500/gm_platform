@@ -26,6 +26,7 @@ GM-Tool 프론트엔드 화면 목록 및 역할별 접근 권한 정의.
 | SCR-031 | 사용자 상세·수정    | `/admin/users/:user_id`               | O           | O         | -        | -        | 수정·승인·반려·사용중지/재개·비밀번호초기화·권한관리: SUPER_ADMIN만                  |
 | SCR-040 | 감사 로그 목록      | `/admin/audit-logs`                   | O           | O         | O        | -        | SUPER_ADMIN 외: 자사만                                  |
 | SCR-041 | 감사 로그 상세      | `/admin/audit-logs/:log_audit_id`     | O           | O         | O        | -        |                                                         |
+| SCR-130 | 코드그룹·코드아이템 | `/admin/code-groups`            | O           | O         | -        | -        | 헤더 프로젝트 선택 필요. 엑셀형 그리드 한 페이지에서 조회·등록·수정(등록/상세 화면 분리 없음). APPROVER/OPERATOR는 이 화면 접근 불가 — `GET /code-groups/active-with-items`로 API 화면에서 코드값만 참조 |
 | **비관리 메뉴** |
 | SCR-100 | API 목록            | `/apis`                         | O           | O         | O        | O        | project_id 선택 필요                                    |
 | SCR-101 | API 등록            | `/apis/new`                     | O           | O         | -        | -        |                                                         |
@@ -33,8 +34,6 @@ GM-Tool 프론트엔드 화면 목록 및 역할별 접근 권한 정의.
 | SCR-110 | API 실행 이력 목록  | `/executions`                   | O           | O         | O        | O        | OPERATOR: 본인 건만; project_id 선택 필요               |
 | SCR-111 | API 실행 이력 상세  | `/executions/:api_execution_id` | O           | O         | O        | O        |                                                         |
 | SCR-120 | 승인 대기 목록      | `/executions/pending`           | O           | O         | O        | -        | project_id 선택 필요                                    |
-| SCR-130 | 코드 그룹 목록      | `/code-groups`                  | O           | O         | O        | O        | project_id 선택 필요                                    |
-| SCR-131 | 코드 그룹 상세·수정 | `/code-groups/:code_group_id`   | O           | O         | O        | O        | 수정·아이템관리: SUPER_ADMIN/DEVELOPER만                |
 | **내 계정** |
 | SCR-200 | 내 계정             | `/my-account`                   | O           | O         | O        | O        | 내 정보 조회 + 비밀번호 변경 + 로그아웃                 |
 
@@ -215,6 +214,28 @@ GM-Tool 프론트엔드 화면 목록 및 역할별 접근 권한 정의.
 
 ---
 
+### SCR-130. 코드그룹·코드아이템
+
+- **Route:** `/admin/code-groups`
+- **접근:** SUPER_ADMIN, DEVELOPER (APPROVER/OPERATOR는 이 화면에 접근 불가 — 관리 라우트 가드가 회사/프로젝트/사용자와 동일하게 SUPER_ADMIN/DEVELOPER로 제한)
+- **주요 기능:** 등록/상세 화면을 따로 두지 않고 **엑셀형 편집 그리드 한 페이지**에서 코드그룹 조회·등록·수정을 모두 처리. 프로젝트는 화면 자체 선택 없이 헤더의 전역 프로젝트 선택을 그대로 사용(미선택 시 안내 문구만 표시). "코드그룹 추가" 버튼으로 그룹ID 없는 신규 행을 그리드에 추가하고, 셀을 직접 편집한 뒤 "적용" 버튼을 눌러야 실제로 저장(신규 행은 POST, 변경된 기존 행은 PATCH)됨 — 셀 변경마다 즉시 저장하지 않음. 그룹ID는 auto_increment라 화면에 노출하지 않고, 신규 행은 코드그룹코드도 함께 입력하지만 저장 후에는 코드값이 수정 불가능해짐(서버 규칙과 동일)
+- **코드 아이템**: 코드그룹 행을 확장(expand)하면 하단에 동일한 엑셀형 그리드로 해당 그룹의 코드 아이템을 관리(추가/수정/적용 동일 패턴). 그룹이 아직 저장되지 않은 신규 행이면 확장 불가(그룹ID가 있어야 아이템 등록 가능)
+- **저장 실패 처리**: "적용" 시 일부 행만 실패해도 성공한 행은 반영하고 실패한 행만 에러 메시지와 함께 편집 상태로 남겨 재시도 가능(행 배경색으로 강조)
+- **APPROVER/OPERATOR의 코드값 참조**: 이 화면에는 접근할 수 없지만, `GET /code-groups/active-with-items?project_id=`(전 역할 허용, 프로젝트의 활성 코드그룹+활성 아이템을 한 번에 반환)를 통해 API 상세/실행 화면(Stage 5 후반)에서 SELECT/RADIO/CHECKBOX 값을 조회한다. N+1 방지를 위해 그룹별 `active-items` 개별 호출 대신 프로젝트 단위로 한 번에 내려주는 전용 엔드포인트다.
+- **연관 API:**
+
+  | Method | Endpoint                              | 설명                                          |
+  | ------ | -------------------------------------- | --------------------------------------------- |
+  | GET    | /code-groups?project_id={id}          | 코드 그룹 목록 (project_id 필수)             |
+  | POST   | /code-groups                          | 코드 그룹 등록                               |
+  | PATCH  | /code-groups/{code_group_id}          | 코드 그룹 수정                               |
+  | GET    | /code-items?code_group_id={id}        | 코드 아이템 목록 (code_group_id 필수)        |
+  | POST   | /code-items                           | 코드 아이템 등록                             |
+  | PATCH  | /code-items/{code_item_id}            | 코드 아이템 수정                             |
+  | GET    | /code-groups/active-with-items?project_id={id} | 프로젝트의 활성 코드그룹+아이템 일괄 조회 (전 역할) |
+
+---
+
 ## 2.3 비관리 메뉴
 
 ### SCR-100. API 목록
@@ -305,36 +326,6 @@ GM-Tool 프론트엔드 화면 목록 및 역할별 접근 권한 정의.
   | GET    | /api-executions/pending        | 승인 대기 목록 (project_id 필수) |
   | POST   | /api-executions/{id}/approve   | 실행 승인                        |
   | POST   | /api-executions/{id}/reject    | 실행 반려                        |
-
----
-
-### SCR-130. 코드 그룹 목록
-
-- **Route:** `/code-groups`
-- **접근:** SUPER_ADMIN, DEVELOPER, APPROVER, OPERATOR
-- **주요 기능:** 프로젝트 선택, 코드 그룹 목록 조회 (상태 필터, 페이지네이션), 등록 버튼 (SUPER_ADMIN/DEVELOPER), 상세 이동
-- **연관 API:**
-
-  | Method | Endpoint                     | 설명                              |
-  | ------ | ----------------------------- | --------------------------------- |
-  | GET    | /code-groups?project_id={id} | 코드 그룹 목록 (project_id 필수) |
-
----
-
-### SCR-131. 코드 그룹 상세·수정
-
-- **Route:** `/code-groups/:code_group_id`
-- **접근:** SUPER_ADMIN, DEVELOPER, APPROVER, OPERATOR (수정·아이템관리: SUPER_ADMIN/DEVELOPER만)
-- **주요 기능:** 코드 그룹 정보 조회·수정 (SUPER_ADMIN/DEVELOPER), 코드 아이템 목록 조회, 코드 아이템 등록·수정 (SUPER_ADMIN/DEVELOPER)
-- **연관 API:**
-
-  | Method | Endpoint                        | 설명              |
-  | ------ | -------------------------------- | ----------------- |
-  | GET    | /code-groups/{code_group_id}    | 코드 그룹 상세    |
-  | PATCH  | /code-groups/{code_group_id}    | 코드 그룹 수정    |
-  | GET    | /code-items?code_group_id={id}  | 코드 아이템 목록 (code_group_id 필수) |
-  | POST   | /code-items                     | 코드 아이템 등록  |
-  | PATCH  | /code-items/{code_item_id}      | 코드 아이템 수정  |
 
 ---
 

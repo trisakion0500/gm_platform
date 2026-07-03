@@ -16,6 +16,7 @@ import UserListPage from '../pages/admin/users/UserListPage';
 import UserDetailPage from '../pages/admin/users/UserDetailPage';
 import AuditLogListPage from '../pages/admin/audit-logs/AuditLogListPage';
 import AuditLogDetailPage from '../pages/admin/audit-logs/AuditLogDetailPage';
+import CodeGroupPage from '../pages/admin/code-groups/CodeGroupPage';
 import PagePlaceholder from '../pages/PagePlaceholder';
 import ForbiddenPage from '../pages/errors/ForbiddenPage';
 import NotFoundPage from '../pages/errors/NotFoundPage';
@@ -51,8 +52,6 @@ function AppRouter() {
             <Route path="/executions" element={<PagePlaceholder title="실행이력" />} />
             <Route path="/executions/pending" element={<PagePlaceholder title="승인대기" />} />
             <Route path="/executions/:api_execution_id" element={<PagePlaceholder title="실행이력 상세" />} />
-            <Route path="/code-groups" element={<PagePlaceholder title="코드그룹" />} />
-            <Route path="/code-groups/:code_group_id" element={<PagePlaceholder title="코드그룹 상세" />} />
             <Route path="/my-account" element={<PagePlaceholder title="내 계정" />} />
           </Route>
 
@@ -73,6 +72,7 @@ function AppRouter() {
                 <Route path="projects/:project_id" element={<ProjectDetailPage />} />
                 <Route path="users" element={<UserListPage />} />
                 <Route path="users/:user_id" element={<UserDetailPage />} />
+                <Route path="code-groups" element={<CodeGroupPage />} />
               </Route>
 
               <Route path="audit-logs" element={<AuditLogListPage />} />

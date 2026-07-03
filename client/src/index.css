@@ -8,3 +8,8 @@ html, body, #root {
 .ant-table-thead > tr > th {
   text-align: center !important;
 }
+
+/* 엑셀형 편집 그리드(코드그룹/코드아이템)에서 저장 실패한 행 강조 */
+.editable-row-error > td {
+  background-color: #fff1f0 !important;
+}

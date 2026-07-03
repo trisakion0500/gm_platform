@@ -9,7 +9,7 @@
 | 타입 | 적용 Route | 사이드바 | 비고 |
 | ----------- | ----------------------------------------- | -------- | -------------------- |
 | AuthLayout | `/login`, `/signup` | 없음 | 미인증 전용 |
-| MainLayout | `/apis`, `/executions`, `/code-groups` 등 | 비관리 메뉴 | 기본 레이아웃 |
+| MainLayout | `/apis`, `/executions` 등 | 비관리 메뉴 | 기본 레이아웃 |
 | AdminLayout | `/admin/*` | 관리 메뉴 | OPERATOR 접근 불가 |
 
 ---
@@ -58,7 +58,6 @@ MainLayout, AdminLayout에서 동일하게 사용한다.
 │ API      │                                           │
 │ 실행이력 │                                           │
 │ 승인대기 │                                           │
-│ 코드     │                                           │
 │ ──────── │                                           │
 │ 내 계정  │                                           │
 │          │                                           │
@@ -74,7 +73,6 @@ MainLayout, AdminLayout에서 동일하게 사용한다.
 | API | `/apis` | O | O | O | O |
 | 실행이력 | `/executions` | O | O | O | O |
 | 승인대기 | `/executions/pending` | O | O | O | - |
-| 코드 | `/code-groups` | O | O | O | O |
 | 내 계정 | `/my-account` | O | O | O | O |
 
 ---
@@ -93,6 +91,7 @@ MainLayout, AdminLayout에서 동일하게 사용한다.
 │ 회사     │                                           │
 │ 프로젝트 │                                           │
 │ 사용자   │                                           │
+│ 코드그룹 │                                           │
 │ 감사로그 │                                           │
 │          │                                           │
 ├──────────┴───────────────────────────────────────────┤
@@ -107,11 +106,14 @@ MainLayout, AdminLayout에서 동일하게 사용한다.
 | 회사 | `/admin/companies` | O | O | - | - |
 | 프로젝트 | `/admin/projects` | O | O | - | - |
 | 사용자 | `/admin/users` | O | O | - | - |
+| 코드그룹 | `/admin/code-groups` | O | O | - | - |
 | 감사로그 | `/admin/audit-logs` | O | O | O | - |
 
 > APPROVER는 감사로그만 접근 가능. `/admin` 진입 시 `/admin/audit-logs`로 리다이렉트.
 
 > 프로젝트 목록·사용자 목록 화면은 자체 회사 필터 콤보박스를 두지 않고, §2.1의 헤더 회사 선택을 그대로 필터 조건으로 사용한다(중복 UI 방지). SUPER_ADMIN이 헤더에서 "전체 회사"를 선택하면 두 화면 모두 전체 조회로 전환된다.
+
+> 코드그룹은 원래 메인 메뉴(전 역할 접근)에 있었으나, 편집이 SUPER_ADMIN/DEVELOPER 전용이라 회사/프로젝트/사용자와 동일한 관리 라우트 가드로 옮겼다. APPROVER/OPERATOR는 이 화면에 접근하지 못하는 대신 `GET /code-groups/active-with-items`로 API 화면에서 코드값을 조회한다.
 
 ---
 
@@ -157,8 +159,6 @@ MainLayout, AdminLayout 하단 공통.
 /executions                   → MainLayout
 /executions/pending           → MainLayout
 /executions/:api_execution_id → MainLayout
-/code-groups                  → MainLayout
-/code-groups/:code_group_id   → MainLayout
 /my-account                   → MainLayout
 
 /admin                        → AdminLayout  (역할별 첫 메뉴로 redirect)
@@ -170,6 +170,7 @@ MainLayout, AdminLayout 하단 공통.
 /admin/projects/:project_id   → AdminLayout
 /admin/users                  → AdminLayout
 /admin/users/:user_id         → AdminLayout
+/admin/code-groups            → AdminLayout  (등록/상세 별도 라우트 없음 — 한 페이지 엑셀형 그리드)
 /admin/audit-logs             → AdminLayout
 /admin/audit-logs/:log_audit_id → AdminLayout
 ```
@@ -183,7 +184,7 @@ MainLayout, AdminLayout 하단 공통.
 | 미인증 상태로 인증 필요 Route 접근 | `/login` 리다이렉트 |
 | 인증 상태로 `/login`, `/signup` 접근 | `/apis` 리다이렉트 |
 | OPERATOR가 `/admin/*` 접근 | 403 페이지 |
-| APPROVER가 `/admin/companies`, `/admin/projects`, `/admin/users` 접근 | 403 페이지 |
+| APPROVER가 `/admin/companies`, `/admin/projects`, `/admin/users`, `/admin/code-groups` 접근 | 403 페이지 |
 | `/admin` 접근 시 역할별 첫 메뉴 redirect | SUPER_ADMIN / DEVELOPER → `/admin/companies` / APPROVER → `/admin/audit-logs` |
 
 ---

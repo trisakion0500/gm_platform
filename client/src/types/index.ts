@@ -55,6 +55,41 @@ export interface ProjectRow {
   updated_at: string;
 }
 
+export interface CodeGroupRow {
+  code_group_id: number;
+  project_id: number;
+  code_group_code: string;
+  code_group_name: string;
+  description: string | null;
+  status: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CodeItemRow {
+  code_item_id: number;
+  code_group_id: number;
+  code_value: string;
+  code_name: string;
+  description: string | null;
+  display_order: number;
+  status: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ActiveCodeItem {
+  code_value: string;
+  code_name: string;
+}
+
+export interface ActiveCodeGroupWithItems {
+  code_group_id: number;
+  code_group_code: string;
+  code_group_name: string;
+  items: ActiveCodeItem[];
+}
+
 export interface UserRow {
   user_id: number;
   company_id: number;

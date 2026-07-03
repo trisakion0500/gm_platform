@@ -15,15 +15,17 @@ const MAIN_MENU: MenuDef[] = [
   { key: '/apis', label: 'API', allow: [ROLE.SUPER_ADMIN, ROLE.DEVELOPER, ROLE.APPROVER, ROLE.OPERATOR] },
   { key: '/executions', label: '실행이력', allow: [ROLE.SUPER_ADMIN, ROLE.DEVELOPER, ROLE.APPROVER, ROLE.OPERATOR] },
   { key: '/executions/pending', label: '승인대기', allow: [ROLE.SUPER_ADMIN, ROLE.DEVELOPER, ROLE.APPROVER] },
-  { key: '/code-groups', label: '코드', allow: [ROLE.SUPER_ADMIN, ROLE.DEVELOPER, ROLE.APPROVER, ROLE.OPERATOR] },
   { key: '/my-account', label: '내 계정', allow: [ROLE.SUPER_ADMIN, ROLE.DEVELOPER, ROLE.APPROVER, ROLE.OPERATOR] },
 ];
 
 // 13_LAYOUT.md §4.1
+// 코드그룹은 편집이 SUPER_ADMIN/DEVELOPER 전용이라 관리 메뉴에 둔다.
+// APPROVER/OPERATOR의 코드값 참조는 이 화면이 아니라 GET /code-groups/active-with-items로 API 상세/실행 화면에서 처리한다.
 const ADMIN_MENU: MenuDef[] = [
   { key: '/admin/companies', label: '회사', allow: [ROLE.SUPER_ADMIN, ROLE.DEVELOPER] },
   { key: '/admin/projects', label: '프로젝트', allow: [ROLE.SUPER_ADMIN, ROLE.DEVELOPER] },
   { key: '/admin/users', label: '사용자', allow: [ROLE.SUPER_ADMIN, ROLE.DEVELOPER] },
+  { key: '/admin/code-groups', label: '코드그룹', allow: [ROLE.SUPER_ADMIN, ROLE.DEVELOPER] },
   { key: '/admin/audit-logs', label: '감사로그', allow: [ROLE.SUPER_ADMIN, ROLE.DEVELOPER, ROLE.APPROVER] },
 ];
 

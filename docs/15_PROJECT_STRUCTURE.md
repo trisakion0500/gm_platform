@@ -50,7 +50,7 @@ server/
 │   │   ├── apiRequest.ts    # /api-requests — Request 파라미터 관리
 │   │   ├── apiResponse.ts   # /api-responses — Response 파라미터 관리
 │   │   ├── apiExecution.ts  # /api-executions — 실행 이력 및 승인 워크플로우
-│   │   ├── codeGroup.ts     # /code-groups — 코드 그룹 관리
+│   │   ├── codeGroup.ts     # /code-groups — 코드 그룹 관리 (+ /active-with-items 전 역할 조회 전용)
 │   │   ├── codeItem.ts      # /code-items — 코드 아이템 관리
 │   │   └── logAudit.ts      # /log-audits — 감사 로그 조회
 │   │
@@ -186,22 +186,22 @@ client/
 │   │   │   ├── users/
 │   │   │   │   ├── UserListPage.tsx       # 사용자 목록 (상태 콤보박스 필터)
 │   │   │   │   └── UserDetailPage.tsx     # 사용자 상세 / 수정 / 승인·반려 / 권한 관리
-│   │   │   └── audit-logs/
-│   │   │       ├── AuditLogListPage.tsx   # 감사 로그 목록 (로그ID / 테이블 / 작업유형 / 작업자 / 기간 필터, 회사·프로젝트는 헤더 전역 선택 사용)
-│   │   │       └── AuditLogDetailPage.tsx # before_json / after_json 비교 조회
+│   │   │   ├── audit-logs/
+│   │   │   │   ├── AuditLogListPage.tsx   # 감사 로그 목록 (로그ID / 테이블 / 작업유형 / 작업자 / 기간 필터, 회사·프로젝트는 헤더 전역 선택 사용)
+│   │   │   │   └── AuditLogDetailPage.tsx # before_json / after_json 비교 조회
+│   │   │   └── code-groups/
+│   │   │       ├── CodeGroupPage.tsx      # 코드그룹 엑셀형 편집 그리드(조회/등록/수정 한 페이지, 등록/상세 라우트 없음). SUPER_ADMIN/DEVELOPER 전용
+│   │   │       └── CodeItemGrid.tsx       # 코드그룹 행 expand 시 하단에 표시되는 코드 아이템 편집 그리드
 │   │   │
 │   │   └── main/
 │   │       ├── apis/
 │   │       │   ├── ApiListPage.tsx        # API 목록 (api_stage / 상태 필터)
 │   │       │   ├── ApiNewPage.tsx         # API 등록 폼
-│   │       │   └── ApiDetailPage.tsx      # API 상세 / 수정 / 파라미터 관리 / 실행
+│   │       │   └── ApiDetailPage.tsx      # API 상세 / 수정 / 파라미터 관리 / 실행 (APPROVER/OPERATOR는 GET /code-groups/active-with-items로 코드값 참조)
 │   │       ├── executions/
 │   │       │   ├── ExecutionListPage.tsx    # 실행 이력 목록 (API / 상태 / 요청자 필터)
 │   │       │   ├── ExecutionDetailPage.tsx  # 실행 상세 (요청 파라미터 / 응답 데이터 / 상태 이력)
 │   │       │   └── ExecutionPendingPage.tsx # 승인 대기 목록 및 승인 / 반려 처리
-│   │       ├── code-groups/
-│   │       │   ├── CodeGroupListPage.tsx    # 코드 그룹 목록 (상태 필터)
-│   │       │   └── CodeGroupDetailPage.tsx  # 코드 그룹 상세 / 수정 / 코드 아이템 관리
 │   │       └── my-account/
 │   │           └── MyAccountPage.tsx        # 내 정보 조회 / 비밀번호 변경 / 로그아웃
 │   │

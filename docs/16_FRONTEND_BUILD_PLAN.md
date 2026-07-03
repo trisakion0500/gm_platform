@@ -42,8 +42,7 @@
 | SCR-110 | 실행 이력 목록 | `/executions` |
 | SCR-111 | 실행 이력 상세 | `/executions/:api_execution_id` |
 | SCR-120 | 승인 대기 목록 | `/executions/pending` |
-| SCR-130 | 코드 그룹 목록 | `/code-groups` |
-| SCR-131 | 코드 그룹 상세·수정 (코드 아이템 포함) | `/code-groups/:code_group_id` |
+| SCR-130 | 코드그룹·코드아이템 (엑셀형 그리드 한 페이지) | `/admin/code-groups` (관리 라우트 — 편집이 SUPER_ADMIN/DEVELOPER 전용이라 그룹 A/B와 같은 가드 사용) |
 
 ## 1.4 그룹 D — 인증 · 내 계정
 
@@ -68,7 +67,7 @@
 - refresh_token은 재발급되지 않음(최초 로그인 시 1회만 저장). `role_code`는 로그인/재발급 응답에 포함(세션 고정값)
 - 401 처리: `result===10003`(AT만료) → refresh 후 원요청 재시도(동시 요청은 큐잉). `10004/10005/10006/10007/10009` → 로그아웃 후 `/login` 리다이렉트
 - 목록 API 페이지네이션 응답: `data:{page, page_size, total_count, items:[]}` (필드명 고정)
-- 페이지네이션 미적용(배열 그대로) API: `GET /user-roles`, `GET /apis/:id`(requests/responses 포함 상세객체), `GET /code-groups?project_id=`, `GET /code-items?code_group_id=`, `GET /code-groups/:id/active-items`
+- 페이지네이션 미적용(배열 그대로) API: `GET /user-roles`, `GET /apis/:id`(requests/responses 포함 상세객체), `GET /code-groups?project_id=`, `GET /code-items?code_group_id=`, `GET /code-groups/:id/active-items`, `GET /code-groups/active-with-items?project_id=`(신설 — 프로젝트의 활성 코드그룹+아이템 일괄 조회, 전 역할 허용. `/admin/code-groups`에 접근 못하는 APPROVER/OPERATOR가 API 화면에서 코드값 참조용으로 사용)
 - `/auth/me` 응답에는 `role_code` 없음(user 테이블 원본 컬럼만) — role_code는 프로젝트마다 다를 수 있는 값이라 로그인/재발급 응답에서만 얻을 수 있다. company_code/company_name도 없어 회사명 필요 시 globalStore의 companyList에서 조인
 - 날짜 필드는 `'YYYY-MM-DD HH:mm:ss'` 문자열
 - role_code: 10=SUPER_ADMIN, 20=DEVELOPER, 30=APPROVER, 40=OPERATOR. 로그인 세션의 role_code는 사용자가 가진 모든 프로젝트 중 최고 권한(MIN)이라 프로젝트마다 실제 권한과 다를 수 있음(예: A프로젝트 DEVELOPER·B프로젝트 OPERATOR → 세션 role_code는 20). API/CodeGroup/CodeItem 쓰기 API는 서버가 project_id별 실제 user_role을 재검증하므로, 사이드바·버튼 노출은 세션 role_code만으로 판단하면 "버튼은 보이는데 저장 시 20001" 같은 불일치가 생길 수 있다 — Stage 5(API/코드그룹 화면)에서 선택된 프로젝트 기준 실제 역할 조회 방법(아래 항목) 반영 여부를 결정할 것
@@ -81,7 +80,7 @@
 
 [13_LAYOUT.md](./13_LAYOUT.md)(공통 레이아웃 구조) 그대로 따른다. 요약:
 
-- `AuthLayout`(/login, /signup, 사이드바 없음) / `MainLayout`(/apis, /executions, /code-groups, /my-account) / `AdminLayout`(/admin/*, OPERATOR 접근불가)
+- `AuthLayout`(/login, /signup, 사이드바 없음) / `MainLayout`(/apis, /executions, /my-account) / `AdminLayout`(/admin/*, OPERATOR 접근불가. /admin/code-groups는 APPROVER도 접근불가 — 회사/프로젝트/사용자와 동일 가드)
 - Header: 로고→/apis, 회사선택(SUPER_ADMIN만 드롭다운, "전체 회사" 옵션 포함), 프로젝트선택(회사기준, 회사변경시 초기화, SUPER_ADMIN만 "전체 프로젝트" 선택 가능), [관리]버튼(OPERATOR 제외), 사용자명 드롭다운(내계정/로그아웃)
 - 관리 화면 중 `/admin/projects`, `/admin/users`, `/admin/audit-logs` 목록은 회사(감사로그는 프로젝트도) 필터를 화면 자체에 두지 않고 이 헤더 선택을 그대로 사용한다(Stage 3에서 확정된 패턴)
 - 가드: 미인증→/login, 인증상태로 /login·/signup→/apis, OPERATOR가 /admin/*→403, APPROVER가 companies/projects/users→403, `/admin` 진입 시 역할별 첫 메뉴로 리다이렉트(SA/DEV→/admin/companies, APV→/admin/audit-logs)
@@ -145,9 +144,11 @@
 ## Stage 5 — 그룹 C: API 정의 · 실행 · 코드그룹
 
 - `api/{api,apiRequest,apiResponse,apiExecution,codeGroup,codeItem}.api.ts` (코드그룹/아이템은 §2.1의 쿼리 파라미터 방식 라우트로 구현)
-- `pages/main/code-groups/*` → `pages/main/apis/*`(Tabs: 기본정보/Request/Response/실행) → `pages/main/executions/*`(+Pending)
+- `pages/admin/code-groups/*` → `pages/main/apis/*`(Tabs: 기본정보/Request/Response/실행) → `pages/main/executions/*`(+Pending)
+- **코드그룹·코드아이템은 List/New/Detail 3화면 패턴을 따르지 않고 `CodeGroupPage.tsx` 한 페이지의 엑셀형 편집 그리드로 구현, 관리 라우트(`/admin/code-groups`)에 위치** — 공통코드 성격상 다건을 빠르게 등록·수정하는 게 목적이라 페이지 이동 없이 처리하는 게 낫다는 판단이고, 편집이 SUPER_ADMIN/DEVELOPER 전용이라 회사/프로젝트/사용자와 동일한 관리 라우트 가드(`RoleGuard allow={[SUPER_ADMIN, DEVELOPER]}`)를 재사용했다(처음엔 메인 메뉴에 전 역할 대상으로 뒀다가, 편집 권한 있는 역할만 접근할 수 있는 관리 화면이라는 성격에 맞춰 이동함). 프로젝트는 화면 자체 선택 없이 헤더 전역 선택(`globalStore.selectedProjectId`)을 그대로 사용. 그리드에 "행 추가"로 그룹ID 없는 신규 행(코드값 포함 모든 필드 편집 가능)을 만들고, 셀 변경은 로컬 state에만 반영하다가 "적용" 버튼을 눌러야 신규 행은 POST, 변경된 기존 행은 PATCH로 일괄 처리(셀 변경마다 즉시 저장 안 함). 그룹ID는 auto_increment라 컬럼에 노출하지 않음. 코드 아이템은 그룹 행을 expand했을 때 하단에 `CodeItemGrid.tsx`(동일한 그리드+적용 패턴)로 관리 — 미저장 신규 그룹 행은 expand 불가. "적용" 시 일부 행만 실패해도 성공한 행은 반영하고 실패한 행만 에러 메시지와 함께 편집 가능한 상태로 남김(행 배경색 강조, `client/src/index.css`의 `.editable-row-error`)
+- **APPROVER/OPERATOR의 코드값 참조**: `/admin/code-groups`에 접근할 수 없으므로, 신설한 `GET /code-groups/active-with-items?project_id=`(전 역할 허용, 프로젝트의 활성 코드그룹+활성 아이템을 그룹당 1건으로 묶어 한 번에 반환하는 `SP_GET_ACTIVE_CODE_GROUPS_WITH_ITEMS` 기반)를 API 상세/실행 화면에서 호출해 SELECT/RADIO/CHECKBOX 값을 조회한다. 그룹별 `active-items`를 개별 호출하는 N+1 대신 프로젝트 단위 일괄 조회로 설계.
 - `api_code`/`endpoint`/`is_required_approval`/`response_view_type` 수정 시 `api_stage` 자동 롤백 경고 UI, `is_required_approval` 기반 즉시실행/승인대기 분기 UI 포함
-- **검증**: 코드그룹→API등록→파라미터등록→실행(운영단계)→(OPERATOR+승인필요 시)승인대기→APPROVER 승인→상태전이까지 전체 플로우 확인
+- **검증**: 코드그룹→API등록→파라미터등록→실행(운영단계)→(OPERATOR+승인필요 시)승인대기→APPROVER 승인→상태전이까지 전체 플로우 확인. 코드그룹 그리드는 SA로 그룹+아이템 등록/수정, 중복 코드로 저장 실패 시 해당 행만 에러 표시되고 나머지는 반영되는지 확인. APPROVER/OPERATOR는 `/admin/code-groups` 직접 URL 접근 시 403, `active-with-items`로 코드값 조회는 정상 동작하는지 확인
 
 ## Stage 6 — 그룹 D: 회원가입 + 내 계정
 
