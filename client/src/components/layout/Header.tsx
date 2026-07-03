@@ -40,16 +40,20 @@ function Header() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const projectsForCompany = projectList.filter((p) => p.company_id === selectedCompanyId);
+  // selectedCompanyId === null → SUPER_ADMIN이 "전체 회사"를 선택한 상태 (전체 프로젝트 대상)
+  const projectsForCompany = selectedCompanyId === null ? projectList : projectList.filter((p) => p.company_id === selectedCompanyId);
 
   // 회사 선택이 바뀌거나 목록이 로드되면, 선택된 프로젝트가 그 회사 소속이 아닐 경우 첫 항목으로 보정
+  // SUPER_ADMIN은 "전체 프로젝트"(null)를 명시적으로 선택할 수 있어야 하므로 강제 보정 대상에서 제외
   useEffect(() => {
+    if (isSuperAdmin)
+      return;
     if (projectsForCompany.length === 0)
       return;
     if (!projectsForCompany.some((p) => p.project_id === selectedProjectId))
       selectProject(projectsForCompany[0].project_id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedCompanyId, projectList]);
+  }, [selectedCompanyId, projectList, isSuperAdmin]);
 
   // 선택된 프로젝트가 바뀔 때마다 그 프로젝트에서 내 실제 role_code를 서버에서 다시 조회
   useEffect(() => {
@@ -79,17 +83,23 @@ function Header() {
 
       <Select
         style={{ width: 160 }}
-        value={selectedCompanyId ?? undefined}
+        value={selectedCompanyId ?? (isSuperAdmin ? 'ALL' : undefined)}
         disabled={!isSuperAdmin}
-        options={companyList.map((c) => ({ value: c.company_id, label: c.company_name }))}
-        onChange={selectCompany}
+        options={[
+          ...(isSuperAdmin ? [{ value: 'ALL', label: '전체 회사' }] : []),
+          ...companyList.map((c) => ({ value: c.company_id, label: c.company_name })),
+        ]}
+        onChange={(value) => selectCompany(value === 'ALL' ? null : (value as number))}
       />
 
       <Select
         style={{ width: 200 }}
-        value={selectedProjectId ?? undefined}
-        options={projectsForCompany.map((p) => ({ value: p.project_id, label: p.project_name }))}
-        onChange={selectProject}
+        value={selectedProjectId ?? (isSuperAdmin ? 'ALL' : undefined)}
+        options={[
+          ...(isSuperAdmin ? [{ value: 'ALL', label: '전체 프로젝트' }] : []),
+          ...projectsForCompany.map((p) => ({ value: p.project_id, label: p.project_name })),
+        ]}
+        onChange={(value) => selectProject(value === 'ALL' ? null : (value as number))}
       />
 
       <div style={{ flex: 1 }} />

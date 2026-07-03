@@ -27,10 +27,10 @@ const COLUMNS: ColumnsType<ProjectRow> = [
 
 function ProjectListPage() {
   const navigate = useNavigate();
-  const companyList = useGlobalStore((state) => state.companyList);
-  const companyId = useListFilterStore((state) => state.projectListCompanyId);
+  // 회사 필터는 헤더의 전역 회사 선택을 그대로 사용 (SUPER_ADMIN만 "전체 회사"=null 선택 가능)
+  const companyId = useGlobalStore((state) => state.selectedCompanyId);
   const status = useListFilterStore((state) => state.projectListStatus);
-  const setFilter = useListFilterStore((state) => state.setProjectListFilter);
+  const setStatus = useListFilterStore((state) => state.setProjectListStatus);
 
   return (
     <>
@@ -44,32 +44,21 @@ function ProjectListPage() {
           </PermissionGuard>
         }
       />
-      <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
-        <Select
-          style={{ width: 200 }}
-          value={companyId ?? 'ALL'}
-          onChange={(value) => setFilter(value === 'ALL' ? undefined : (value as number), status)}
-          options={[
-            { value: 'ALL', label: '전체 회사' },
-            ...companyList.map((c) => ({ value: c.company_id, label: c.company_name })),
-          ]}
-        />
-        <Select
-          style={{ width: 160 }}
-          value={status ?? 'ALL'}
-          onChange={(value) => setFilter(companyId, value === 'ALL' ? undefined : (value as number))}
-          options={[
-            { value: 'ALL', label: '전체' },
-            { value: 1, label: '활성' },
-            { value: 0, label: '비활성' },
-          ]}
-        />
-      </div>
+      <Select
+        style={{ width: 160, marginBottom: 16 }}
+        value={status ?? 'ALL'}
+        onChange={(value) => setStatus(value === 'ALL' ? undefined : (value as number))}
+        options={[
+          { value: 'ALL', label: '전체' },
+          { value: 1, label: '활성' },
+          { value: 0, label: '비활성' },
+        ]}
+      />
       <DataTable<ProjectRow>
         key={`${companyId ?? 'all'}-${status ?? 'all'}`}
         columns={COLUMNS}
         rowKey="project_id"
-        fetcher={(page, pageSize) => projectApi.getProjectList(page, pageSize, companyId, status)}
+        fetcher={(page, pageSize) => projectApi.getProjectList(page, pageSize, companyId ?? undefined, status)}
         onRowClick={(record) => navigate(`/admin/projects/${record.project_id}`)}
       />
     </>

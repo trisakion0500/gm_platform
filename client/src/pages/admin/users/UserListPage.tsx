@@ -30,42 +30,31 @@ const COLUMNS: ColumnsType<UserRow> = [
 
 function UserListPage() {
   const navigate = useNavigate();
-  const companyList = useGlobalStore((state) => state.companyList);
-  const companyId = useListFilterStore((state) => state.userListCompanyId);
+  // 회사 필터는 헤더의 전역 회사 선택을 그대로 사용 (SUPER_ADMIN만 "전체 회사"=null 선택 가능)
+  const companyId = useGlobalStore((state) => state.selectedCompanyId);
   const status = useListFilterStore((state) => state.userListStatus);
-  const setFilter = useListFilterStore((state) => state.setUserListFilter);
+  const setStatus = useListFilterStore((state) => state.setUserListStatus);
 
   return (
     <>
       <PageHeader title="사용자 목록" />
-      <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
-        <Select
-          style={{ width: 200 }}
-          value={companyId ?? 'ALL'}
-          onChange={(value) => setFilter(value === 'ALL' ? undefined : (value as number), status)}
-          options={[
-            { value: 'ALL', label: '전체 회사' },
-            ...companyList.map((c) => ({ value: c.company_id, label: c.company_name })),
-          ]}
-        />
-        <Select
-          style={{ width: 160 }}
-          value={status ?? 'ALL'}
-          onChange={(value) => setFilter(companyId, value === 'ALL' ? undefined : (value as number))}
-          options={[
-            { value: 'ALL', label: '전체' },
-            { value: 0, label: '승인대기' },
-            { value: 1, label: '정상' },
-            { value: 2, label: '반려' },
-            { value: 3, label: '사용중지' },
-          ]}
-        />
-      </div>
+      <Select
+        style={{ width: 160, marginBottom: 16 }}
+        value={status ?? 'ALL'}
+        onChange={(value) => setStatus(value === 'ALL' ? undefined : (value as number))}
+        options={[
+          { value: 'ALL', label: '전체' },
+          { value: 0, label: '승인대기' },
+          { value: 1, label: '정상' },
+          { value: 2, label: '반려' },
+          { value: 3, label: '사용중지' },
+        ]}
+      />
       <DataTable<UserRow>
         key={`${companyId ?? 'all'}-${status ?? 'all'}`}
         columns={COLUMNS}
         rowKey="user_id"
-        fetcher={(page, pageSize) => userApi.getUserList(page, pageSize, status, companyId)}
+        fetcher={(page, pageSize) => userApi.getUserList(page, pageSize, status, companyId ?? undefined)}
         onRowClick={(record) => navigate(`/admin/users/${record.user_id}`)}
       />
     </>
