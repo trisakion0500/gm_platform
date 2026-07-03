@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { Button, Select } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import { useNavigate } from 'react-router-dom';
@@ -8,6 +7,7 @@ import PermissionGuard from '../../../components/common/PermissionGuard';
 import StatusBadge from '../../../components/common/StatusBadge';
 import * as projectApi from '../../../api/project.api';
 import { useGlobalStore } from '../../../stores/globalStore';
+import { useListFilterStore } from '../../../stores/listFilterStore';
 import type { ProjectRow } from '../../../types';
 import { ROLE } from '../../../types';
 
@@ -28,8 +28,9 @@ const COLUMNS: ColumnsType<ProjectRow> = [
 function ProjectListPage() {
   const navigate = useNavigate();
   const companyList = useGlobalStore((state) => state.companyList);
-  const [companyId, setCompanyId] = useState<number | undefined>(undefined);
-  const [status, setStatus] = useState<number | undefined>(undefined);
+  const companyId = useListFilterStore((state) => state.projectListCompanyId);
+  const status = useListFilterStore((state) => state.projectListStatus);
+  const setFilter = useListFilterStore((state) => state.setProjectListFilter);
 
   return (
     <>
@@ -47,7 +48,7 @@ function ProjectListPage() {
         <Select
           style={{ width: 200 }}
           value={companyId ?? 'ALL'}
-          onChange={(value) => setCompanyId(value === 'ALL' ? undefined : (value as number))}
+          onChange={(value) => setFilter(value === 'ALL' ? undefined : (value as number), status)}
           options={[
             { value: 'ALL', label: '전체 회사' },
             ...companyList.map((c) => ({ value: c.company_id, label: c.company_name })),
@@ -56,7 +57,7 @@ function ProjectListPage() {
         <Select
           style={{ width: 160 }}
           value={status ?? 'ALL'}
-          onChange={(value) => setStatus(value === 'ALL' ? undefined : (value as number))}
+          onChange={(value) => setFilter(companyId, value === 'ALL' ? undefined : (value as number))}
           options={[
             { value: 'ALL', label: '전체' },
             { value: 1, label: '활성' },

@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { Button, Select } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import { useNavigate } from 'react-router-dom';
@@ -7,6 +6,7 @@ import PageHeader from '../../../components/common/PageHeader';
 import PermissionGuard from '../../../components/common/PermissionGuard';
 import StatusBadge from '../../../components/common/StatusBadge';
 import * as companyApi from '../../../api/company.api';
+import { useListFilterStore } from '../../../stores/listFilterStore';
 import type { CompanyRow } from '../../../types';
 import { ROLE } from '../../../types';
 
@@ -25,7 +25,8 @@ const COLUMNS: ColumnsType<CompanyRow> = [
 
 function CompanyListPage() {
   const navigate = useNavigate();
-  const [status, setStatus] = useState<number | undefined>(undefined);
+  const status = useListFilterStore((state) => state.companyListStatus);
+  const setStatus = useListFilterStore((state) => state.setCompanyListStatus);
 
   return (
     <>

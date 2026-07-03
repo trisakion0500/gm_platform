@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { Select } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import { useNavigate } from 'react-router-dom';
@@ -6,6 +5,7 @@ import DataTable from '../../../components/common/DataTable';
 import PageHeader from '../../../components/common/PageHeader';
 import StatusBadge from '../../../components/common/StatusBadge';
 import { useGlobalStore } from '../../../stores/globalStore';
+import { useListFilterStore } from '../../../stores/listFilterStore';
 import * as userApi from '../../../api/user.api';
 import type { UserRow } from '../../../types';
 
@@ -31,8 +31,9 @@ const COLUMNS: ColumnsType<UserRow> = [
 function UserListPage() {
   const navigate = useNavigate();
   const companyList = useGlobalStore((state) => state.companyList);
-  const [companyId, setCompanyId] = useState<number | undefined>(undefined);
-  const [status, setStatus] = useState<number | undefined>(undefined);
+  const companyId = useListFilterStore((state) => state.userListCompanyId);
+  const status = useListFilterStore((state) => state.userListStatus);
+  const setFilter = useListFilterStore((state) => state.setUserListFilter);
 
   return (
     <>
@@ -41,7 +42,7 @@ function UserListPage() {
         <Select
           style={{ width: 200 }}
           value={companyId ?? 'ALL'}
-          onChange={(value) => setCompanyId(value === 'ALL' ? undefined : (value as number))}
+          onChange={(value) => setFilter(value === 'ALL' ? undefined : (value as number), status)}
           options={[
             { value: 'ALL', label: '전체 회사' },
             ...companyList.map((c) => ({ value: c.company_id, label: c.company_name })),
@@ -50,7 +51,7 @@ function UserListPage() {
         <Select
           style={{ width: 160 }}
           value={status ?? 'ALL'}
-          onChange={(value) => setStatus(value === 'ALL' ? undefined : (value as number))}
+          onChange={(value) => setFilter(companyId, value === 'ALL' ? undefined : (value as number))}
           options={[
             { value: 'ALL', label: '전체' },
             { value: 0, label: '승인대기' },
