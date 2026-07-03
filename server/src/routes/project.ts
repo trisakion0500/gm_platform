@@ -24,9 +24,9 @@ const router = Router();
  *             required: [company_id, project_code, project_name, api_base_url]
  *             properties:
  *               company_id:   { type: integer, example: 1 }
- *               project_code: { type: string, example: MAPLESTORY }
- *               project_name: { type: string, example: 메이플스토리 }
- *               api_base_url: { type: string, example: 'https://api.maplestory.com' }
+ *               project_code: { type: string, pattern: '^[a-zA-Z0-9_.-]+$', description: '영문, 숫자, _, ., - 만 허용', example: PROJECT_A }
+ *               project_name: { type: string, example: 프로젝트A }
+ *               api_base_url: { type: string, example: 'https://api.project-a.com' }
  *               description:  { type: string, nullable: true, example: 2D 횡스크롤 MMORPG }
  *     responses:
  *       201:
@@ -38,11 +38,11 @@ const router = Router();
  *               data:
  *                 project_id: 1
  *                 company_id: 1
- *                 company_code: NEXON
- *                 company_name: 넥슨
- *                 project_code: MAPLESTORY
- *                 project_name: 메이플스토리
- *                 api_base_url: 'https://api.maplestory.com'
+ *                 company_code: COMPANY_A
+ *                 company_name: 회사A
+ *                 project_code: PROJECT_A
+ *                 project_name: 프로젝트A
+ *                 api_base_url: 'https://api.project-a.com'
  *                 description: 2D 횡스크롤 MMORPG
  *                 status: 1
  *                 created_at: '2025-01-01 00:00:00'
@@ -95,11 +95,11 @@ router.post('/',             authenticate, requireRole(ROLE.SUPER_ADMIN),       
  *                 items:
  *                   - project_id: 1
  *                     company_id: 1
- *                     company_code: NEXON
- *                     company_name: 넥슨
- *                     project_code: MAPLESTORY
- *                     project_name: 메이플스토리
- *                     api_base_url: 'https://api.maplestory.com'
+ *                     company_code: COMPANY_A
+ *                     company_name: 회사A
+ *                     project_code: PROJECT_A
+ *                     project_name: 프로젝트A
+ *                     api_base_url: 'https://api.project-a.com'
  *                     description: null
  *                     status: 1
  *                     created_at: '2025-01-01 00:00:00'
@@ -138,11 +138,11 @@ router.get('/',              authenticate, requireRole(ROLE.SUPER_ADMIN, ROLE.DE
  *               data:
  *                 project_id: 1
  *                 company_id: 1
- *                 company_code: NEXON
- *                 company_name: 넥슨
- *                 project_code: MAPLESTORY
- *                 project_name: 메이플스토리
- *                 api_base_url: 'https://api.maplestory.com'
+ *                 company_code: COMPANY_A
+ *                 company_name: 회사A
+ *                 project_code: PROJECT_A
+ *                 project_name: 프로젝트A
+ *                 api_base_url: 'https://api.project-a.com'
  *                 description: null
  *                 status: 1
  *                 created_at: '2025-01-01 00:00:00'
@@ -178,9 +178,9 @@ router.get('/:project_id',   authenticate, requireRole(ROLE.SUPER_ADMIN, ROLE.DE
  *           schema:
  *             type: object
  *             properties:
- *               project_code: { type: string, example: MAPLESTORY }
- *               project_name: { type: string, example: 메이플스토리 }
- *               api_base_url: { type: string, example: 'https://api.maplestory.com' }
+ *               project_code: { type: string, pattern: '^[a-zA-Z0-9_.-]+$', description: '영문, 숫자, _, ., - 만 허용', example: PROJECT_A }
+ *               project_name: { type: string, example: 프로젝트A }
+ *               api_base_url: { type: string, example: 'https://api.project-a.com' }
  *               description:  { type: string, nullable: true, example: null }
  *               status:       { type: integer, description: '1=사용, 0=중지', example: 1 }
  *     responses:
@@ -193,11 +193,11 @@ router.get('/:project_id',   authenticate, requireRole(ROLE.SUPER_ADMIN, ROLE.DE
  *               data:
  *                 project_id: 1
  *                 company_id: 1
- *                 company_code: NEXON
- *                 company_name: 넥슨
- *                 project_code: MAPLESTORY
- *                 project_name: 메이플스토리2
- *                 api_base_url: 'https://api.maplestory.com'
+ *                 company_code: COMPANY_A
+ *                 company_name: 회사A
+ *                 project_code: PROJECT_A
+ *                 project_name: 프로젝트A2
+ *                 api_base_url: 'https://api.project-a.com'
  *                 description: null
  *                 status: 1
  *                 created_at: '2025-01-01 00:00:00'

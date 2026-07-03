@@ -45,8 +45,8 @@ const router = Router();
  *                 items:
  *                   - user_id: 1
  *                     company_id: 1
- *                     company_code: NEXON
- *                     company_name: 넥슨
+ *                     company_code: COMPANY_A
+ *                     company_name: 회사A
  *                     login_id: sa
  *                     user_name: 관리자
  *                     email: sa@example.com
@@ -88,8 +88,8 @@ router.get('/',                         authenticate, requireRole(ROLE.SUPER_ADM
  *               data:
  *                 user_id: 1
  *                 company_id: 1
- *                 company_code: NEXON
- *                 company_name: 넥슨
+ *                 company_code: COMPANY_A
+ *                 company_name: 회사A
  *                 requested_project_id: null
  *                 login_id: sa
  *                 user_name: 관리자

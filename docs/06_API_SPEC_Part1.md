@@ -93,7 +93,7 @@ POST /companies
 
 ### Validation
 
-- company_code 필수, 중복 불가
+- company_code 필수, 중복 불가, 영문/숫자/`_`/`.`/`-` 만 허용
 - company_name 필수
 - description 최대 1000자
 
@@ -205,7 +205,7 @@ created_at
 
 ### Validation
 
-- company_code 중복체크
+- company_code 중복체크, 영문/숫자/`_`/`.`/`-` 만 허용
 
 ### Response
 
@@ -242,7 +242,7 @@ POST /projects
 ### Validation
 
 - company_id 존재
-- project_code 필수, 동일 company 내 중복불가
+- project_code 필수, 동일 company 내 중복불가, 영문/숫자/`_`/`.`/`-` 만 허용
 - project_name 필수
 - api_base_url 필수
 
@@ -363,7 +363,7 @@ company_id
 
 ### Validation
 
-- project_code 중복체크 (동일 company 내)
+- project_code 중복체크 (동일 company 내), 영문/숫자/`_`/`.`/`-` 만 허용
 
 ### Business Rules
 

@@ -23,8 +23,8 @@ const router = Router();
  *             type: object
  *             required: [company_code, company_name]
  *             properties:
- *               company_code: { type: string, example: NEXON }
- *               company_name: { type: string, example: 넥슨 }
+ *               company_code: { type: string, pattern: '^[a-zA-Z0-9_.-]+$', description: '영문, 숫자, _, ., - 만 허용', example: COMPANY_A }
+ *               company_name: { type: string, example: 회사A }
  *               description:  { type: string, nullable: true, example: 게임 회사 }
  *     responses:
  *       201:
@@ -35,8 +35,8 @@ const router = Router();
  *               result: 0
  *               data:
  *                 company_id: 1
- *                 company_code: NEXON
- *                 company_name: 넥슨
+ *                 company_code: COMPANY_A
+ *                 company_name: 회사A
  *                 description: 게임 회사
  *                 status: 1
  *                 created_at: '2025-01-01 00:00:00'
@@ -88,8 +88,8 @@ router.post('/',             authenticate, requireRole(ROLE.SUPER_ADMIN),       
  *                 total_pages: 1
  *                 items:
  *                   - company_id: 1
- *                     company_code: NEXON
- *                     company_name: 넥슨
+ *                     company_code: COMPANY_A
+ *                     company_name: 회사A
  *                     description: null
  *                     status: 1
  *                     created_at: '2025-01-01 00:00:00'
@@ -127,8 +127,8 @@ router.get('/',              authenticate, requireRole(ROLE.SUPER_ADMIN, ROLE.DE
  *               result: 0
  *               data:
  *                 company_id: 1
- *                 company_code: NEXON
- *                 company_name: 넥슨
+ *                 company_code: COMPANY_A
+ *                 company_name: 회사A
  *                 description: null
  *                 status: 1
  *                 created_at: '2025-01-01 00:00:00'
@@ -164,8 +164,8 @@ router.get('/:company_id',   authenticate, requireRole(ROLE.SUPER_ADMIN, ROLE.DE
  *           schema:
  *             type: object
  *             properties:
- *               company_code: { type: string, example: NEXON }
- *               company_name: { type: string, example: 넥슨코리아 }
+ *               company_code: { type: string, pattern: '^[a-zA-Z0-9_.-]+$', description: '영문, 숫자, _, ., - 만 허용', example: COMPANY_A }
+ *               company_name: { type: string, example: 회사A2 }
  *               description:  { type: string, nullable: true, example: null }
  *               status:       { type: integer, description: '1=사용, 0=중지', example: 1 }
  *     responses:
@@ -177,8 +177,8 @@ router.get('/:company_id',   authenticate, requireRole(ROLE.SUPER_ADMIN, ROLE.DE
  *               result: 0
  *               data:
  *                 company_id: 1
- *                 company_code: NEXON
- *                 company_name: 넥슨코리아
+ *                 company_code: COMPANY_A
+ *                 company_name: 회사A2
  *                 description: null
  *                 status: 1
  *                 created_at: '2025-01-01 00:00:00'

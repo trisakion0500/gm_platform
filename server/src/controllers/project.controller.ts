@@ -4,6 +4,8 @@ import { success, fail, formatDatetime } from '../utils/response';
 import { ProjectRow } from '../types';
 import { ERROR_MAP } from '../constants/errors';
 
+const PROJECT_CODE_PATTERN = /^[a-zA-Z0-9_.-]+$/;
+
 /**
  * ProjectRow의 날짜 필드를 문자열로 변환한다.
  * @param p 프로젝트 DB 행
@@ -34,6 +36,10 @@ export async function createProject(req: Request, res: Response, next: NextFunct
     }
     const companyId = Number(company_id);
     if (!Number.isInteger(companyId) || companyId < 1) {
+      fail(res, ERROR_MAP.INVALID_FORMAT);
+      return;
+    }
+    if (!PROJECT_CODE_PATTERN.test(project_code)) {
       fail(res, ERROR_MAP.INVALID_FORMAT);
       return;
     }
@@ -126,6 +132,10 @@ export async function updateProject(req: Request, res: Response, next: NextFunct
       return;
     }
     const { project_code, project_name, api_base_url, description, status } = req.body;
+    if (project_code && !PROJECT_CODE_PATTERN.test(project_code)) {
+      fail(res, ERROR_MAP.INVALID_FORMAT);
+      return;
+    }
     const project = await projectService.updateProject(
       projectId,
       project_code ?? null,

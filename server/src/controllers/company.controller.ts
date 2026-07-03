@@ -4,6 +4,8 @@ import { success, fail, formatDatetime } from '../utils/response';
 import { CompanyRow } from '../types';
 import { ERROR_MAP } from '../constants/errors';
 
+const COMPANY_CODE_PATTERN = /^[a-zA-Z0-9_.-]+$/;
+
 /**
  * CompanyRow의 날짜 필드를 문자열로 변환한다.
  * @param c 회사 DB 행
@@ -30,6 +32,10 @@ export async function createCompany(req: Request, res: Response, next: NextFunct
     const { company_code, company_name, description } = req.body;
     if (!company_code || !company_name) {
       fail(res, ERROR_MAP.REQUIRED_MISSING);
+      return;
+    }
+    if (!COMPANY_CODE_PATTERN.test(company_code)) {
+      fail(res, ERROR_MAP.INVALID_FORMAT);
       return;
     }
     const company = await companyService.createCompany(company_code, company_name, description ?? null, req.user!.user_id);
@@ -119,6 +125,10 @@ export async function updateCompany(req: Request, res: Response, next: NextFunct
       return;
     }
     const { company_code, company_name, description, status } = req.body;
+    if (company_code && !COMPANY_CODE_PATTERN.test(company_code)) {
+      fail(res, ERROR_MAP.INVALID_FORMAT);
+      return;
+    }
     const company = await companyService.updateCompany(
       companyId,
       company_code ?? null,

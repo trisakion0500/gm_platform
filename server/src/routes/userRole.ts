@@ -70,8 +70,8 @@ router.get('/me',                     authenticate,                             
  *                   login_id: dev
  *                   user_name: 개발자
  *                   project_id: 1
- *                   project_code: MAPLESTORY
- *                   project_name: 메이플스토리
+ *                   project_code: PROJECT_A
+ *                   project_name: 프로젝트A
  *                   role_code: 20
  *                   status: 1
  *                   created_at: '2025-01-01 00:00:00'
@@ -116,8 +116,8 @@ router.get('/',                       authenticate, requireRole(ROLE.SUPER_ADMIN
  *                 login_id: dev
  *                 user_name: 개발자
  *                 project_id: 1
- *                 project_code: MAPLESTORY
- *                 project_name: 메이플스토리
+ *                 project_code: PROJECT_A
+ *                 project_name: 프로젝트A
  *                 role_code: 20
  *                 status: 1
  *                 created_at: '2025-01-01 00:00:00'
@@ -171,8 +171,8 @@ router.post('/',                      authenticate, requireRole(ROLE.SUPER_ADMIN
  *                 login_id: dev
  *                 user_name: 개발자
  *                 project_id: 1
- *                 project_code: MAPLESTORY
- *                 project_name: 메이플스토리
+ *                 project_code: PROJECT_A
+ *                 project_name: 프로젝트A
  *                 role_code: 30
  *                 status: 1
  *                 created_at: '2025-01-01 00:00:00'

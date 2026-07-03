@@ -51,7 +51,7 @@ const router = Router();
  *                     project_id: null
  *                     table_name: company
  *                     target_id: '1'
- *                     target_name: 넥슨
+ *                     target_name: 회사A
  *                     action_type: 10
  *                     created_by: 1
  *                     created_at: '2025-01-01 00:00:00'
@@ -94,10 +94,10 @@ router.get('/',              authenticate, requireRole(ROLE.SUPER_ADMIN, ROLE.DE
  *                 project_id: null
  *                 table_name: company
  *                 target_id: '1'
- *                 target_name: 넥슨
+ *                 target_name: 회사A
  *                 action_type: 10
  *                 before_json: null
- *                 after_json: '{"company_name":"넥슨","status":1}'
+ *                 after_json: '{"company_name":"회사A","status":1}'
  *                 created_by: 1
  *                 created_at: '2025-01-01 00:00:00'
  *       401:
