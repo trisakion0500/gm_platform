@@ -50,6 +50,12 @@ export interface UserRow {
   user_name: string;
   /** 이메일 */
   email: string;
+  /** 휴대폰 번호 (DB에는 AES-256-CBC 암호문(Base64)으로 저장, 서비스 레이어에서 복호화) */
+  phone_number: string;
+  /** 부서 (없으면 null) */
+  department: string | null;
+  /** 직급 (없으면 null) */
+  position: string | null;
   /** 계정 상태 (0=가입승인대기, 1=정상, 2=가입반려, 3=사용중지) */
   status: number;
   /** 역할 코드 (10=SUPER_ADMIN, 20=DEVELOPER, 30=APPROVER, 40=OPERATOR) */
@@ -145,6 +151,12 @@ export interface UserAdminRow {
   user_name: string;
   /** 이메일 */
   email: string;
+  /** 휴대폰 번호 (DB에는 AES-256-CBC 암호문(Base64)으로 저장, 서비스 레이어에서 복호화) */
+  phone_number: string;
+  /** 부서 (없으면 null) */
+  department: string | null;
+  /** 직급 (없으면 null) */
+  position: string | null;
   /** 계정 상태 (0=가입승인대기, 1=정상, 2=가입반려, 3=사용중지) */
   status: number;
   /** 마지막 로그인 일시 (없으면 null) */

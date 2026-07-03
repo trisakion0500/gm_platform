@@ -80,8 +80,18 @@ DB_NAME=gm_platform
 
 JWT_SECRET=your_jwt_secret_key
 
+ENCRYPTION_KEY=your_64_char_hex_encryption_key
+
 CORS_ALLOWED_ORIGINS=http://localhost:5173
 ```
+
+`ENCRYPTION_KEY`는 `phone_number` 등 개인정보를 AES-256-CBC로 암호화하는 데 사용하는 32바이트 hex 키다. 아래 명령으로 생성한다.
+
+```bash
+npm run keygen
+```
+
+출력된 64자리 hex 문자열을 그대로 `ENCRYPTION_KEY`에 붙여넣는다. 이 키가 없거나 바뀌면 기존에 암호화된 `phone_number` 값을 복호화할 수 없으므로, 팀원 간 공유 시 안전한 채널로 전달한다.
 
 ## 4.3 실행
 

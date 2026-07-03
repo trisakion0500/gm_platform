@@ -9,6 +9,7 @@ const required = [
   "DB_NAME",
   "JWT_SECRET",
   "CORS_ALLOWED_ORIGINS",
+  "ENCRYPTION_KEY",
 ];
 
 for (const key of required) {
@@ -32,6 +33,7 @@ export const env = {
     accessExpiresIn: process.env.JWT_ACCESS_EXPIRES_IN ?? "15m", // 기본 TTL 15분
     refreshExpiresIn: process.env.JWT_REFRESH_EXPIRES_IN ?? "7d", // 기본 TTL 7일
   },
+  encryptionKey: process.env.ENCRYPTION_KEY!, // phone_number 등 AES-256-CBC 암호화 키 (32바이트 hex)
   cors: {
     allowedOrigins: process.env.CORS_ALLOWED_ORIGINS!.split(","),
   },

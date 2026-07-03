@@ -17,7 +17,7 @@ const router = Router();
  *         application/json:
  *           schema:
  *             type: object
- *             required: [company_id, login_id, password, user_name, email]
+ *             required: [company_id, login_id, password, user_name, email, phone_number]
  *             properties:
  *               company_id:           { type: integer, example: 1 }
  *               requested_project_id: { type: integer, nullable: true, example: null, description: '가입 신청 프로젝트 ID (선택)' }
@@ -25,6 +25,9 @@ const router = Router();
  *               password:             { type: string, format: password, example: 'P@ssw0rd' }
  *               user_name:            { type: string, example: 홍길동 }
  *               email:                { type: string, format: email, example: john@example.com }
+ *               phone_number:         { type: string, example: '010-1234-5678', description: '서버에 AES-256-CBC로 암호화되어 저장됨' }
+ *               department:           { type: string, nullable: true, example: 개발팀, description: '부서 (선택)' }
+ *               position:             { type: string, nullable: true, example: 사원, description: '직급 (선택)' }
  *     responses:
  *       201:
  *         description: 가입 성공
@@ -38,6 +41,9 @@ const router = Router();
  *                 login_id: john
  *                 user_name: 홍길동
  *                 email: john@example.com
+ *                 phone_number: '010-1234-5678'
+ *                 department: 개발팀
+ *                 position: 사원
  *                 status: 0
  *                 last_login_at: null
  *                 created_at: '2025-01-01 00:00:00'
@@ -168,6 +174,9 @@ router.post('/logout',   authenticate, ctrl.logout);
  *                 login_id: sa
  *                 user_name: 관리자
  *                 email: sa@example.com
+ *                 phone_number: '010-1234-5678'
+ *                 department: null
+ *                 position: null
  *                 status: 1
  *                 last_login_at: '2025-01-01 12:00:00'
  *                 created_at: '2025-01-01 00:00:00'

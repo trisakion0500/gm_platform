@@ -46,6 +46,7 @@ BEGIN
         SELECT 0 AS RESULT;
         SELECT u.`user_id`, u.`company_id`, c.`company_code`, c.`company_name`,
                u.`requested_project_id`, u.`login_id`, u.`user_name`, u.`email`,
+               u.`phone_number`, u.`department`, u.`position`,
                u.`status`, u.`last_login_at`, u.`created_at`, u.`updated_at`
         FROM   `user` u
         JOIN   `company` c ON c.`company_id` = u.`company_id`

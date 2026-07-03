@@ -404,7 +404,10 @@ Anonymous
   "login_id": "operator01",
   "password": "********",
   "user_name": "홍길동",
-  "email": "operator01@company.com"
+  "email": "operator01@company.com",
+  "phone_number": "010-1234-5678",
+  "department": "개발팀",
+  "position": "사원"
 }
 ```
 
@@ -417,6 +420,8 @@ Anonymous
 - login_id 형식: 영문 대소문자, 숫자, `_`, `.`, `-`만 허용 (그 외 문자 포함 시 30002)
 - login_id 중복 불가
 - email 중복 불가
+- phone_number 필수, 평문 최대 20자 (서버에서 AES-256-CBC 암호화 후 저장)
+- department, position 선택 입력, 각각 최대 100자
 
 ### Response
 
@@ -594,6 +599,9 @@ PATCH /users/{user_id}
 ```text
 user_name
 email
+phone_number
+department
+position
 status
 ```
 

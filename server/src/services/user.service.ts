@@ -1,6 +1,7 @@
 import bcrypt from 'bcrypt';
 import { UserAdminRow } from '../types';
 import { toAppError, ERROR_MAP } from '../constants/errors';
+import { encrypt, decrypt } from '../utils/crypto';
 import * as db from '../db/user.db';
 import * as audit from './logAudit.service';
 
@@ -24,7 +25,12 @@ export async function getUserList(
   userCompanyId: number,
 ): Promise<{ page: number; page_size: number; total_count: number; items: UserAdminRow[] }> {
   const result = await db.getUserList(companyId, status, page, pageSize, roleCode, userCompanyId);
-  return { page, page_size: pageSize, ...result };
+  return {
+    page,
+    page_size: pageSize,
+    ...result,
+    items: result.items.map((u) => ({ ...u, phone_number: decrypt(u.phone_number) })),
+  };
 }
 
 /**
@@ -41,7 +47,7 @@ export async function getUser(userId: number, roleCode: number, userCompanyId: n
     throw toAppError(ERROR_MAP.USER_NOT_FOUND);
   if (roleCode !== 10 && user.company_id !== userCompanyId)
     throw toAppError(ERROR_MAP.USER_NOT_FOUND);
-  return user;
+  return { ...user, phone_number: decrypt(user.phone_number) };
 }
 
 /**
@@ -50,6 +56,9 @@ export async function getUser(userId: number, roleCode: number, userCompanyId: n
  * @param userId 수정할 사용자 ID
  * @param userName 이름 (null=변경 없음)
  * @param email 이메일 (null=변경 없음)
+ * @param phoneNumber 휴대폰 번호 (평문, null=변경 없음 — 서비스 레이어에서 암호화 후 저장)
+ * @param department 부서 (null=변경 없음)
+ * @param position 직급 (null=변경 없음)
  * @param status 상태 (null=변경 없음)
  * @param callerUserId 작업 수행 사용자 ID
  * @returns 수정된 사용자 정보
@@ -58,17 +67,20 @@ export async function updateUser(
   userId: number,
   userName: string | null,
   email: string | null,
+  phoneNumber: string | null,
+  department: string | null,
+  position: string | null,
   status: number | null,
   callerUserId: number,
 ): Promise<UserAdminRow> {
   const before = await db.getUser(userId);
-  const after  = await db.updateUser(userId, userName, email, status);
+  const after  = await db.updateUser(userId, userName, email, phoneNumber ? encrypt(phoneNumber) : null, department, position, status);
   audit.logUpdate('user', String(after.user_id), after.user_name,
     after.company_id, null,
     before! as unknown as Record<string, unknown>,
     after   as unknown as Record<string, unknown>,
     callerUserId);
-  return after;
+  return { ...after, phone_number: decrypt(after.phone_number) };
 }
 
 /**

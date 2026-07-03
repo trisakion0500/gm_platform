@@ -498,6 +498,9 @@ Anonymous (인증 불필요)
 | `password`       | 제한 없음                           | 4 ~ 72자   |
 | `email`          | 이메일 형식                         | 최대 200자 |
 | `user_name`      | 제한 없음                           | 최대 100자 |
+| `phone_number`   | 제한 없음(서버에서 AES-256-CBC 암호화 저장) | 평문 기준 최대 20자 |
+| `department`     | 제한 없음                           | 최대 100자 |
+| `position`       | 제한 없음                           | 최대 100자 |
 | `company_code`   | 영문 대소문자, 숫자, `_`, `.`, `-`  | 1 ~ 20자   |
 | `company_name`   | 제한 없음                           | 최대 100자 |
 | `project_code`   | 영문 대소문자, 숫자, `_`, `.`, `-`  | 1 ~ 20자   |

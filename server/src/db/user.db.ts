@@ -50,6 +50,9 @@ export async function getUser(userId: number): Promise<UserAdminRow | null> {
  * @param userId 수정할 사용자 ID
  * @param userName 이름 (null=변경 없음)
  * @param email 이메일 (null=변경 없음)
+ * @param phoneNumber 휴대폰 번호 (암호화된 값, null=변경 없음)
+ * @param department 부서 (null=변경 없음)
+ * @param position 직급 (null=변경 없음)
  * @param status 상태 (null=변경 없음)
  * @returns 수정된 사용자 정보
  */
@@ -57,9 +60,12 @@ export async function updateUser(
   userId: number,
   userName: string | null,
   email: string | null,
+  phoneNumber: string | null,
+  department: string | null,
+  position: string | null,
   status: number | null,
 ): Promise<UserAdminRow> {
-  const [spStatus, [data]] = await callSP('SP_UPDATE_USER', [userId, userName, email, status]);
+  const [spStatus, [data]] = await callSP('SP_UPDATE_USER', [userId, userName, email, phoneNumber, department, position, status]);
   switch (spStatus[0].RESULT) {
     case 31003: throw toDBError(ERROR_MAP.USER_NOT_FOUND);
     case 32001: throw toDBError(ERROR_MAP.DUPLICATE_VALUE);

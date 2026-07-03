@@ -50,6 +50,9 @@ const router = Router();
  *                     login_id: sa
  *                     user_name: 관리자
  *                     email: sa@example.com
+ *                     phone_number: '010-1234-5678'
+ *                     department: null
+ *                     position: null
  *                     status: 1
  *                     role_code: 10
  *                     last_login_at: '2025-01-01 12:00:00'
@@ -94,6 +97,9 @@ router.get('/',                         authenticate, requireRole(ROLE.SUPER_ADM
  *                 login_id: sa
  *                 user_name: 관리자
  *                 email: sa@example.com
+ *                 phone_number: '010-1234-5678'
+ *                 department: null
+ *                 position: null
  *                 status: 1
  *                 role_code: 10
  *                 last_login_at: '2025-01-01 12:00:00'
@@ -130,10 +136,13 @@ router.get('/:user_id',                 authenticate, requireRole(ROLE.SUPER_ADM
  *           schema:
  *             type: object
  *             properties:
- *               user_name: { type: string, example: 홍길동 }
- *               email:     { type: string, format: email, example: new@example.com }
- *               role_code: { type: integer, description: '10=SUPER_ADMIN, 20=DEVELOPER, 30=APPROVER, 40=OPERATOR', example: 20 }
- *               status:    { type: integer, description: '1=정상, 3=사용중지', example: 1 }
+ *               user_name:    { type: string, example: 홍길동 }
+ *               email:        { type: string, format: email, example: new@example.com }
+ *               phone_number: { type: string, example: '010-1234-5678', description: '서버에 AES-256-CBC로 암호화되어 저장됨' }
+ *               department:   { type: string, nullable: true, example: 개발팀 }
+ *               position:     { type: string, nullable: true, example: 사원 }
+ *               role_code:    { type: integer, description: '10=SUPER_ADMIN, 20=DEVELOPER, 30=APPROVER, 40=OPERATOR', example: 20 }
+ *               status:       { type: integer, description: '1=정상, 3=사용중지', example: 1 }
  *     responses:
  *       200:
  *         description: 수정 성공
@@ -147,6 +156,9 @@ router.get('/:user_id',                 authenticate, requireRole(ROLE.SUPER_ADM
  *                 login_id: john
  *                 user_name: 홍길동
  *                 email: new@example.com
+ *                 phone_number: '010-1234-5678'
+ *                 department: 개발팀
+ *                 position: 사원
  *                 status: 1
  *                 role_code: 20
  *                 last_login_at: null

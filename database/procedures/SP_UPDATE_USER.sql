@@ -1,10 +1,13 @@
 ﻿DROP PROCEDURE IF EXISTS SP_UPDATE_USER;
 DELIMITER $
 CREATE PROCEDURE SP_UPDATE_USER(
-    IN  i_user_id    BIGINT,        -- 수정할 사용자 ID
-    IN  i_user_name  VARCHAR(100),  -- 이름 (NULL=변경 없음)
-    IN  i_email      VARCHAR(200),  -- 이메일 (NULL=변경 없음)
-    IN  i_status     TINYINT        -- 상태 (NULL=변경 없음)
+    IN  i_user_id       BIGINT,        -- 수정할 사용자 ID
+    IN  i_user_name     VARCHAR(100),  -- 이름 (NULL=변경 없음)
+    IN  i_email         VARCHAR(200),  -- 이메일 (NULL=변경 없음)
+    IN  i_phone_number  VARCHAR(255),  -- 휴대폰 번호 (암호화된 값, NULL=변경 없음)
+    IN  i_department    VARCHAR(100),  -- 부서 (NULL=변경 없음)
+    IN  i_position      VARCHAR(100),  -- 직급 (NULL=변경 없음)
+    IN  i_status        TINYINT        -- 상태 (NULL=변경 없음)
 ) COMMENT '사용자 수정 - user 테이블 UPDATE'
 BEGIN
 -- --------------------------------- --
@@ -46,9 +49,12 @@ BEGIN
         START TRANSACTION;
 
             UPDATE `user`
-            SET `user_name` = COALESCE(i_user_name, `user_name`),
-                `email`     = COALESCE(i_email,     `email`),
-                `status`    = COALESCE(i_status,    `status`)
+            SET `user_name`    = COALESCE(i_user_name,    `user_name`),
+                `email`        = COALESCE(i_email,        `email`),
+                `phone_number` = COALESCE(i_phone_number, `phone_number`),
+                `department`   = COALESCE(i_department,   `department`),
+                `position`     = COALESCE(i_position,     `position`),
+                `status`       = COALESCE(i_status,       `status`)
             WHERE `user_id` = i_user_id;
 
         COMMIT;
@@ -56,6 +62,7 @@ BEGIN
         SELECT 0 AS RESULT;
         SELECT u.`user_id`, u.`company_id`, c.`company_code`, c.`company_name`,
                u.`requested_project_id`, u.`login_id`, u.`user_name`, u.`email`,
+               u.`phone_number`, u.`department`, u.`position`,
                u.`status`, u.`last_login_at`, u.`created_at`, u.`updated_at`
         FROM   `user` u
         JOIN   `company` c ON c.`company_id` = u.`company_id`

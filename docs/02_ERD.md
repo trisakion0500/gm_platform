@@ -37,6 +37,9 @@ erDiagram
         VARCHAR255  password_hash
         VARCHAR100  user_name
         VARCHAR200  email                   UK
+        VARCHAR255  phone_number            "AES-256-CBC 암호화(Base64)"
+        VARCHAR100  department              "NULL허용"
+        VARCHAR100  position                "NULL허용"
         TINYINT     status
         DATETIME    last_login_at
         DATETIME    created_at

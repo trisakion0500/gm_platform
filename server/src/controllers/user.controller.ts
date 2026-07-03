@@ -4,6 +4,10 @@ import { success, fail, formatDatetime } from '../utils/response';
 import { UserAdminRow } from '../types';
 import { ERROR_MAP } from '../constants/errors';
 
+const PHONE_NUMBER_MAX_LENGTH = 20; // 암호화 후 VARCHAR(255)에 저장되므로 평문은 넉넉히 제한
+const DEPARTMENT_MAX_LENGTH = 100;
+const POSITION_MAX_LENGTH = 100;
+
 /**
  * UserAdminRow의 날짜 필드를 문자열로 변환한다.
  * @param u 사용자 DB 행
@@ -87,7 +91,7 @@ export async function getUser(req: Request, res: Response, next: NextFunction): 
 /**
  * PATCH /users/:user_id — 사용자 수정 (SUPER_ADMIN)
  * @author trisakion
- * @param req params: { user_id }, body: { user_name?, email?, status? }
+ * @param req params: { user_id }, body: { user_name?, email?, phone_number?, department?, position?, status? }
  * @param res 200 — 수정된 사용자 정보
  * @param next 오류 전달
  * @returns void
@@ -99,12 +103,23 @@ export async function updateUser(req: Request, res: Response, next: NextFunction
       fail(res, ERROR_MAP.INVALID_FORMAT);
       return;
     }
-    const { user_name, email, status } = req.body;
+    const { user_name, email, phone_number, department, position, status } = req.body;
+    if (
+      (phone_number && phone_number.length > PHONE_NUMBER_MAX_LENGTH) ||
+      (department && department.length > DEPARTMENT_MAX_LENGTH) ||
+      (position && position.length > POSITION_MAX_LENGTH)
+    ) {
+      fail(res, ERROR_MAP.INVALID_FORMAT);
+      return;
+    }
     const user = await userService.updateUser(
       userId,
-      user_name ?? null,
-      email     ?? null,
-      status    ?? null,
+      user_name    ?? null,
+      email        ?? null,
+      phone_number ?? null,
+      department   ?? null,
+      position     ?? null,
+      status       ?? null,
       req.user!.user_id,
     );
     success(res, formatUser(user));

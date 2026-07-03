@@ -45,6 +45,7 @@ BEGIN
         SELECT 0 AS RESULT;
         SELECT u.`user_id`, u.`company_id`, u.`requested_project_id`,
                u.`login_id`, u.`user_name`, u.`email`,
+               u.`phone_number`, u.`department`, u.`position`,
                u.`status`, u.`last_login_at`, u.`created_at`, u.`updated_at`
         FROM   `user` u
         WHERE  u.`user_id` = i_user_id;

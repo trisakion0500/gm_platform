@@ -45,6 +45,7 @@ BEGIN
         SELECT 0 AS RESULT;
         SELECT u.`user_id`, u.`company_id`, u.`requested_project_id`,
                u.`login_id`, u.`password_hash`, u.`user_name`, u.`email`,
+               u.`phone_number`, u.`department`, u.`position`,
                u.`status`,
                COALESCE(MIN(ur.`role_code`), 40) AS role_code,
                u.`last_login_at`, u.`created_at`, u.`updated_at`
@@ -53,6 +54,7 @@ BEGIN
         WHERE  u.`user_id` = v_user_id
         GROUP BY u.`user_id`, u.`company_id`, u.`requested_project_id`,
                  u.`login_id`, u.`password_hash`, u.`user_name`, u.`email`,
+                 u.`phone_number`, u.`department`, u.`position`,
                  u.`status`, u.`last_login_at`, u.`created_at`, u.`updated_at`;
 
     END;

@@ -2,6 +2,7 @@ import { createHash } from "crypto";
 import { v4 as uuidv4 } from "uuid";
 import { UserPublicRow } from "../types";
 import { hashPassword, comparePassword } from "../utils/bcrypt";
+import { encrypt, decrypt } from "../utils/crypto";
 import { signAccessToken } from "../utils/jwt";
 import { formatDatetime } from "../utils/response";
 import { env } from "../config/env";
@@ -49,7 +50,10 @@ function hashRefreshToken(token: string): string {
  * @param password 평문 비밀번호
  * @param userName 사용자명
  * @param email 이메일
- * @returns 생성된 사용자 공개 정보 (password_hash 제외)
+ * @param phoneNumber 휴대폰 번호 (평문 — 서비스 레이어에서 암호화 후 저장)
+ * @param department 부서 (없으면 null)
+ * @param position 직급 (없으면 null)
+ * @returns 생성된 사용자 공개 정보 (password_hash 제외, phone_number는 평문으로 복호화됨)
  */
 export async function signup(
   companyId: number,
@@ -58,6 +62,9 @@ export async function signup(
   password: string,
   userName: string,
   email: string,
+  phoneNumber: string,
+  department: string | null,
+  position: string | null,
 ): Promise<UserPublicRow> {
   const passwordHash = await hashPassword(password);
   const after = await db.signupUser(
@@ -67,10 +74,13 @@ export async function signup(
     passwordHash,
     userName,
     email,
+    encrypt(phoneNumber),
+    department,
+    position,
   );
   audit.logCreate('user', String(after.user_id), after.user_name,
     after.company_id, null, after as unknown as Record<string, unknown>, after.user_id);
-  return after;
+  return { ...after, phone_number: decrypt(after.phone_number) };
 }
 
 /**
@@ -187,7 +197,7 @@ export async function getMe(userId: number): Promise<UserPublicRow> {
   const user = await db.getUserById(userId);
   if (!user)
     throw toAppError(ERROR_MAP.USER_NOT_FOUND);
-  return user;
+  return { ...user, phone_number: decrypt(user.phone_number) };
 }
 
 /**

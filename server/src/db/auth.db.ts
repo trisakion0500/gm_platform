@@ -12,6 +12,9 @@ import { toDBError, ERROR_MAP } from '../constants/errors';
  * @param passwordHash bcrypt 해시된 비밀번호
  * @param userName 사용자명
  * @param email 이메일
+ * @param phoneNumber 휴대폰 번호 (암호화된 값)
+ * @param department 부서 (없으면 null)
+ * @param position 직급 (없으면 null)
  * @returns 생성된 사용자 공개 정보 (password_hash 제외)
  */
 export async function signupUser(
@@ -21,8 +24,11 @@ export async function signupUser(
   passwordHash: string,
   userName: string,
   email: string,
+  phoneNumber: string,
+  department: string | null,
+  position: string | null,
 ): Promise<UserPublicRow> {
-  const [status, [data]] = await callSP('SP_SIGNUP_USER', [companyId, requestedProjectId, loginId, passwordHash, userName, email]);
+  const [status, [data]] = await callSP('SP_SIGNUP_USER', [companyId, requestedProjectId, loginId, passwordHash, userName, email, phoneNumber, department, position]);
   switch (status[0].RESULT) {
     case 31001: throw toDBError(ERROR_MAP.COMPANY_NOT_FOUND);
     case 31002: throw toDBError(ERROR_MAP.PROJECT_NOT_FOUND);

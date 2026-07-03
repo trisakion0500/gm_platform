@@ -290,7 +290,10 @@ Session 조회 기준은 access_token_jti를 사용한다.
   "login_id": "trisakion",
   "password": "생략",
   "user_name": "홍길동",
-  "email": "test@test.com"
+  "email": "test@test.com",
+  "phone_number": "010-1234-5678",
+  "department": "개발팀",
+  "position": "사원"
 }
 ```
 
@@ -302,6 +305,7 @@ user.status = 0
 ```
 
 `login_id`는 영문(a-z, A-Z), 숫자(0-9), `_`, `.`, `-`만 허용한다. 그 외 문자 포함 시 30002(INVALID_FORMAT).
+`phone_number`는 필수이며 서버에서 AES-256-CBC로 암호화되어 저장된다(평문 최대 20자). `department`/`position`은 선택 입력.
 
 ### Response
 

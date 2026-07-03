@@ -5,19 +5,22 @@ import { ERROR_MAP } from '../constants/errors';
 
 // 영문, 숫자, _, ., - 만 허용
 const LOGIN_ID_PATTERN = /^[a-zA-Z0-9_.-]+$/;
+const PHONE_NUMBER_MAX_LENGTH = 20; // 암호화 후 VARCHAR(255)에 저장되므로 평문은 넉넉히 제한
+const DEPARTMENT_MAX_LENGTH = 100;
+const POSITION_MAX_LENGTH = 100;
 
 /**
  * POST /auth/signup — 회원가입
  * @author trisakion
- * @param req body: { company_id, requested_project_id?, login_id, password, user_name, email }
+ * @param req body: { company_id, requested_project_id?, login_id, password, user_name, email, phone_number, department?, position? }
  * @param res 201 — 생성된 사용자 공개 정보
  * @param next 오류 전달
  * @returns void
  */
 export async function signup(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
-    const { company_id, requested_project_id, login_id, password, user_name, email } = req.body;
-    if (!company_id || !login_id || !password || !user_name || !email) {
+    const { company_id, requested_project_id, login_id, password, user_name, email, phone_number, department, position } = req.body;
+    if (!company_id || !login_id || !password || !user_name || !email || !phone_number) {
       fail(res, ERROR_MAP.REQUIRED_MISSING);
       return;
     }
@@ -25,7 +28,18 @@ export async function signup(req: Request, res: Response, next: NextFunction): P
       fail(res, ERROR_MAP.INVALID_FORMAT);
       return;
     }
-    const user = await authService.signup(company_id, requested_project_id ?? null, login_id, password, user_name, email);
+    if (
+      phone_number.length > PHONE_NUMBER_MAX_LENGTH ||
+      (department && department.length > DEPARTMENT_MAX_LENGTH) ||
+      (position && position.length > POSITION_MAX_LENGTH)
+    ) {
+      fail(res, ERROR_MAP.INVALID_FORMAT);
+      return;
+    }
+    const user = await authService.signup(
+      company_id, requested_project_id ?? null, login_id, password, user_name, email,
+      phone_number, department ?? null, position ?? null,
+    );
     success(res, {
       ...user,
       last_login_at: formatDatetime(user.last_login_at),

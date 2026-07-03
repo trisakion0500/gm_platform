@@ -6,7 +6,10 @@ CREATE PROCEDURE SP_SIGNUP_USER(
     IN  i_login_id              VARCHAR(100), -- 로그인 ID
     IN  i_password_hash         VARCHAR(255), -- 비밀번호 해시
     IN  i_user_name             VARCHAR(100), -- 사용자명
-    IN  i_email                 VARCHAR(200)  -- 이메일
+    IN  i_email                 VARCHAR(200), -- 이메일
+    IN  i_phone_number          VARCHAR(255), -- 휴대폰 번호 (암호화된 값, 앱 레이어에서 AES-256-CBC 암호화 후 전달)
+    IN  i_department            VARCHAR(100), -- 부서 (NULL 허용)
+    IN  i_position              VARCHAR(100)  -- 직급 (NULL 허용)
 ) COMMENT '회원가입 - user 테이블 INSERT (status=0: 가입승인대기)'
 BEGIN
 -- --------------------------------- --
@@ -57,8 +60,8 @@ BEGIN
 
         START TRANSACTION;
 
-            INSERT INTO `user` (`company_id`, `requested_project_id`, `login_id`, `password_hash`, `user_name`, `email`, `status`)
-            VALUES (i_company_id, i_requested_project_id, i_login_id, i_password_hash, i_user_name, i_email, 0);
+            INSERT INTO `user` (`company_id`, `requested_project_id`, `login_id`, `password_hash`, `user_name`, `email`, `phone_number`, `department`, `position`, `status`)
+            VALUES (i_company_id, i_requested_project_id, i_login_id, i_password_hash, i_user_name, i_email, i_phone_number, i_department, i_position, 0);
 
             SET v_user_id = LAST_INSERT_ID();
 
@@ -66,7 +69,7 @@ BEGIN
 
         SELECT 0 AS RESULT;
         SELECT u.`user_id`, u.`company_id`, u.`requested_project_id`,
-               u.`login_id`, u.`user_name`, u.`email`,
+               u.`login_id`, u.`user_name`, u.`email`, u.`phone_number`, u.`department`, u.`position`,
                u.`status`, u.`last_login_at`, u.`created_at`, u.`updated_at`
         FROM `user` u
         WHERE u.`user_id` = v_user_id;
