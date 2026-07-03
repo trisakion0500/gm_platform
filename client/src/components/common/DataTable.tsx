@@ -9,10 +9,11 @@ interface DataTableProps<T> {
   fetcher: (page: number, pageSize: number) => Promise<PaginatedResponse<T>>;
   rowKey: string | ((record: T) => Key);
   pageSize?: number;
+  onRowClick?: (record: T) => void;
 }
 
 // 필터가 바뀌어 재조회가 필요한 화면은 이 컴포넌트에 key prop을 바꿔 넘겨 강제로 재마운트시킨다
-function DataTable<T>({ columns, fetcher, rowKey, pageSize = 20 }: DataTableProps<T>) {
+function DataTable<T>({ columns, fetcher, rowKey, pageSize = 20, onRowClick }: DataTableProps<T>) {
   const [items, setItems] = useState<T[]>([]);
   const [page, setPage] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
@@ -35,6 +36,7 @@ function DataTable<T>({ columns, fetcher, rowKey, pageSize = 20 }: DataTableProp
       dataSource={items}
       rowKey={rowKey}
       loading={loading}
+      onRow={onRowClick ? (record) => ({ onClick: () => onRowClick(record), style: { cursor: 'pointer' } }) : undefined}
       pagination={{
         current: page,
         pageSize,

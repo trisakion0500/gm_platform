@@ -6,6 +6,9 @@ import AuthLayout from '../components/layout/AuthLayout';
 import MainLayout from '../components/layout/MainLayout';
 import AdminLayout from '../components/layout/AdminLayout';
 import LoginPage from '../pages/auth/LoginPage';
+import CompanyListPage from '../pages/admin/companies/CompanyListPage';
+import CompanyNewPage from '../pages/admin/companies/CompanyNewPage';
+import CompanyDetailPage from '../pages/admin/companies/CompanyDetailPage';
 import PagePlaceholder from '../pages/PagePlaceholder';
 import ForbiddenPage from '../pages/errors/ForbiddenPage';
 import NotFoundPage from '../pages/errors/NotFoundPage';
@@ -51,9 +54,11 @@ function AppRouter() {
               <Route index element={<AdminIndexRedirect />} />
 
               <Route element={<RoleGuard allow={[ROLE.SUPER_ADMIN, ROLE.DEVELOPER]} />}>
-                <Route path="companies" element={<PagePlaceholder title="회사 목록" />} />
-                <Route path="companies/new" element={<PagePlaceholder title="회사 등록" />} />
-                <Route path="companies/:company_id" element={<PagePlaceholder title="회사 상세" />} />
+                <Route path="companies" element={<CompanyListPage />} />
+                <Route element={<RoleGuard allow={[ROLE.SUPER_ADMIN]} />}>
+                  <Route path="companies/new" element={<CompanyNewPage />} />
+                </Route>
+                <Route path="companies/:company_id" element={<CompanyDetailPage />} />
                 <Route path="projects" element={<PagePlaceholder title="프로젝트 목록" />} />
                 <Route path="projects/new" element={<PagePlaceholder title="프로젝트 등록" />} />
                 <Route path="projects/:project_id" element={<PagePlaceholder title="프로젝트 상세" />} />
