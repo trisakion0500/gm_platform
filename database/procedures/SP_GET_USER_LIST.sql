@@ -14,7 +14,7 @@ BEGIN
 -- 작성 : 2026-06-29 trisakion
 -- 내용 : 사용자 목록 조회
 --        SUPER_ADMIN(10) : 전체 사용자, company_id/status 필터 적용
---        DEVELOPER(20)   : 본인 소속 회사 + status=1 사용자만
+--        DEVELOPER(20)   : 본인 소속 회사 사용자 전체(모든 status), status 필터로 좁혀볼 수 있음
 --        각 항목에 company 정보 포함
 --        페이지네이션 : total_count + items 순서로 반환
 -- --------------------------------- --
@@ -27,7 +27,7 @@ BEGIN
     FROM `user` u
     WHERE (i_status IS NULL OR u.`status` = i_status)
       AND (i_company_id IS NULL OR u.`company_id` = i_company_id)
-      AND (i_role_code = 10 OR (u.`company_id` = i_user_company_id AND u.`status` = 1));
+      AND (i_role_code = 10 OR u.`company_id` = i_user_company_id);
 
     SELECT u.`user_id`, u.`company_id`, c.`company_code`, c.`company_name`,
            u.`login_id`, u.`user_name`, u.`email`,
@@ -37,7 +37,7 @@ BEGIN
     JOIN `company` c ON c.`company_id` = u.`company_id`
     WHERE (i_status IS NULL OR u.`status` = i_status)
       AND (i_company_id IS NULL OR u.`company_id` = i_company_id)
-      AND (i_role_code = 10 OR (u.`company_id` = i_user_company_id AND u.`status` = 1))
+      AND (i_role_code = 10 OR u.`company_id` = i_user_company_id)
     ORDER BY u.`created_at` DESC
     LIMIT i_page_size OFFSET v_offset;
 

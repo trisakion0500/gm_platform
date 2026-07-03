@@ -4,7 +4,7 @@ import { toDBError, ERROR_MAP } from '../constants/errors';
 
 /**
  * 사용자 목록을 페이지네이션으로 조회한다.
- * SUPER_ADMIN은 전체, DEVELOPER는 본인 소속 회사 + status=1만 반환한다.
+ * SUPER_ADMIN은 전체, DEVELOPER는 본인 소속 회사 사용자 전체(모든 status)를 반환한다.
  * @author trisakion
  * @param companyId 회사 ID 필터 (null=전체, SUPER_ADMIN만 유효)
  * @param status 상태 필터 (null=전체, SUPER_ADMIN만 유효)

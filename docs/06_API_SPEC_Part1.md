@@ -457,7 +457,7 @@ GET /users
 | -------------------- | -------- | ------------------------------ |
 | company_id           | N        |                                |
 | requested_project_id | N        |                                |
-| status               | N        | DEVELOPER는 status = 1 만 조회 가능. 그 외 값 요청 시 빈 결과 반환 |
+| status               | N        | DEVELOPER도 자유롭게 필터 가능 (본인 소속 회사 스코핑은 별개로 적용) |
 | page                 | Y        |                                |
 | page_size            | Y        | 20/50/100 중 선택. 기본 20     |
 
@@ -484,7 +484,7 @@ GET /users?status=0
 ### Permission
 
 - SUPER_ADMIN : 전체 status 조회 가능
-- DEVELOPER : status = 1 만 조회 가능
+- DEVELOPER : 본인 소속 회사 사용자에 한해 전체 status 조회 가능
 
 ### Description
 

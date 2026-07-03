@@ -9,11 +9,11 @@ import * as audit from './logAudit.service';
  * 사용자 목록을 페이지네이션으로 조회한다.
  * @author trisakion
  * @param companyId 회사 ID 필터 (null=전체, SUPER_ADMIN만 유효)
- * @param status 상태 필터 (null=전체, SUPER_ADMIN만 유효)
+ * @param status 상태 필터 (null=전체, SUPER_ADMIN·DEVELOPER 모두 사용 가능)
  * @param page 페이지 번호 (1부터)
  * @param pageSize 페이지 크기 (20/50/100)
  * @param roleCode 요청자 역할 코드 (10=SUPER_ADMIN, 20=DEVELOPER)
- * @param userCompanyId 요청자 소속 회사 ID (DEVELOPER 스코핑용)
+ * @param userCompanyId 요청자 소속 회사 ID (DEVELOPER는 본인 소속 회사로 스코핑, status 제한은 없음)
  * @returns 페이지네이션 응답 { page, page_size, total_count, items }
  */
 export async function getUserList(

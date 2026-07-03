@@ -159,8 +159,8 @@ GM-Tool 프론트엔드 화면 목록 및 역할별 접근 권한 정의.
 ### SCR-030. 사용자 목록
 
 - **Route:** `/admin/users`
-- **접근:** SUPER_ADMIN, DEVELOPER (DEVELOPER: status=1 사용자만)
-- **주요 기능:** 사용자 목록 조회 (상태 필터, 페이지네이션), 탭 전환: 전체 목록 / 가입 승인 대기 (SUPER_ADMIN), 상세 이동
+- **접근:** SUPER_ADMIN, DEVELOPER (DEVELOPER: 본인 소속 회사 전체 status 조회 가능)
+- **주요 기능:** 사용자 목록 조회 (상태 필터, 페이지네이션), 탭 전환: 전체 목록 / 가입 승인 대기, 상세 이동
 - **연관 API:**
 
   | Method | Endpoint | 설명                                    |
