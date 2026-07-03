@@ -14,6 +14,8 @@ import ProjectNewPage from '../pages/admin/projects/ProjectNewPage';
 import ProjectDetailPage from '../pages/admin/projects/ProjectDetailPage';
 import UserListPage from '../pages/admin/users/UserListPage';
 import UserDetailPage from '../pages/admin/users/UserDetailPage';
+import AuditLogListPage from '../pages/admin/audit-logs/AuditLogListPage';
+import AuditLogDetailPage from '../pages/admin/audit-logs/AuditLogDetailPage';
 import PagePlaceholder from '../pages/PagePlaceholder';
 import ForbiddenPage from '../pages/errors/ForbiddenPage';
 import NotFoundPage from '../pages/errors/NotFoundPage';
@@ -73,8 +75,8 @@ function AppRouter() {
                 <Route path="users/:user_id" element={<UserDetailPage />} />
               </Route>
 
-              <Route path="audit-logs" element={<PagePlaceholder title="감사로그" />} />
-              <Route path="audit-logs/:log_audit_id" element={<PagePlaceholder title="감사로그 상세" />} />
+              <Route path="audit-logs" element={<AuditLogListPage />} />
+              <Route path="audit-logs/:log_audit_id" element={<AuditLogDetailPage />} />
             </Route>
           </Route>
         </Route>
