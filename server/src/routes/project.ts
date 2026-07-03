@@ -24,10 +24,10 @@ const router = Router();
  *             required: [company_id, project_code, project_name, api_base_url]
  *             properties:
  *               company_id:   { type: integer, example: 1 }
- *               project_code: { type: string, pattern: '^[a-zA-Z0-9_.-]+$', description: '영문, 숫자, _, ., - 만 허용', example: PROJECT_A }
- *               project_name: { type: string, example: 프로젝트A }
- *               api_base_url: { type: string, example: 'https://api.project-a.com' }
- *               description:  { type: string, nullable: true, example: 2D 횡스크롤 MMORPG }
+ *               project_code: { type: string, pattern: '^[a-zA-Z0-9_.-]+$', maxLength: 20, description: '영문, 숫자, _, ., - 만 허용, 최대 20자', example: PROJECT_A }
+ *               project_name: { type: string, maxLength: 100, example: 프로젝트A }
+ *               api_base_url: { type: string, maxLength: 255, example: 'https://api.project-a.com' }
+ *               description:  { type: string, nullable: true, maxLength: 1000, example: 2D 횡스크롤 MMORPG }
  *     responses:
  *       201:
  *         description: 등록 성공
@@ -178,10 +178,10 @@ router.get('/:project_id',   authenticate, requireRole(ROLE.SUPER_ADMIN, ROLE.DE
  *           schema:
  *             type: object
  *             properties:
- *               project_code: { type: string, pattern: '^[a-zA-Z0-9_.-]+$', description: '영문, 숫자, _, ., - 만 허용', example: PROJECT_A }
- *               project_name: { type: string, example: 프로젝트A }
- *               api_base_url: { type: string, example: 'https://api.project-a.com' }
- *               description:  { type: string, nullable: true, example: null }
+ *               project_code: { type: string, pattern: '^[a-zA-Z0-9_.-]+$', maxLength: 20, description: '영문, 숫자, _, ., - 만 허용, 최대 20자', example: PROJECT_A }
+ *               project_name: { type: string, maxLength: 100, example: 프로젝트A }
+ *               api_base_url: { type: string, maxLength: 255, example: 'https://api.project-a.com' }
+ *               description:  { type: string, nullable: true, maxLength: 1000, example: null }
  *               status:       { type: integer, description: '1=사용, 0=중지', example: 1 }
  *     responses:
  *       200:

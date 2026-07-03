@@ -23,9 +23,9 @@ const router = Router();
  *             type: object
  *             required: [company_code, company_name]
  *             properties:
- *               company_code: { type: string, pattern: '^[a-zA-Z0-9_.-]+$', description: '영문, 숫자, _, ., - 만 허용', example: COMPANY_A }
- *               company_name: { type: string, example: 회사A }
- *               description:  { type: string, nullable: true, example: 게임 회사 }
+ *               company_code: { type: string, pattern: '^[a-zA-Z0-9_.-]+$', maxLength: 20, description: '영문, 숫자, _, ., - 만 허용, 최대 20자', example: COMPANY_A }
+ *               company_name: { type: string, maxLength: 100, example: 회사A }
+ *               description:  { type: string, nullable: true, maxLength: 1000, example: 게임 회사 }
  *     responses:
  *       201:
  *         description: 등록 성공
@@ -164,9 +164,9 @@ router.get('/:company_id',   authenticate, requireRole(ROLE.SUPER_ADMIN, ROLE.DE
  *           schema:
  *             type: object
  *             properties:
- *               company_code: { type: string, pattern: '^[a-zA-Z0-9_.-]+$', description: '영문, 숫자, _, ., - 만 허용', example: COMPANY_A }
- *               company_name: { type: string, example: 회사A2 }
- *               description:  { type: string, nullable: true, example: null }
+ *               company_code: { type: string, pattern: '^[a-zA-Z0-9_.-]+$', maxLength: 20, description: '영문, 숫자, _, ., - 만 허용, 최대 20자', example: COMPANY_A }
+ *               company_name: { type: string, maxLength: 100, example: 회사A2 }
+ *               description:  { type: string, nullable: true, maxLength: 1000, example: null }
  *               status:       { type: integer, description: '1=사용, 0=중지', example: 1 }
  *     responses:
  *       200:

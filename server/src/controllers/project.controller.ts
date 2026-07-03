@@ -4,7 +4,10 @@ import { success, fail, formatDatetime } from '../utils/response';
 import { ProjectRow } from '../types';
 import { ERROR_MAP } from '../constants/errors';
 
-const PROJECT_CODE_PATTERN = /^[a-zA-Z0-9_.-]+$/;
+const PROJECT_CODE_PATTERN = /^[a-zA-Z0-9_.-]{1,20}$/;
+const PROJECT_NAME_MAX_LENGTH = 100;
+const API_BASE_URL_MAX_LENGTH = 255;
+const DESCRIPTION_MAX_LENGTH = 1000;
 
 /**
  * ProjectRow의 날짜 필드를 문자열로 변환한다.
@@ -40,6 +43,14 @@ export async function createProject(req: Request, res: Response, next: NextFunct
       return;
     }
     if (!PROJECT_CODE_PATTERN.test(project_code)) {
+      fail(res, ERROR_MAP.INVALID_FORMAT);
+      return;
+    }
+    if (
+      project_name.length > PROJECT_NAME_MAX_LENGTH ||
+      api_base_url.length > API_BASE_URL_MAX_LENGTH ||
+      (description && description.length > DESCRIPTION_MAX_LENGTH)
+    ) {
       fail(res, ERROR_MAP.INVALID_FORMAT);
       return;
     }
@@ -133,6 +144,14 @@ export async function updateProject(req: Request, res: Response, next: NextFunct
     }
     const { project_code, project_name, api_base_url, description, status } = req.body;
     if (project_code && !PROJECT_CODE_PATTERN.test(project_code)) {
+      fail(res, ERROR_MAP.INVALID_FORMAT);
+      return;
+    }
+    if (
+      (project_name && project_name.length > PROJECT_NAME_MAX_LENGTH) ||
+      (api_base_url && api_base_url.length > API_BASE_URL_MAX_LENGTH) ||
+      (description && description.length > DESCRIPTION_MAX_LENGTH)
+    ) {
       fail(res, ERROR_MAP.INVALID_FORMAT);
       return;
     }
