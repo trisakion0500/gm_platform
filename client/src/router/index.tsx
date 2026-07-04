@@ -20,6 +20,7 @@ import CodeGroupPage from '../pages/admin/code-groups/CodeGroupPage';
 import ApiListPage from '../pages/admin/apis/ApiListPage';
 import ApiNewPage from '../pages/admin/apis/ApiNewPage';
 import ApiDetailPage from '../pages/admin/apis/ApiDetailPage';
+import ApiWorkspacePage from '../pages/main/apis/ApiWorkspacePage';
 import PagePlaceholder from '../pages/PagePlaceholder';
 import ForbiddenPage from '../pages/errors/ForbiddenPage';
 import NotFoundPage from '../pages/errors/NotFoundPage';
@@ -49,8 +50,7 @@ function AppRouter() {
           <Route path="/403" element={<ForbiddenPage />} />
 
           <Route element={<MainLayout />}>
-            <Route path="/apis" element={<PagePlaceholder title="API 목록" />} />
-            <Route path="/apis/:api_id" element={<PagePlaceholder title="API 상세" />} />
+            <Route path="/apis" element={<ApiWorkspacePage />} />
             <Route path="/executions" element={<PagePlaceholder title="실행이력" />} />
             <Route path="/executions/pending" element={<PagePlaceholder title="승인대기" />} />
             <Route path="/executions/:api_execution_id" element={<PagePlaceholder title="실행이력 상세" />} />

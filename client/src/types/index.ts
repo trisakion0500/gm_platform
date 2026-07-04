@@ -187,8 +187,8 @@ export interface ApiExecutionRow {
   request_user_id: number;
   approve_user_id: number | null;
   status: number;
-  request_json?: string;
-  response_data?: string | null;
+  request_json?: Record<string, unknown>;
+  response_data?: unknown;
   reject_reason: string | null;
   error_message: string | null;
   requested_at: string;

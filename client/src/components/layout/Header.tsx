@@ -8,6 +8,7 @@ import * as userRoleApi from '../../api/userRole.api';
 import { useAuth } from '../../hooks/useAuth';
 import { usePermission } from '../../hooks/usePermission';
 import { useGlobalStore } from '../../stores/globalStore';
+import { useApiWorkspaceStore } from '../../stores/apiWorkspaceStore';
 import { ROLE, ROLE_LABEL } from '../../types';
 
 const { Header: AntHeader } = Layout;
@@ -35,6 +36,7 @@ function Header() {
   const selectProject = useGlobalStore((state) => state.selectProject);
   const setProjectRoleCode = useGlobalStore((state) => state.setProjectRoleCode);
   const projectRoleCode = useGlobalStore((state) => state.projectRoleCode);
+  const resetApiWorkspace = useApiWorkspaceStore((state) => state.reset);
 
   // 회사/프로젝트 목록은 로그인 상태에서 1회 로드 — 역할별 스코핑은 서버가 이미 처리(SA: 전체, 그 외: 보유분만)
   useEffect(() => {
@@ -67,6 +69,12 @@ function Header() {
     if (!selectedProjectId)
       return;
     userRoleApi.getMyRole(selectedProjectId).then(setProjectRoleCode);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedProjectId]);
+
+  // 프로젝트가 바뀌면 이전 프로젝트의 API 작업영역(열어둔 패널·입력값)은 더 이상 의미가 없으므로 초기화
+  useEffect(() => {
+    resetApiWorkspace();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedProjectId]);
 
