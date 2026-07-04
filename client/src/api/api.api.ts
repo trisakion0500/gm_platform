@@ -1,5 +1,5 @@
 import axiosInstance, { unwrap } from './axios';
-import type { ApiDetail, ApiRequestRow, ApiResponseRow, ApiRow, PaginatedResponse } from '../types';
+import type { ApiDetail, ApiExecutionRow, ApiRequestRow, ApiResponseRow, ApiRow, PaginatedResponse } from '../types';
 
 export function getApiList(
   page: number,
@@ -76,11 +76,6 @@ export function createApiResponse(apiId: number, payload: CreateApiResponsePaylo
   return axiosInstance.post(`/apis/${apiId}/responses`, payload).then(unwrap<ApiResponseRow>);
 }
 
-export interface ExecuteApiResult {
-  api_execution_id: number;
-  status: number;
-}
-
-export function executeApi(apiId: number, params: Record<string, unknown>): Promise<ExecuteApiResult> {
-  return axiosInstance.post(`/apis/${apiId}/execute`, params).then(unwrap<ExecuteApiResult>);
+export function executeApi(apiId: number, requestJson: Record<string, unknown>): Promise<ApiExecutionRow> {
+  return axiosInstance.post(`/apis/${apiId}/execute`, { request_json: requestJson }).then(unwrap<ApiExecutionRow>);
 }

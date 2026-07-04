@@ -30,6 +30,6 @@ export function rejectApiExecution(apiExecutionId: number, rejectReason?: string
   return axiosInstance.post(`/api-executions/${apiExecutionId}/reject`, { reject_reason: rejectReason }).then(unwrap<null>);
 }
 
-export function cancelApiExecution(apiExecutionId: number): Promise<null> {
-  return axiosInstance.post(`/api-executions/${apiExecutionId}/cancel`).then(unwrap<null>);
+export function cancelApiExecution(apiExecutionId: number, rejectReason: string): Promise<null> {
+  return axiosInstance.post(`/api-executions/${apiExecutionId}/cancel`, { reject_reason: rejectReason }).then(unwrap<null>);
 }
