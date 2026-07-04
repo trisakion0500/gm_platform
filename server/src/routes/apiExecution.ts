@@ -230,12 +230,14 @@ router.post('/:api_execution_id/approve', authenticate, requireRole(ROLE.SUPER_A
  *         required: true
  *         schema: { type: integer, example: 10 }
  *     requestBody:
+ *       required: true
  *       content:
  *         application/json:
  *           schema:
  *             type: object
+ *             required: [reject_reason]
  *             properties:
- *               reject_reason: { type: string, nullable: true, example: 파라미터 오류로 반려합니다. }
+ *               reject_reason: { type: string, example: 파라미터 오류로 반려합니다. }
  *     responses:
  *       200:
  *         description: 반려 완료
@@ -270,6 +272,15 @@ router.post('/:api_execution_id/reject',  authenticate, requireRole(ROLE.SUPER_A
  *         name: api_execution_id
  *         required: true
  *         schema: { type: integer, example: 10 }
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [reject_reason]
+ *             properties:
+ *               reject_reason: { type: string, example: 사용자 요청으로 취소합니다. }
  *     responses:
  *       200:
  *         description: 취소 완료

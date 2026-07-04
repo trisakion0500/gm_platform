@@ -6,6 +6,8 @@ import * as db from '../db/apiExecution.db';
 /**
  * 외부 API를 HTTP POST로 호출하고 결과를 api_execution에 반영한다.
  * 10초 타임아웃 초과 시 error_message = 'Timeout Response' 로 FAILED 처리한다.
+ * HTTP 자체는 200이어도 외부 API가 자체 응답 규약({ result, message, data })의 result를
+ * 0이 아닌 값으로 내려주면 비즈니스 실패로 간주해 FAILED 처리하고 message를 error_message에 담는다.
  * 이 함수는 절대 throw하지 않는다 — 호출 실패를 예외로 전파하면 실행 이력이
  * PENDING(10) 또는 APPROVED(20) 상태에 영구적으로 갇히기 때문이다.
  * @param executionId 실행 이력 ID
@@ -15,6 +17,12 @@ import * as db from '../db/apiExecution.db';
 async function callExternalApi(executionId: number, url: string, body: unknown): Promise<void> {
   try {
     const response = await axios.post(url, body, { timeout: 10000 });
+    const resultCode = response.data?.result;
+    if (resultCode !== undefined && resultCode !== 0) {
+      const msg = typeof response.data?.message === 'string' ? response.data.message : `외부 API 오류 (result=${resultCode})`;
+      await db.updateApiExecutionResult(executionId, 50, null, msg);
+      return;
+    }
     await db.updateApiExecutionResult(executionId, 40, JSON.stringify(response.data), null);
   } catch (err: any) {
     const isTimeout = axios.isAxiosError(err) && (err.code === 'ECONNABORTED' || err.code === 'ERR_CANCELED');

@@ -392,14 +392,18 @@ router.post('/:api_id/responses', authenticate, requireRole(ROLE.SUPER_ADMIN, RO
  *         application/json:
  *           schema:
  *             type: object
- *             description: 'API 요청 파라미터를 key-value 형태로 전달. 키는 parameter_name과 일치해야 한다.'
- *             example:
- *               character_id: 12345
- *               item_id: 9001
- *               quantity: 1
+ *             required: [request_json]
+ *             properties:
+ *               request_json:
+ *                 type: object
+ *                 description: 'API 요청 파라미터를 key-value 형태로 전달. 키는 parameter_name과 일치해야 한다.'
+ *                 example:
+ *                   character_id: 12345
+ *                   item_id: 9001
+ *                   quantity: 1
  *     responses:
  *       201:
- *         description: 실행 완료 또는 PENDING 생성
+ *         description: 실행 완료(SUCCESS/FAILED) 또는 PENDING 생성 — 실행 이력(api_execution) 전체를 반환한다.
  *         content:
  *           application/json:
  *             example:
