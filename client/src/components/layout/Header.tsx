@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { Avatar, Button, Dropdown, Layout, Select, Space, Typography } from 'antd';
 import { UserOutlined } from '@ant-design/icons';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import * as companyApi from '../../api/company.api';
 import * as projectApi from '../../api/project.api';
 import * as userRoleApi from '../../api/userRole.api';
@@ -12,11 +12,18 @@ import { ROLE, ROLE_LABEL } from '../../types';
 
 const { Header: AntHeader } = Layout;
 
+// 관리 메뉴의 "목록" 화면 — 이 경로들에서만 헤더의 회사/프로젝트 선택 변경을 허용한다.
+// 그 외 관리 화면(등록/상세/수정, code-groups 편집 그리드)은 작업 도중 컨텍스트가
+// 바뀌는 걸 막기 위해 잠근다. 관리 메뉴가 아닌 화면(/apis, /executions 등)은 대상 아님.
+const ADMIN_LIST_PATHS = ['/admin/companies', '/admin/projects', '/admin/users', '/admin/apis', '/admin/audit-logs'];
+
 function Header() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user, roleCode, logout } = useAuth();
   const canManage = usePermission([ROLE.SUPER_ADMIN, ROLE.DEVELOPER, ROLE.APPROVER]);
   const isSuperAdmin = roleCode === ROLE.SUPER_ADMIN;
+  const isAdminNonListPage = location.pathname.startsWith('/admin') && !ADMIN_LIST_PATHS.includes(location.pathname);
 
   const companyList = useGlobalStore((state) => state.companyList);
   const projectList = useGlobalStore((state) => state.projectList);
@@ -84,7 +91,7 @@ function Header() {
       <Select
         style={{ width: 160 }}
         value={selectedCompanyId ?? (isSuperAdmin ? 'ALL' : undefined)}
-        disabled={!isSuperAdmin}
+        disabled={!isSuperAdmin || isAdminNonListPage}
         options={[
           ...(isSuperAdmin ? [{ value: 'ALL', label: '전체 회사' }] : []),
           ...companyList.map((c) => ({ value: c.company_id, label: c.company_name })),
@@ -95,6 +102,7 @@ function Header() {
       <Select
         style={{ width: 200 }}
         value={selectedProjectId ?? (isSuperAdmin ? 'ALL' : undefined)}
+        disabled={isAdminNonListPage}
         options={[
           ...(isSuperAdmin ? [{ value: 'ALL', label: '전체 프로젝트' }] : []),
           ...projectsForCompany.map((p) => ({ value: p.project_id, label: p.project_name })),
