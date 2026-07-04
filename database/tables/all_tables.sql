@@ -301,8 +301,8 @@ CREATE TABLE `project` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='서비스 프로젝트 정보';
 INSERT INTO `project` (`project_id`, `company_id`, `project_code`, `project_name`, `api_base_url`, `description`, `status`, `created_at`, `updated_at`)
 VALUES
-(1, 1, 'ADMIN_PROJECT', 'Administrator Company Default Project', 'https://127.0.0.1:3000', NULL, 1, '1970-01-01 00:00:00', '1970-01-01 00:00:00'),
-(2, 2, 'DEV_PROJECT',   'Developer Company Default Project',     'https://127.0.0.1:3000', NULL, 1, '1970-01-01 00:00:00', '1970-01-01 00:00:00');
+(1, 1, 'ADMIN_PROJECT', 'Administrator Company Default Project', 'http://127.0.0.1:3000', NULL, 1, '1970-01-01 00:00:00', '1970-01-01 00:00:00'),
+(2, 2, 'DEV_PROJECT',   'Developer Company Default Project',     'http://127.0.0.1:3000', NULL, 1, '1970-01-01 00:00:00', '1970-01-01 00:00:00');
 SET FOREIGN_KEY_CHECKS = 1;
 
 --  ------------------------------------------------------------------------------------------------------------ --
