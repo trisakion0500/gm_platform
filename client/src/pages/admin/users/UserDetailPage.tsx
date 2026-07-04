@@ -62,13 +62,14 @@ const ROLE_COLUMNS: ColumnsType<UserRoleRow> = [
   { title: '등록일', dataIndex: 'created_at' },
 ];
 
-type ConfirmAction = 'approve' | 'reject' | 'suspend' | 'resume';
+type ConfirmAction = 'approve' | 'reject' | 'suspend' | 'resume' | 'reopen';
 
 const CONFIRM_CONTENT: Record<ConfirmAction, { title: string; content: string; danger?: boolean }> = {
   approve: { title: '가입 승인', content: '이 사용자의 가입을 승인하시겠습니까?' },
   reject: { title: '가입 반려', content: '이 사용자의 가입을 반려하시겠습니까?', danger: true },
   suspend: { title: '사용 중지', content: '이 사용자를 사용 중지 처리하시겠습니까?', danger: true },
   resume: { title: '재개', content: '이 사용자를 다시 정상 상태로 전환하시겠습니까?' },
+  reopen: { title: '승인대기로 변경', content: '반려된 이 사용자를 다시 승인대기 상태로 되돌리시겠습니까?' },
 };
 
 function UserDetailPage() {
@@ -186,6 +187,8 @@ function UserDetailPage() {
         await userApi.updateUser(Number(user_id), { status: 3 });
       else if (confirmAction === 'resume')
         await userApi.updateUser(Number(user_id), { status: 1 });
+      else if (confirmAction === 'reopen')
+        await userApi.updateUser(Number(user_id), { status: 0 });
       setConfirmAction(null);
       loadUser();
     } catch (err) {
@@ -325,6 +328,7 @@ function UserDetailPage() {
                   사용중지
                 </Button>
               )}
+              {user.status === 2 && <Button onClick={() => setConfirmAction('reopen')}>승인대기로 변경</Button>}
               {user.status === 3 && <Button onClick={() => setConfirmAction('resume')}>재개</Button>}
               <Button onClick={() => setResetPasswordOpen(true)}>비밀번호 초기화</Button>
               <Button onClick={() => setEditing(true)}>수정</Button>
