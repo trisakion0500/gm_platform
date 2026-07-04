@@ -27,10 +27,11 @@ GM-Tool 프론트엔드 화면 목록 및 역할별 접근 권한 정의.
 | SCR-040 | 감사 로그 목록      | `/admin/audit-logs`                   | O           | O         | O        | -        | SUPER_ADMIN 외: 자사만                                  |
 | SCR-041 | 감사 로그 상세      | `/admin/audit-logs/:log_audit_id`     | O           | O         | O        | -        |                                                         |
 | SCR-130 | 코드그룹·코드아이템 | `/admin/code-groups`            | O           | O         | -        | -        | 헤더 프로젝트 선택 필요. 엑셀형 그리드 한 페이지에서 조회·등록·수정(등록/상세 화면 분리 없음). APPROVER/OPERATOR는 이 화면 접근 불가 — `GET /code-groups/active-with-items`로 API 화면에서 코드값만 참조 |
+| SCR-140 | API 목록(관리)      | `/admin/apis`                   | O           | O         | -        | -        | 헤더 프로젝트 선택 필요, api_stage/상태 필터                |
+| SCR-141 | API 등록(관리)      | `/admin/apis/new`               | O           | O         | -        | -        |                                                         |
+| SCR-142 | API 상세·수정(관리) | `/admin/apis/:api_id`           | O           | O         | -        | -        | Request/Response 파라미터 등록·수정 포함(Tabs: 기본정보/Request/Response) |
 | **비관리 메뉴** |
-| SCR-100 | API 목록            | `/apis`                         | O           | O         | O        | O        | project_id 선택 필요                                    |
-| SCR-101 | API 등록            | `/apis/new`                     | O           | O         | -        | -        |                                                         |
-| SCR-102 | API 상세·수정       | `/apis/:api_id`                 | O           | O         | O        | O        | 수정·파라미터관리: SUPER_ADMIN/DEVELOPER만; 실행: api_stage별 권한 |
+| SCR-100 | API (실행 워크스페이스) | `/apis`                     | O           | O         | O        | O        | List/New/Detail 패턴 아님 — 사이드바에서 API를 체크박스로 다중 선택하면 선택 순서대로 우측에 실행 패널(Request 입력폼+Response 결과)이 열림. project_id 선택 필요 |
 | SCR-110 | API 실행 이력 목록  | `/executions`                   | O           | O         | O        | O        | OPERATOR: 본인 건만; project_id 선택 필요               |
 | SCR-111 | API 실행 이력 상세  | `/executions/:api_execution_id` | O           | O         | O        | O        |                                                         |
 | SCR-120 | 승인 대기 목록      | `/executions/pending`           | O           | O         | O        | -        | project_id 선택 필요                                    |
@@ -236,25 +237,22 @@ GM-Tool 프론트엔드 화면 목록 및 역할별 접근 권한 정의.
 
 ---
 
-## 2.3 비관리 메뉴
+### SCR-140. API 목록(관리)
 
-### SCR-100. API 목록
-
-- **Route:** `/apis`
-- **접근:** SUPER_ADMIN, DEVELOPER, APPROVER, OPERATOR
-- **주요 기능:** 프로젝트 선택, API 목록 조회 (api_stage / 상태 필터, 페이지네이션), 등록 버튼 (SUPER_ADMIN/DEVELOPER), 상세 이동
+- **Route:** `/admin/apis`
+- **접근:** SUPER_ADMIN, DEVELOPER
+- **주요 기능:** 헤더 프로젝트 선택 사용(화면 자체 선택 없음), API 목록 조회(api_stage / 상태 필터, 페이지네이션), 등록 버튼, 상세 이동
 - **연관 API:**
 
   | Method | Endpoint  | 설명                       |
   | ------ | --------- | -------------------------- |
-  | GET    | /projects | 프로젝트 선택 목록         |
   | GET    | /apis     | API 목록 (project_id 필수) |
 
 ---
 
-### SCR-101. API 등록
+### SCR-141. API 등록(관리)
 
-- **Route:** `/apis/new`
+- **Route:** `/admin/apis/new`
 - **접근:** SUPER_ADMIN, DEVELOPER
 - **주요 기능:** 프로젝트 선택, API 코드 / 이름 / 엔드포인트 / 설명 / 승인 필요 여부 / 응답 뷰 타입 / 표시 순서 입력
 - **연관 API:**
@@ -266,24 +264,43 @@ GM-Tool 프론트엔드 화면 목록 및 역할별 접근 권한 정의.
 
 ---
 
-### SCR-102. API 상세·수정
+### SCR-142. API 상세·수정(관리)
 
-- **Route:** `/apis/:api_id`
-- **접근:** SUPER_ADMIN, DEVELOPER, APPROVER, OPERATOR (수정·파라미터관리·실행: api_stage 및 역할 기준 제한)
-- **주요 기능:** API 정보 조회·수정 (SUPER_ADMIN/DEVELOPER), Request / Response 파라미터 등록·수정 (SUPER_ADMIN/DEVELOPER), API 실행 (api_stage별 접근 역할 다름)
-- **비고:** 핵심 필드 수정 시 api_stage 자동 개발(20) 롤백
+- **Route:** `/admin/apis/:api_id`
+- **접근:** SUPER_ADMIN, DEVELOPER
+- **주요 기능:** Tabs(기본정보/Request/Response) 구성. 기본정보 조회·수정, Request/Response 파라미터 등록·수정
+- **비고:** 핵심 필드(`api_code`/`endpoint`/`is_required_approval`/`response_view_type`) 수정 시 api_stage 자동 개발(20) 롤백
 - **연관 API:**
 
   | Method | Endpoint                         | 설명                                |
-  | ------ | -------------------------------- | ----------------------------------- |
+  | ------ | --------------------------------- | ----------------------------------- |
   | GET    | /apis/{api_id}                   | API 상세 (requests, responses 포함) |
   | PATCH  | /apis/{api_id}                   | API 수정                            |
   | POST   | /apis/{api_id}/requests          | Request 파라미터 등록               |
   | PATCH  | /api-requests/{api_request_id}   | Request 파라미터 수정               |
   | POST   | /apis/{api_id}/responses         | Response 파라미터 등록              |
   | PATCH  | /api-responses/{api_response_id} | Response 파라미터 수정              |
-  | POST   | /apis/{api_id}/execute           | API 실행                            |
-  | GET    | /code-groups/{id}/active-items   | SELECT / RADIO / CHECKBOX 옵션 조회 |
+
+---
+
+## 2.3 비관리 메뉴
+
+### SCR-100. API (실행 워크스페이스)
+
+- **Route:** `/apis`
+- **접근:** SUPER_ADMIN, DEVELOPER, APPROVER, OPERATOR
+- **List/New/Detail 3분할 패턴이 아닌 예외 화면** — 코드그룹(SCR-130)과 마찬가지로 등록·상세를 분리하지 않고, 좌측 사이드바 "API" 메뉴를 펼치면 현재 선택된 프로젝트의 활성 API가 체크박스 목록으로 나타난다(`api_stage`별 실행 가능 역할에 안 맞는 API는 목록에서 아예 숨김 — `11_MENU_PERMISSION.md` §3.2 기준). 체크하면 우측 작업영역에 해당 API 패널이 선택한 순서대로 열리고, 해제(체크 해제 또는 패널의 X 버튼)하면 닫힌다 — 좌측 체크박스와 우측 패널 상태는 항상 동기화.
+- **패널 구성**: API Name(승인 필요 API면 OPERATOR에게만 "승인필요" 태그 표시) → Request(파라미터별 `component_type` 입력 컨트롤 + 실행 버튼) → Response(실행 전엔 필드 정의만, 실행 후엔 `response_view_type`에 따라 KEY_VALUE/GRID로 실제 결과 표시, GRID는 20행 초과 시 스크롤).
+- **응답 처리**: 외부 API는 모두 `{ result, message, data: [...] }` 봉투로 응답 — `data`는 항상 배열이며 KEY_VALUE는 `data[0]`, GRID는 `data` 전체를 사용. `result`가 0이 아니면(HTTP 200이어도) 실행이력을 FAILED로 처리하고 `message`를 오류로 표시.
+- **상태 유지**: 열린 패널·입력값·실행결과는 zustand 스토어(`apiWorkspaceStore`)에 보관되어 다른 메뉴로 이동했다 돌아와도 유지되고, 로그아웃 또는 프로젝트 변경 시 초기화됨.
+- **연관 API:**
+
+  | Method | Endpoint                                       | 설명                                          |
+  | ------ | ----------------------------------------------- | --------------------------------------------- |
+  | GET    | /apis                                           | 프로젝트의 활성 API 목록 (project_id 필수)   |
+  | GET    | /apis/{api_id}                                  | API 상세 (requests, responses 포함)          |
+  | GET    | /code-groups/active-with-items?project_id={id} | SELECT/RADIO/CHECKBOX 옵션 + 응답 코드 치환용 |
+  | POST   | /apis/{api_id}/execute                          | API 실행 (api_stage/역할 기준 제한)          |
 
 ---
 

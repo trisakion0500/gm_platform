@@ -34,11 +34,14 @@
 
 ## 1.3 그룹 C — API 정의 · 실행 · 코드그룹
 
+> SCR-100~102는 최초 계획 시 하나의 `/apis` 화면(권한별 노출 제어)으로 구상했으나, 코드그룹과 동일한 이유(정의 화면 자체를 편집 불가 역할에게 보여줄 필요가 없음)로 정의(CRUD)와 실행(워크스페이스)을 분리했다. 실제 Route/ID는 [12_SCREEN_LIST.md](./12_SCREEN_LIST.md) 최신본 기준.
+
 | 화면 ID | 화면명 | Route |
 |---|---|---|
-| SCR-100 | API 목록 | `/apis` |
-| SCR-101 | API 등록 | `/apis/new` |
-| SCR-102 | API 상세·수정 (파라미터·실행 포함) | `/apis/:api_id` |
+| SCR-140 | API 목록(관리) | `/admin/apis` |
+| SCR-141 | API 등록(관리) | `/admin/apis/new` |
+| SCR-142 | API 상세·수정(관리, 파라미터 포함) | `/admin/apis/:api_id` |
+| SCR-100 | API (실행 워크스페이스 — List/New/Detail 아님) | `/apis` |
 | SCR-110 | 실행 이력 목록 | `/executions` |
 | SCR-111 | 실행 이력 상세 | `/executions/:api_execution_id` |
 | SCR-120 | 승인 대기 목록 | `/executions/pending` |
@@ -70,7 +73,8 @@
 - 페이지네이션 미적용(배열 그대로) API: `GET /user-roles`, `GET /apis/:id`(requests/responses 포함 상세객체), `GET /code-groups?project_id=`, `GET /code-items?code_group_id=`, `GET /code-groups/:id/active-items`, `GET /code-groups/active-with-items?project_id=`(신설 — 프로젝트의 활성 코드그룹+아이템 일괄 조회, 전 역할 허용. `/admin/code-groups`에 접근 못하는 APPROVER/OPERATOR가 API 화면에서 코드값 참조용으로 사용)
 - `/auth/me` 응답에는 `role_code` 없음(user 테이블 원본 컬럼만) — role_code는 프로젝트마다 다를 수 있는 값이라 로그인/재발급 응답에서만 얻을 수 있다. company_code/company_name도 없어 회사명 필요 시 globalStore의 companyList에서 조인
 - 날짜 필드는 `'YYYY-MM-DD HH:mm:ss'` 문자열
-- role_code: 10=SUPER_ADMIN, 20=DEVELOPER, 30=APPROVER, 40=OPERATOR. 로그인 세션의 role_code는 사용자가 가진 모든 프로젝트 중 최고 권한(MIN)이라 프로젝트마다 실제 권한과 다를 수 있음(예: A프로젝트 DEVELOPER·B프로젝트 OPERATOR → 세션 role_code는 20). API/CodeGroup/CodeItem 쓰기 API는 서버가 project_id별 실제 user_role을 재검증하므로, 사이드바·버튼 노출은 세션 role_code만으로 판단하면 "버튼은 보이는데 저장 시 20001" 같은 불일치가 생길 수 있다 — Stage 5(API/코드그룹 화면)에서 선택된 프로젝트 기준 실제 역할 조회 방법(아래 항목) 반영 여부를 결정할 것
+- role_code: 10=SUPER_ADMIN, 20=DEVELOPER, 30=APPROVER, 40=OPERATOR. 로그인 세션의 role_code는 사용자가 가진 모든 프로젝트 중 최고 권한(MIN)이라 프로젝트마다 실제 권한과 다를 수 있음(예: A프로젝트 DEVELOPER·B프로젝트 OPERATOR → 세션 role_code는 20). API/CodeGroup/CodeItem 쓰기 API는 서버가 project_id별 실제 user_role을 재검증하므로, 사이드바·버튼 노출은 세션 role_code만으로 판단하면 "버튼은 보이는데 저장 시 20001" 같은 불일치가 생길 수 있다.
+  - **Stage 5에서 결정**: 코드그룹은 편집 화면 자체를 관리 라우트로 옮겨 해결(§1.3 참고). API 실행 워크스페이스의 `api_stage`별 목록 필터(`Sidebar.tsx`의 `canExecuteStage`)는 오히려 **세션 role_code를 그대로 사용**하기로 했다 — `apiExecution.service.ts`의 실행 검사 자체가 `req.user.role_code`(세션값)를 쓰므로, 화면에 "보이는 것"과 "실행하면 성공하는 것"을 일치시키려면 화면도 같은 값을 기준으로 필터링해야 하기 때문이다(더 정확한 `projectRoleCode`를 쓰면 오히려 서버 판정과 어긋나는 항목이 생길 수 있음). 실행 API 자체의 프로젝트별 재검증 부재는 여전히 남은 스코핑 이슈(CLAUDE.md 참고).
 - **회사·프로젝트 선택 콤보박스 데이터**: `GET /companies`는 이제 4개 역할 모두 호출 가능(SUPER_ADMIN=전체, 그 외=본인 회사만). `GET /projects`는 SUPER_ADMIN 외에는 "본인이 활성 user_role을 가진 프로젝트만" 반환(같은 회사 소속이어도 role 미배정 프로젝트는 제외) — globalStore의 companyList/projectList를 이 두 API로 그대로 채우면 됨.
 - **선택된 프로젝트의 실제 role_code**: `GET /user-roles/me?project_id=`로 조회한다(신설). SUPER_ADMIN은 배정 없이 항상 `role_code: 10`, 그 외는 활성 user_role 없으면 `role_code: null`. 프로젝트 변경 시(회사 변경 시 첫 프로젝트 자동 선택 포함) 이 API를 다시 호출해 globalStore의 현재 role_code를 갱신하고, 사이드바·버튼 노출은 세션 role_code가 아니라 이 값을 기준으로 판단한다.
 
@@ -141,14 +145,18 @@
 - `AuditLogListPage`는 로그ID/테이블/작업유형/기간 필터를 제공하며, 회사·프로젝트 필터는 Stage 3와 동일하게 헤더 전역 선택을 그대로 사용(감사로그는 프로젝트 선택도 필터로 적용). 목록·상세 모두 `project_id`/`created_by` 원시 PK 대신 `SP_GET_LOG_AUDIT_LIST`/`SP_GET_LOG_AUDIT`가 `project`/`user` 테이블을 LEFT JOIN해 반환하는 `project_name`/`created_by_name`을 표시(작업자 필터는 실효성이 낮아 제거)
 - **검증 완료**: 가입승인/반려, 비밀번호 강제초기화, 정지↔재개(1↔3) 전이, 권한부여(User Role 등록) 각각을 UI로 수행 후 감사로그 목록/상세에서 올바른 action_type(10=생성/20=수정/30=상태변경)으로 즉시 기록되는지 API·UI 양쪽에서 교차 확인
 
-## Stage 5 — 그룹 C: API 정의 · 실행 · 코드그룹
+## Stage 5 — 그룹 C: API 정의 · 실행 · 코드그룹 (코드그룹·API 정의·API 실행 워크스페이스 완료 / 실행이력·승인대기 화면 미착수)
 
 - `api/{api,apiRequest,apiResponse,apiExecution,codeGroup,codeItem}.api.ts` (코드그룹/아이템은 §2.1의 쿼리 파라미터 방식 라우트로 구현)
-- `pages/admin/code-groups/*` → `pages/main/apis/*`(Tabs: 기본정보/Request/Response/실행) → `pages/main/executions/*`(+Pending)
+- `pages/admin/code-groups/*`, `pages/admin/apis/*`(List/New/Detail, Tabs: 기본정보/Request/Response) → `pages/main/apis/*`(체크박스 워크스페이스) → `pages/main/executions/*`(+Pending, 미착수)
 - **코드그룹·코드아이템은 List/New/Detail 3화면 패턴을 따르지 않고 `CodeGroupPage.tsx` 한 페이지의 엑셀형 편집 그리드로 구현, 관리 라우트(`/admin/code-groups`)에 위치** — 공통코드 성격상 다건을 빠르게 등록·수정하는 게 목적이라 페이지 이동 없이 처리하는 게 낫다는 판단이고, 편집이 SUPER_ADMIN/DEVELOPER 전용이라 회사/프로젝트/사용자와 동일한 관리 라우트 가드(`RoleGuard allow={[SUPER_ADMIN, DEVELOPER]}`)를 재사용했다(처음엔 메인 메뉴에 전 역할 대상으로 뒀다가, 편집 권한 있는 역할만 접근할 수 있는 관리 화면이라는 성격에 맞춰 이동함). 프로젝트는 화면 자체 선택 없이 헤더 전역 선택(`globalStore.selectedProjectId`)을 그대로 사용. 그리드에 "행 추가"로 그룹ID 없는 신규 행(코드값 포함 모든 필드 편집 가능)을 만들고, 셀 변경은 로컬 state에만 반영하다가 "적용" 버튼을 눌러야 신규 행은 POST, 변경된 기존 행은 PATCH로 일괄 처리(셀 변경마다 즉시 저장 안 함). 그룹ID는 auto_increment라 컬럼에 노출하지 않음. 코드 아이템은 그룹 행을 expand했을 때 하단에 `CodeItemGrid.tsx`(동일한 그리드+적용 패턴)로 관리 — 미저장 신규 그룹 행은 expand 불가. "적용" 시 일부 행만 실패해도 성공한 행은 반영하고 실패한 행만 에러 메시지와 함께 편집 가능한 상태로 남김(행 배경색 강조, `client/src/index.css`의 `.editable-row-error`)
-- **APPROVER/OPERATOR의 코드값 참조**: `/admin/code-groups`에 접근할 수 없으므로, 신설한 `GET /code-groups/active-with-items?project_id=`(전 역할 허용, 프로젝트의 활성 코드그룹+활성 아이템을 그룹당 1건으로 묶어 한 번에 반환하는 `SP_GET_ACTIVE_CODE_GROUPS_WITH_ITEMS` 기반)를 API 상세/실행 화면에서 호출해 SELECT/RADIO/CHECKBOX 값을 조회한다. 그룹별 `active-items`를 개별 호출하는 N+1 대신 프로젝트 단위 일괄 조회로 설계.
-- `api_code`/`endpoint`/`is_required_approval`/`response_view_type` 수정 시 `api_stage` 자동 롤백 경고 UI, `is_required_approval` 기반 즉시실행/승인대기 분기 UI 포함
-- **검증**: 코드그룹→API등록→파라미터등록→실행(운영단계)→(OPERATOR+승인필요 시)승인대기→APPROVER 승인→상태전이까지 전체 플로우 확인. 코드그룹 그리드는 SA로 그룹+아이템 등록/수정, 중복 코드로 저장 실패 시 해당 행만 에러 표시되고 나머지는 반영되는지 확인. APPROVER/OPERATOR는 `/admin/code-groups` 직접 URL 접근 시 403, `active-with-items`로 코드값 조회는 정상 동작하는지 확인
+- **API 정의(관리, SCR-140~142)는 `/admin/apis`에 Company/Project와 동일한 List/New/Detail 패턴으로 구현** — 상세 화면은 Tabs(기본정보/Request/Response)로 구성, 편집은 SUPER_ADMIN/DEVELOPER만. `api_code`/`endpoint`/`is_required_approval`/`response_view_type` 수정 시 `api_stage` 자동 롤백 경고 UI 포함.
+- **API 실행(메인, SCR-100, `/apis`)은 최초 계획했던 "탭 안에 실행 포함된 단일 상세 화면"이 아니라, 좌측 사이드바에서 여러 API를 체크박스로 동시에 열어 우측에 패널을 쌓는 워크스페이스 형태로 최종 구현했다** — `client/src/stores/apiWorkspaceStore.ts`(열린 API 목록·순서, 패널별 입력값·실행결과를 zustand로 보관, 로그아웃·프로젝트 변경 시 초기화, 페이지 이동해도 유지), `components/layout/Sidebar.tsx`의 `ApiMenuSection`(펼치기/접기 + 체크박스, `api_stage`별 실행 가능 역할에 안 맞는 API는 목록에서 필터링 — 세션 role_code 기준, `11_MENU_PERMISSION.md` §3.2 검사와 동일 규칙), `pages/main/apis/{ApiWorkspacePage,ApiPanel}.tsx`(패널 = API Name+승인필요 태그(OPERATOR에게만) → Request 실행폼(component_type별 입력 컨트롤, SELECT/RADIO/CHECKBOX는 코드그룹) → Response(실행 전 필드정의만, 실행 후 response_view_type별 KEY_VALUE/GRID, GRID 20행 초과 시 스크롤)).
+- **외부 API 응답 규약**: 모든 외부 API가 `{ result, message, data: [...] }` 봉투로 응답하기로 확정 — `data`는 항상 배열이며 KEY_VALUE는 `data[0]`을 단일 객체로, GRID는 `data` 전체를 행 목록으로 사용(`ApiPanel.tsx`의 `unwrapDataArray`). `result`가 0이 아니면 HTTP 200이어도 `apiExecution.service.ts`의 `callExternalApi`가 FAILED(50) 처리하고 `message`를 `error_message`로 저장 — HTTP 레벨 실패(타임아웃/네트워크 오류)와는 별개의 검사. 테스트용 `/mock-external`(`server/src/routes/index.ts`)도 이 봉투 형태로 고정 100행을 반환하도록 맞춰둠(필드명은 테스트 API의 api_response 정의에 종속적이라 다른 API로 테스트 시 조정 필요).
+- **APPROVER/OPERATOR의 코드값 참조**: `/admin/code-groups`·`/admin/apis`에 접근할 수 없으므로, 신설한 `GET /code-groups/active-with-items?project_id=`(전 역할 허용, 프로젝트의 활성 코드그룹+활성 아이템을 그룹당 1건으로 묶어 한 번에 반환하는 `SP_GET_ACTIVE_CODE_GROUPS_WITH_ITEMS` 기반)를 API 실행 워크스페이스에서 호출해 SELECT/RADIO/CHECKBOX 값 + 응답 코드 치환에 사용한다. 그룹별 `active-items`를 개별 호출하는 N+1 대신 프로젝트 단위 일괄 조회로 설계.
+- **알려진 계약 불일치 수정**: 초기 구현에서 `client/src/api/api.api.ts`의 `executeApi`가 body를 flat하게 보내 서버(`request_json` 래핑 기대)와 어긋나 항상 30001 에러가 났고, `apiExecution.api.ts`의 `cancelApiExecution`도 서버가 필수로 요구하는 `reject_reason`을 안 보내고 있었다 — 워크스페이스 화면 작업 착수 전에 둘 다 수정.
+- **미착수**: `pages/main/executions/*`(+Pending) — 실행 이력 목록/상세, 승인 대기 목록/승인/반려 화면은 아직 `PagePlaceholder`.
+- **검증**: 코드그룹→API등록(관리)→파라미터등록(관리)→실행(메인 워크스페이스, 즉시실행/승인필요 각각)→(OPERATOR+승인필요 시)승인대기 메시지 확인까지 진행. APPROVER 승인 후 상태전이·실행이력 화면 자체 검증은 `/executions` 구현 후 진행 예정. 코드그룹 그리드는 SA로 그룹+아이템 등록/수정, 중복 코드로 저장 실패 시 해당 행만 에러 표시되고 나머지는 반영되는지 확인. APPROVER/OPERATOR는 `/admin/code-groups`·`/admin/apis` 직접 URL 접근 시 403, `active-with-items`로 코드값 조회는 정상 동작하는지 확인
 
 ## Stage 6 — 그룹 D: 회원가입 + 내 계정
 

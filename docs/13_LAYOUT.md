@@ -55,7 +55,9 @@ MainLayout, AdminLayout에서 동일하게 사용한다.
 │          │                                           │
 │ Sidebar  │ Content                                   │
 │          │                                           │
-│ API      │                                           │
+│ ▾ API    │                                           │
+│   ☑ API1 │                                           │
+│   ☐ API2 │                                           │
 │ 실행이력 │                                           │
 │ 승인대기 │                                           │
 │          │                                           │
@@ -71,6 +73,8 @@ MainLayout, AdminLayout에서 동일하게 사용한다.
 | API | `/apis` | O | O | O | O |
 | 실행이력 | `/executions` | O | O | O | O |
 | 승인대기 | `/executions/pending` | O | O | O | - |
+
+> "API"는 다른 항목과 달리 클릭해도 바로 이동하는 단순 링크가 아니라 펼치기/접기 가능한 항목이다 — 펼치면 현재 선택된 프로젝트의 활성 API가 체크박스 목록으로 나타나고(실행 불가능한 `api_stage`의 API는 숨김, §3.2 기준 역할별 실행 가능 여부로 필터), 체크하면 `/apis`로 이동하며 우측 작업영역에 해당 API 패널이 열린다. 상세 내용은 `12_SCREEN_LIST.md` SCR-100 참고.
 
 > 내 계정(`/my-account`)은 사이드바가 아니라 헤더 우측 아바타 드롭다운에서 접근한다(§2.1) — 같은 화면으로 가는 진입점을 사이드바에 중복 등록하지 않기 위함.
 
@@ -91,6 +95,7 @@ MainLayout, AdminLayout에서 동일하게 사용한다.
 │ 프로젝트 │                                           │
 │ 사용자   │                                           │
 │ 코드그룹 │                                           │
+│ API      │                                           │
 │ 감사로그 │                                           │
 │          │                                           │
 ├──────────┴───────────────────────────────────────────┤
@@ -106,6 +111,7 @@ MainLayout, AdminLayout에서 동일하게 사용한다.
 | 프로젝트 | `/admin/projects` | O | O | - | - |
 | 사용자 | `/admin/users` | O | O | - | - |
 | 코드그룹 | `/admin/code-groups` | O | O | - | - |
+| API | `/admin/apis` | O | O | - | - |
 | 감사로그 | `/admin/audit-logs` | O | O | O | - |
 
 > APPROVER는 감사로그만 접근 가능. `/admin` 진입 시 `/admin/audit-logs`로 리다이렉트.
