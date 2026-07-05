@@ -3,6 +3,7 @@ import * as codeItemService from '../services/codeItem.service';
 import { success, fail, formatDatetime } from '../utils/response';
 import { CodeItemRow } from '../types';
 import { ERROR_MAP } from '../constants/errors';
+import { parsePositiveInt } from '../utils/validation';
 
 function formatCodeItem(i: CodeItemRow) {
   return {
@@ -26,9 +27,9 @@ export async function createCodeItem(req: Request, res: Response, next: NextFunc
       fail(res, ERROR_MAP.REQUIRED_MISSING);
       return;
     }
-    const codeGroupId = Number(code_group_id);
+    const codeGroupId = parsePositiveInt(code_group_id);
     const displayOrder = Number(display_order);
-    if (!Number.isInteger(codeGroupId) || codeGroupId < 1 || !Number.isInteger(displayOrder) || displayOrder < 0) {
+    if (codeGroupId === null || !Number.isInteger(displayOrder) || displayOrder < 0) {
       fail(res, ERROR_MAP.INVALID_FORMAT);
       return;
     }
@@ -61,8 +62,8 @@ export async function getCodeItemList(req: Request, res: Response, next: NextFun
       fail(res, ERROR_MAP.REQUIRED_MISSING);
       return;
     }
-    const codeGroupId = Number(code_group_id);
-    if (!Number.isInteger(codeGroupId) || codeGroupId < 1) {
+    const codeGroupId = parsePositiveInt(code_group_id);
+    if (codeGroupId === null) {
       fail(res, ERROR_MAP.INVALID_FORMAT);
       return;
     }
@@ -83,8 +84,8 @@ export async function getCodeItemList(req: Request, res: Response, next: NextFun
  */
 export async function getCodeItem(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
-    const codeItemId = Number(req.params.code_item_id);
-    if (!Number.isInteger(codeItemId) || codeItemId < 1) {
+    const codeItemId = parsePositiveInt(req.params.code_item_id);
+    if (codeItemId === null) {
       fail(res, ERROR_MAP.INVALID_FORMAT);
       return;
     }
@@ -104,8 +105,8 @@ export async function getCodeItem(req: Request, res: Response, next: NextFunctio
  */
 export async function updateCodeItem(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
-    const codeItemId = Number(req.params.code_item_id);
-    if (!Number.isInteger(codeItemId) || codeItemId < 1) {
+    const codeItemId = parsePositiveInt(req.params.code_item_id);
+    if (codeItemId === null) {
       fail(res, ERROR_MAP.INVALID_FORMAT);
       return;
     }

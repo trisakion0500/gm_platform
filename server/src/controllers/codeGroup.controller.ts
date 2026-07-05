@@ -3,6 +3,7 @@ import * as codeGroupService from '../services/codeGroup.service';
 import { success, fail, formatDatetime } from '../utils/response';
 import { CodeGroupRow } from '../types';
 import { ERROR_MAP } from '../constants/errors';
+import { parsePositiveInt } from '../utils/validation';
 
 function formatCodeGroup(g: CodeGroupRow) {
   return {
@@ -26,8 +27,8 @@ export async function createCodeGroup(req: Request, res: Response, next: NextFun
       fail(res, ERROR_MAP.REQUIRED_MISSING);
       return;
     }
-    const projectId = Number(project_id);
-    if (!Number.isInteger(projectId) || projectId < 1) {
+    const projectId = parsePositiveInt(project_id);
+    if (projectId === null) {
       fail(res, ERROR_MAP.INVALID_FORMAT);
       return;
     }
@@ -59,8 +60,8 @@ export async function getCodeGroupList(req: Request, res: Response, next: NextFu
       fail(res, ERROR_MAP.REQUIRED_MISSING);
       return;
     }
-    const projectId = Number(project_id);
-    if (!Number.isInteger(projectId) || projectId < 1) {
+    const projectId = parsePositiveInt(project_id);
+    if (projectId === null) {
       fail(res, ERROR_MAP.INVALID_FORMAT);
       return;
     }
@@ -81,8 +82,8 @@ export async function getCodeGroupList(req: Request, res: Response, next: NextFu
  */
 export async function getCodeGroup(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
-    const codeGroupId = Number(req.params.code_group_id);
-    if (!Number.isInteger(codeGroupId) || codeGroupId < 1) {
+    const codeGroupId = parsePositiveInt(req.params.code_group_id);
+    if (codeGroupId === null) {
       fail(res, ERROR_MAP.INVALID_FORMAT);
       return;
     }
@@ -102,8 +103,8 @@ export async function getCodeGroup(req: Request, res: Response, next: NextFuncti
  */
 export async function updateCodeGroup(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
-    const codeGroupId = Number(req.params.code_group_id);
-    if (!Number.isInteger(codeGroupId) || codeGroupId < 1) {
+    const codeGroupId = parsePositiveInt(req.params.code_group_id);
+    if (codeGroupId === null) {
       fail(res, ERROR_MAP.INVALID_FORMAT);
       return;
     }
@@ -131,8 +132,8 @@ export async function updateCodeGroup(req: Request, res: Response, next: NextFun
  */
 export async function getActiveCodeItems(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
-    const codeGroupId = Number(req.params.code_group_id);
-    if (!Number.isInteger(codeGroupId) || codeGroupId < 1) {
+    const codeGroupId = parsePositiveInt(req.params.code_group_id);
+    if (codeGroupId === null) {
       fail(res, ERROR_MAP.INVALID_FORMAT);
       return;
     }
@@ -157,8 +158,8 @@ export async function getActiveCodeGroupsWithItems(req: Request, res: Response, 
       fail(res, ERROR_MAP.REQUIRED_MISSING);
       return;
     }
-    const projectId = Number(project_id);
-    if (!Number.isInteger(projectId) || projectId < 1) {
+    const projectId = parsePositiveInt(project_id);
+    if (projectId === null) {
       fail(res, ERROR_MAP.INVALID_FORMAT);
       return;
     }

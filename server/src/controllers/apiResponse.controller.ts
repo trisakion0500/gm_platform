@@ -3,6 +3,7 @@ import * as apiService from '../services/api.service';
 import { success, fail, formatDatetime } from '../utils/response';
 import { APIResponseRow } from '../types';
 import { ERROR_MAP } from '../constants/errors';
+import { parsePositiveInt } from '../utils/validation';
 
 function formatApiResponse(r: APIResponseRow) {
   return {
@@ -21,8 +22,8 @@ function formatApiResponse(r: APIResponseRow) {
  */
 export async function getApiResponse(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
-    const apiResponseId = Number(req.params.api_response_id);
-    if (!Number.isInteger(apiResponseId) || apiResponseId < 1) {
+    const apiResponseId = parsePositiveInt(req.params.api_response_id);
+    if (apiResponseId === null) {
       fail(res, ERROR_MAP.INVALID_FORMAT);
       return;
     }
@@ -42,8 +43,8 @@ export async function getApiResponse(req: Request, res: Response, next: NextFunc
  */
 export async function updateApiResponse(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
-    const apiResponseId = Number(req.params.api_response_id);
-    if (!Number.isInteger(apiResponseId) || apiResponseId < 1) {
+    const apiResponseId = parsePositiveInt(req.params.api_response_id);
+    if (apiResponseId === null) {
       fail(res, ERROR_MAP.INVALID_FORMAT);
       return;
     }

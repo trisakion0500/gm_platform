@@ -4,6 +4,7 @@ import { success, fail, formatDatetime } from '../utils/response';
 import { APIExecutionRow } from '../types';
 import { ERROR_MAP } from '../constants/errors';
 import { ROLE } from '../constants/roles';
+import { parsePositiveInt, parsePagination } from '../utils/validation';
 
 function formatApiExecution(e: APIExecutionRow) {
   return {
@@ -26,8 +27,8 @@ function formatApiExecution(e: APIExecutionRow) {
  */
 export async function executeApi(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
-    const apiId = Number(req.params.api_id);
-    if (!Number.isInteger(apiId) || apiId < 1) {
+    const apiId = parsePositiveInt(req.params.api_id);
+    if (apiId === null) {
       fail(res, ERROR_MAP.INVALID_FORMAT);
       return;
     }
@@ -67,19 +68,14 @@ export async function getApiExecutionList(req: Request, res: Response, next: Nex
       fail(res, ERROR_MAP.REQUIRED_MISSING);
       return;
     }
-    const projectId = Number(project_id);
-    const pageNum = Number(page);
-    const pageSizeNum = Number(page_size);
-    if (!Number.isInteger(projectId) || projectId < 1) {
+    const projectId = parsePositiveInt(project_id);
+    if (projectId === null) {
       fail(res, ERROR_MAP.INVALID_FORMAT);
       return;
     }
-    if (!Number.isInteger(pageNum) || pageNum < 1) {
-      fail(res, ERROR_MAP.INVALID_FORMAT);
-      return;
-    }
-    if (![20, 50, 100].includes(pageSizeNum)) {
-      fail(res, ERROR_MAP.INVALID_VALUE);
+    const paged = parsePagination(page, page_size);
+    if (!paged.ok) {
+      fail(res, paged.error);
       return;
     }
 
@@ -94,7 +90,7 @@ export async function getApiExecutionList(req: Request, res: Response, next: Nex
 
     const result = await service.getApiExecutionList(
       projectId, apiIdNum, requestUserIdNum, statusNum, requiredApprovalOnlyNum,
-      pageNum, pageSizeNum, req.user!.role_code, req.user!.company_id,
+      paged.page, paged.pageSize, req.user!.role_code, req.user!.company_id,
     );
     success(res, {
       ...result,
@@ -119,23 +115,18 @@ export async function getApiExecutionPending(req: Request, res: Response, next: 
       fail(res, ERROR_MAP.REQUIRED_MISSING);
       return;
     }
-    const projectId = Number(project_id);
-    const pageNum = Number(page);
-    const pageSizeNum = Number(page_size);
-    if (!Number.isInteger(projectId) || projectId < 1) {
+    const projectId = parsePositiveInt(project_id);
+    if (projectId === null) {
       fail(res, ERROR_MAP.INVALID_FORMAT);
       return;
     }
-    if (!Number.isInteger(pageNum) || pageNum < 1) {
-      fail(res, ERROR_MAP.INVALID_FORMAT);
-      return;
-    }
-    if (![20, 50, 100].includes(pageSizeNum)) {
-      fail(res, ERROR_MAP.INVALID_VALUE);
+    const paged = parsePagination(page, page_size);
+    if (!paged.ok) {
+      fail(res, paged.error);
       return;
     }
     const result = await service.getApiExecutionPending(
-      projectId, pageNum, pageSizeNum, req.user!.role_code, req.user!.company_id,
+      projectId, paged.page, paged.pageSize, req.user!.role_code, req.user!.company_id,
     );
     success(res, {
       ...result,
@@ -155,8 +146,8 @@ export async function getApiExecutionPending(req: Request, res: Response, next: 
  */
 export async function getApiExecution(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
-    const executionId = Number(req.params.api_execution_id);
-    if (!Number.isInteger(executionId) || executionId < 1) {
+    const executionId = parsePositiveInt(req.params.api_execution_id);
+    if (executionId === null) {
       fail(res, ERROR_MAP.INVALID_FORMAT);
       return;
     }
@@ -178,8 +169,8 @@ export async function getApiExecution(req: Request, res: Response, next: NextFun
  */
 export async function approveApiExecution(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
-    const executionId = Number(req.params.api_execution_id);
-    if (!Number.isInteger(executionId) || executionId < 1) {
+    const executionId = parsePositiveInt(req.params.api_execution_id);
+    if (executionId === null) {
       fail(res, ERROR_MAP.INVALID_FORMAT);
       return;
     }
@@ -201,8 +192,8 @@ export async function approveApiExecution(req: Request, res: Response, next: Nex
  */
 export async function rejectApiExecution(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
-    const executionId = Number(req.params.api_execution_id);
-    if (!Number.isInteger(executionId) || executionId < 1) {
+    const executionId = parsePositiveInt(req.params.api_execution_id);
+    if (executionId === null) {
       fail(res, ERROR_MAP.INVALID_FORMAT);
       return;
     }
@@ -227,8 +218,8 @@ export async function rejectApiExecution(req: Request, res: Response, next: Next
  */
 export async function cancelApiExecution(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
-    const executionId = Number(req.params.api_execution_id);
-    if (!Number.isInteger(executionId) || executionId < 1) {
+    const executionId = parsePositiveInt(req.params.api_execution_id);
+    if (executionId === null) {
       fail(res, ERROR_MAP.INVALID_FORMAT);
       return;
     }

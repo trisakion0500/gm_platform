@@ -3,6 +3,7 @@ import * as projectService from '../services/project.service';
 import { success, fail, formatDatetime } from '../utils/response';
 import { ProjectRow } from '../types';
 import { ERROR_MAP } from '../constants/errors';
+import { parsePositiveInt, parsePagination } from '../utils/validation';
 
 const PROJECT_CODE_PATTERN = /^[a-zA-Z0-9_.-]{1,20}$/;
 const PROJECT_NAME_MAX_LENGTH = 100;
@@ -37,8 +38,8 @@ export async function getProjectByCode(req: Request, res: Response, next: NextFu
       fail(res, ERROR_MAP.REQUIRED_MISSING);
       return;
     }
-    const companyId = Number(company_id);
-    if (!Number.isInteger(companyId) || companyId < 1) {
+    const companyId = parsePositiveInt(company_id);
+    if (companyId === null) {
       fail(res, ERROR_MAP.INVALID_FORMAT);
       return;
     }
@@ -68,8 +69,8 @@ export async function createProject(req: Request, res: Response, next: NextFunct
       fail(res, ERROR_MAP.REQUIRED_MISSING);
       return;
     }
-    const companyId = Number(company_id);
-    if (!Number.isInteger(companyId) || companyId < 1) {
+    const companyId = parsePositiveInt(company_id);
+    if (companyId === null) {
       fail(res, ERROR_MAP.INVALID_FORMAT);
       return;
     }
@@ -103,18 +104,9 @@ export async function createProject(req: Request, res: Response, next: NextFunct
 export async function getProjectList(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
     const { company_id, status, page, page_size } = req.query;
-    if (!page || !page_size) {
-      fail(res, ERROR_MAP.REQUIRED_MISSING);
-      return;
-    }
-    const pageNum = Number(page);
-    const pageSizeNum = Number(page_size);
-    if (!Number.isInteger(pageNum) || pageNum < 1) {
-      fail(res, ERROR_MAP.INVALID_FORMAT);
-      return;
-    }
-    if (![20, 50, 100].includes(pageSizeNum)) {
-      fail(res, ERROR_MAP.INVALID_VALUE);
+    const paged = parsePagination(page, page_size);
+    if (!paged.ok) {
+      fail(res, paged.error);
       return;
     }
     const companyIdNum = company_id !== undefined ? Number(company_id) : null;
@@ -122,8 +114,8 @@ export async function getProjectList(req: Request, res: Response, next: NextFunc
     const result = await projectService.getProjectList(
       companyIdNum,
       statusNum,
-      pageNum,
-      pageSizeNum,
+      paged.page,
+      paged.pageSize,
       req.user!.role_code,
       req.user!.user_id,
     );
@@ -146,8 +138,8 @@ export async function getProjectList(req: Request, res: Response, next: NextFunc
  */
 export async function getProject(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
-    const projectId = Number(req.params.project_id);
-    if (!Number.isInteger(projectId) || projectId < 1) {
+    const projectId = parsePositiveInt(req.params.project_id);
+    if (projectId === null) {
       fail(res, ERROR_MAP.INVALID_FORMAT);
       return;
     }
@@ -168,8 +160,8 @@ export async function getProject(req: Request, res: Response, next: NextFunction
  */
 export async function updateProject(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
-    const projectId = Number(req.params.project_id);
-    if (!Number.isInteger(projectId) || projectId < 1) {
+    const projectId = parsePositiveInt(req.params.project_id);
+    if (projectId === null) {
       fail(res, ERROR_MAP.INVALID_FORMAT);
       return;
     }

@@ -3,6 +3,7 @@ import * as apiService from '../services/api.service';
 import { success, fail, formatDatetime } from '../utils/response';
 import { APIRow, APIRequestRow, APIResponseRow } from '../types';
 import { ERROR_MAP } from '../constants/errors';
+import { parsePositiveInt, parsePagination } from '../utils/validation';
 
 function formatApi(a: APIRow) {
   return {
@@ -42,8 +43,8 @@ export async function createApi(req: Request, res: Response, next: NextFunction)
       fail(res, ERROR_MAP.REQUIRED_MISSING);
       return;
     }
-    const projectId = Number(project_id);
-    if (!Number.isInteger(projectId) || projectId < 1) {
+    const projectId = parsePositiveInt(project_id);
+    if (projectId === null) {
       fail(res, ERROR_MAP.INVALID_FORMAT);
       return;
     }
@@ -79,19 +80,14 @@ export async function getApiList(req: Request, res: Response, next: NextFunction
       fail(res, ERROR_MAP.REQUIRED_MISSING);
       return;
     }
-    const projectId = Number(project_id);
-    const pageNum = Number(page);
-    const pageSizeNum = Number(page_size);
-    if (!Number.isInteger(projectId) || projectId < 1) {
+    const projectId = parsePositiveInt(project_id);
+    if (projectId === null) {
       fail(res, ERROR_MAP.INVALID_FORMAT);
       return;
     }
-    if (!Number.isInteger(pageNum) || pageNum < 1) {
-      fail(res, ERROR_MAP.INVALID_FORMAT);
-      return;
-    }
-    if (![20, 50, 100].includes(pageSizeNum)) {
-      fail(res, ERROR_MAP.INVALID_VALUE);
+    const paged = parsePagination(page, page_size);
+    if (!paged.ok) {
+      fail(res, paged.error);
       return;
     }
     const statusNum = status !== undefined ? Number(status) : null;
@@ -100,8 +96,8 @@ export async function getApiList(req: Request, res: Response, next: NextFunction
       projectId,
       statusNum,
       apiStageNum,
-      pageNum,
-      pageSizeNum,
+      paged.page,
+      paged.pageSize,
       req.user!.role_code,
       req.user!.user_id,
     );
@@ -123,8 +119,8 @@ export async function getApiList(req: Request, res: Response, next: NextFunction
  */
 export async function getApi(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
-    const apiId = Number(req.params.api_id);
-    if (!Number.isInteger(apiId) || apiId < 1) {
+    const apiId = parsePositiveInt(req.params.api_id);
+    if (apiId === null) {
       fail(res, ERROR_MAP.INVALID_FORMAT);
       return;
     }
@@ -148,8 +144,8 @@ export async function getApi(req: Request, res: Response, next: NextFunction): P
  */
 export async function updateApi(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
-    const apiId = Number(req.params.api_id);
-    if (!Number.isInteger(apiId) || apiId < 1) {
+    const apiId = parsePositiveInt(req.params.api_id);
+    if (apiId === null) {
       fail(res, ERROR_MAP.INVALID_FORMAT);
       return;
     }
@@ -183,8 +179,8 @@ export async function updateApi(req: Request, res: Response, next: NextFunction)
  */
 export async function createApiRequest(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
-    const apiId = Number(req.params.api_id);
-    if (!Number.isInteger(apiId) || apiId < 1) {
+    const apiId = parsePositiveInt(req.params.api_id);
+    if (apiId === null) {
       fail(res, ERROR_MAP.INVALID_FORMAT);
       return;
     }
@@ -221,8 +217,8 @@ export async function createApiRequest(req: Request, res: Response, next: NextFu
  */
 export async function createApiResponse(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
-    const apiId = Number(req.params.api_id);
-    if (!Number.isInteger(apiId) || apiId < 1) {
+    const apiId = parsePositiveInt(req.params.api_id);
+    if (apiId === null) {
       fail(res, ERROR_MAP.INVALID_FORMAT);
       return;
     }

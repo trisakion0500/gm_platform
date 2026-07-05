@@ -3,6 +3,7 @@ import * as companyService from '../services/company.service';
 import { success, fail, formatDatetime } from '../utils/response';
 import { CompanyRow } from '../types';
 import { ERROR_MAP } from '../constants/errors';
+import { parsePositiveInt, parsePagination } from '../utils/validation';
 
 const COMPANY_CODE_PATTERN = /^[a-zA-Z0-9_.-]{1,20}$/;
 const COMPANY_NAME_MAX_LENGTH = 100;
@@ -88,25 +89,16 @@ export async function createCompany(req: Request, res: Response, next: NextFunct
 export async function getCompanyList(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
     const { status, page, page_size } = req.query;
-    if (!page || !page_size) {
-      fail(res, ERROR_MAP.REQUIRED_MISSING);
-      return;
-    }
-    const pageNum = Number(page);
-    const pageSizeNum = Number(page_size);
-    if (!Number.isInteger(pageNum) || pageNum < 1) {
-      fail(res, ERROR_MAP.INVALID_FORMAT);
-      return;
-    }
-    if (![20, 50, 100].includes(pageSizeNum)) {
-      fail(res, ERROR_MAP.INVALID_VALUE);
+    const paged = parsePagination(page, page_size);
+    if (!paged.ok) {
+      fail(res, paged.error);
       return;
     }
     const statusNum = status !== undefined ? Number(status) : null;
     const result = await companyService.getCompanyList(
       statusNum,
-      pageNum,
-      pageSizeNum,
+      paged.page,
+      paged.pageSize,
       req.user!.role_code,
       req.user!.company_id,
     );
@@ -129,8 +121,8 @@ export async function getCompanyList(req: Request, res: Response, next: NextFunc
  */
 export async function getCompany(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
-    const companyId = Number(req.params.company_id);
-    if (!Number.isInteger(companyId) || companyId < 1) {
+    const companyId = parsePositiveInt(req.params.company_id);
+    if (companyId === null) {
       fail(res, ERROR_MAP.INVALID_FORMAT);
       return;
     }
@@ -151,8 +143,8 @@ export async function getCompany(req: Request, res: Response, next: NextFunction
  */
 export async function updateCompany(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
-    const companyId = Number(req.params.company_id);
-    if (!Number.isInteger(companyId) || companyId < 1) {
+    const companyId = parsePositiveInt(req.params.company_id);
+    if (companyId === null) {
       fail(res, ERROR_MAP.INVALID_FORMAT);
       return;
     }

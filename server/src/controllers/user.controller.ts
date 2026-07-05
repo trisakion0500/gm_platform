@@ -3,6 +3,7 @@ import * as userService from '../services/user.service';
 import { success, fail, formatDatetime } from '../utils/response';
 import { UserAdminRow } from '../types';
 import { ERROR_MAP } from '../constants/errors';
+import { parsePositiveInt, parsePagination } from '../utils/validation';
 
 const PHONE_NUMBER_MAX_LENGTH = 20; // 암호화 후 VARCHAR(255)에 저장되므로 평문은 넉넉히 제한
 const DEPARTMENT_MAX_LENGTH = 100;
@@ -33,18 +34,9 @@ function formatUser(u: UserAdminRow) {
 export async function getUserList(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
     const { page, page_size, status, company_id } = req.query;
-    if (!page || !page_size) {
-      fail(res, ERROR_MAP.REQUIRED_MISSING);
-      return;
-    }
-    const pageNum     = Number(page);
-    const pageSizeNum = Number(page_size);
-    if (!Number.isInteger(pageNum) || pageNum < 1) {
-      fail(res, ERROR_MAP.INVALID_FORMAT);
-      return;
-    }
-    if (![20, 50, 100].includes(pageSizeNum)) {
-      fail(res, ERROR_MAP.INVALID_VALUE);
+    const paged = parsePagination(page, page_size);
+    if (!paged.ok) {
+      fail(res, paged.error);
       return;
     }
     const statusNum    = status     !== undefined ? Number(status)     : null;
@@ -52,8 +44,8 @@ export async function getUserList(req: Request, res: Response, next: NextFunctio
     const result = await userService.getUserList(
       companyIdNum,
       statusNum,
-      pageNum,
-      pageSizeNum,
+      paged.page,
+      paged.pageSize,
       req.user!.role_code,
       req.user!.company_id,
     );
@@ -76,8 +68,8 @@ export async function getUserList(req: Request, res: Response, next: NextFunctio
  */
 export async function getUser(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
-    const userId = Number(req.params.user_id);
-    if (!Number.isInteger(userId) || userId < 1) {
+    const userId = parsePositiveInt(req.params.user_id);
+    if (userId === null) {
       fail(res, ERROR_MAP.INVALID_FORMAT);
       return;
     }
@@ -98,8 +90,8 @@ export async function getUser(req: Request, res: Response, next: NextFunction): 
  */
 export async function updateUser(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
-    const userId = Number(req.params.user_id);
-    if (!Number.isInteger(userId) || userId < 1) {
+    const userId = parsePositiveInt(req.params.user_id);
+    if (userId === null) {
       fail(res, ERROR_MAP.INVALID_FORMAT);
       return;
     }
@@ -140,8 +132,8 @@ export async function updateUser(req: Request, res: Response, next: NextFunction
  */
 export async function approveUser(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
-    const userId = Number(req.params.user_id);
-    if (!Number.isInteger(userId) || userId < 1) {
+    const userId = parsePositiveInt(req.params.user_id);
+    if (userId === null) {
       fail(res, ERROR_MAP.INVALID_FORMAT);
       return;
     }
@@ -162,8 +154,8 @@ export async function approveUser(req: Request, res: Response, next: NextFunctio
  */
 export async function rejectUser(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
-    const userId = Number(req.params.user_id);
-    if (!Number.isInteger(userId) || userId < 1) {
+    const userId = parsePositiveInt(req.params.user_id);
+    if (userId === null) {
       fail(res, ERROR_MAP.INVALID_FORMAT);
       return;
     }
@@ -184,8 +176,8 @@ export async function rejectUser(req: Request, res: Response, next: NextFunction
  */
 export async function resetPassword(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
-    const userId = Number(req.params.user_id);
-    if (!Number.isInteger(userId) || userId < 1) {
+    const userId = parsePositiveInt(req.params.user_id);
+    if (userId === null) {
       fail(res, ERROR_MAP.INVALID_FORMAT);
       return;
     }

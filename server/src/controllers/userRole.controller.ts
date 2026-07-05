@@ -3,6 +3,7 @@ import * as userRoleService from '../services/userRole.service';
 import { success, fail, formatDatetime } from '../utils/response';
 import { UserRoleRow } from '../types';
 import { ERROR_MAP } from '../constants/errors';
+import { parsePositiveInt } from '../utils/validation';
 
 /**
  * UserRoleRow의 날짜 필드를 문자열로 변환한다.
@@ -32,8 +33,8 @@ export async function getMyRole(req: Request, res: Response, next: NextFunction)
       fail(res, ERROR_MAP.REQUIRED_MISSING);
       return;
     }
-    const projectId = Number(project_id);
-    if (!Number.isInteger(projectId) || projectId < 1) {
+    const projectId = parsePositiveInt(project_id);
+    if (projectId === null) {
       fail(res, ERROR_MAP.INVALID_FORMAT);
       return;
     }
@@ -99,9 +100,9 @@ export async function createUserRole(req: Request, res: Response, next: NextFunc
  */
 export async function updateUserRole(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
-    const userId    = Number(req.params.user_id);
-    const projectId = Number(req.params.project_id);
-    if (!Number.isInteger(userId) || userId < 1 || !Number.isInteger(projectId) || projectId < 1) {
+    const userId    = parsePositiveInt(req.params.user_id);
+    const projectId = parsePositiveInt(req.params.project_id);
+    if (userId === null || projectId === null) {
       fail(res, ERROR_MAP.INVALID_FORMAT);
       return;
     }
