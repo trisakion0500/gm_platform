@@ -2,6 +2,7 @@ import { ProjectRow, ProjectLookupRow } from '../types';
 import { toAppError, ERROR_MAP } from '../constants/errors';
 import * as db from '../db/project.db';
 import * as audit from './logAudit.service';
+import { assertCompanyScope } from './companyScope.service';
 
 /**
  * 프로젝트코드로 활성 프로젝트를 조회한다 (회원가입 화면 전용, 인증 불필요).
@@ -22,6 +23,8 @@ export async function getProjectByCode(companyId: number, projectCode: string): 
  * @param projectName 프로젝트명
  * @param apiBaseUrl API Base URL
  * @param description 설명 (없으면 null)
+ * @param callerRoleCode 호출자 역할 코드 (회사 스코핑용, SUPER_ADMIN 외에는 소속 회사에만 생성 가능)
+ * @param callerCompanyId 호출자 소속 회사 ID (회사 스코핑용)
  * @param callerUserId 작업 수행 사용자 ID
  * @returns 생성된 프로젝트 정보
  */
@@ -31,8 +34,11 @@ export async function createProject(
   projectName: string,
   apiBaseUrl: string,
   description: string | null,
+  callerRoleCode: number,
+  callerCompanyId: number,
   callerUserId: number,
 ): Promise<ProjectRow> {
+  assertCompanyScope(callerRoleCode, callerCompanyId, companyId);
   const after = await db.createProject(companyId, projectCode, projectName, apiBaseUrl, description);
   audit.logCreate('project', String(after.project_id), after.project_name,
     after.company_id, after.project_id, after as unknown as Record<string, unknown>, callerUserId);
@@ -90,6 +96,8 @@ export async function getProject(
  * @param apiBaseUrl API Base URL (null=변경 없음)
  * @param description 설명 (null=변경 없음)
  * @param status 상태 (null=변경 없음)
+ * @param callerRoleCode 호출자 역할 코드 (회사 스코핑용, SUPER_ADMIN 외에는 소속 회사 프로젝트만 수정 가능)
+ * @param callerCompanyId 호출자 소속 회사 ID (회사 스코핑용)
  * @param callerUserId 작업 수행 사용자 ID
  * @returns 수정된 프로젝트 정보
  */
@@ -100,9 +108,13 @@ export async function updateProject(
   apiBaseUrl: string | null,
   description: string | null,
   status: number | null,
+  callerRoleCode: number,
+  callerCompanyId: number,
   callerUserId: number,
 ): Promise<ProjectRow> {
   const before = await db.getProject(projectId, 10, 0);
+  if (before)
+    assertCompanyScope(callerRoleCode, callerCompanyId, before.company_id);
   const after  = await db.updateProject(projectId, projectCode, projectName, apiBaseUrl, description, status);
   audit.logUpdate('project', String(after.project_id), after.project_name,
     after.company_id, after.project_id,

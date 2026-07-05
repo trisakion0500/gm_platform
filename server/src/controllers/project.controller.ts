@@ -85,7 +85,7 @@ export async function createProject(req: Request, res: Response, next: NextFunct
       fail(res, ERROR_MAP.INVALID_FORMAT);
       return;
     }
-    const project = await projectService.createProject(companyId, project_code, project_name, api_base_url, description ?? null, req.user!.user_id);
+    const project = await projectService.createProject(companyId, project_code, project_name, api_base_url, description ?? null, req.user!.role_code, req.user!.company_id, req.user!.user_id);
     success(res, formatProject(project), 201);
   } catch (err) {
     next(err);
@@ -193,6 +193,8 @@ export async function updateProject(req: Request, res: Response, next: NextFunct
       api_base_url ?? null,
       description ?? null,
       status ?? null,
+      req.user!.role_code,
+      req.user!.company_id,
       req.user!.user_id,
     );
     success(res, formatProject(project));

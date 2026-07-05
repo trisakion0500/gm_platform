@@ -171,6 +171,8 @@ export async function updateCompany(req: Request, res: Response, next: NextFunct
       company_name ?? null,
       description ?? null,
       status ?? null,
+      req.user!.role_code,
+      req.user!.company_id,
       req.user!.user_id,
     );
     success(res, formatCompany(company));

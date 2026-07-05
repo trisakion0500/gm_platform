@@ -4,6 +4,7 @@ import { toAppError, ERROR_MAP } from '../constants/errors';
 import { encrypt, decrypt } from '../utils/crypto';
 import * as db from '../db/user.db';
 import * as audit from './logAudit.service';
+import { assertCompanyScope } from './companyScope.service';
 
 /**
  * 사용자 목록을 페이지네이션으로 조회한다.
@@ -60,6 +61,8 @@ export async function getUser(userId: number, roleCode: number, userCompanyId: n
  * @param department 부서 (null=변경 없음)
  * @param position 직급 (null=변경 없음)
  * @param status 상태 (null=변경 없음)
+ * @param callerRoleCode 호출자 역할 코드 (회사 스코핑용, SUPER_ADMIN 외에는 소속 회사 사용자만 수정 가능)
+ * @param callerCompanyId 호출자 소속 회사 ID (회사 스코핑용)
  * @param callerUserId 작업 수행 사용자 ID
  * @returns 수정된 사용자 정보
  */
@@ -71,9 +74,13 @@ export async function updateUser(
   department: string | null,
   position: string | null,
   status: number | null,
+  callerRoleCode: number,
+  callerCompanyId: number,
   callerUserId: number,
 ): Promise<UserAdminRow> {
   const before = await db.getUser(userId);
+  if (before)
+    assertCompanyScope(callerRoleCode, callerCompanyId, before.company_id);
   const after  = await db.updateUser(userId, userName, email, phoneNumber ? encrypt(phoneNumber) : null, department, position, status);
   audit.logUpdate('user', String(after.user_id), after.user_name,
     after.company_id, null,
@@ -87,10 +94,19 @@ export async function updateUser(
  * 가입 승인 처리한다. 승인대기(status=0) 상태가 아닌 경우 AppError(30003)를 던진다.
  * @author trisakion
  * @param userId 승인할 사용자 ID
+ * @param callerRoleCode 호출자 역할 코드 (회사 스코핑용, SUPER_ADMIN 외에는 소속 회사 사용자만 승인 가능)
+ * @param callerCompanyId 호출자 소속 회사 ID (회사 스코핑용)
  * @param callerUserId 작업 수행 사용자 ID
  */
-export async function approveUser(userId: number, callerUserId: number): Promise<void> {
+export async function approveUser(
+  userId: number,
+  callerRoleCode: number,
+  callerCompanyId: number,
+  callerUserId: number,
+): Promise<void> {
   const before = await db.getUser(userId);
+  if (before)
+    assertCompanyScope(callerRoleCode, callerCompanyId, before.company_id);
   const after  = await db.approveUser(userId);
   audit.logUpdate('user', String(after.user_id), after.user_name,
     after.company_id, null,
@@ -103,10 +119,19 @@ export async function approveUser(userId: number, callerUserId: number): Promise
  * 가입 반려 처리한다. 승인대기(status=0) 상태가 아닌 경우 AppError(30003)를 던진다.
  * @author trisakion
  * @param userId 반려할 사용자 ID
+ * @param callerRoleCode 호출자 역할 코드 (회사 스코핑용, SUPER_ADMIN 외에는 소속 회사 사용자만 반려 가능)
+ * @param callerCompanyId 호출자 소속 회사 ID (회사 스코핑용)
  * @param callerUserId 작업 수행 사용자 ID
  */
-export async function rejectUser(userId: number, callerUserId: number): Promise<void> {
+export async function rejectUser(
+  userId: number,
+  callerRoleCode: number,
+  callerCompanyId: number,
+  callerUserId: number,
+): Promise<void> {
   const before = await db.getUser(userId);
+  if (before)
+    assertCompanyScope(callerRoleCode, callerCompanyId, before.company_id);
   const after  = await db.rejectUser(userId);
   audit.logUpdate('user', String(after.user_id), after.user_name,
     after.company_id, null,
@@ -120,12 +145,21 @@ export async function rejectUser(userId: number, callerUserId: number): Promise<
  * @author trisakion
  * @param userId 초기화할 사용자 ID
  * @param newPassword 새 비밀번호 (평문)
+ * @param callerRoleCode 호출자 역할 코드 (회사 스코핑용, SUPER_ADMIN 외에는 소속 회사 사용자만 초기화 가능)
+ * @param callerCompanyId 호출자 소속 회사 ID (회사 스코핑용)
  * @param callerUserId 작업 수행 사용자 ID
  */
-export async function resetPassword(userId: number, newPassword: string, callerUserId: number): Promise<void> {
+export async function resetPassword(
+  userId: number,
+  newPassword: string,
+  callerRoleCode: number,
+  callerCompanyId: number,
+  callerUserId: number,
+): Promise<void> {
   const before = await db.getUser(userId);
   if (!before)
     throw toAppError(ERROR_MAP.USER_NOT_FOUND);
+  assertCompanyScope(callerRoleCode, callerCompanyId, before.company_id);
   const passwordHash = await bcrypt.hash(newPassword, 12);
   await db.resetPassword(userId, passwordHash);
   const after = await db.getUser(userId);
