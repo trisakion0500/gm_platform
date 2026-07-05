@@ -28,11 +28,26 @@ const router = Router();
  *         required: true
  *         schema: { type: integer, enum: [20, 50, 100], example: 20 }
  *       - in: query
+ *         name: company_id
+ *         schema: { type: integer, example: 1, description: '회사 ID 필터' }
+ *       - in: query
+ *         name: project_id
+ *         schema: { type: integer, example: 1, description: '프로젝트 ID 필터' }
+ *       - in: query
  *         name: table_name
  *         schema: { type: string, example: company, description: '대상 테이블명 필터' }
  *       - in: query
+ *         name: target_id
+ *         schema: { type: string, example: '1', description: '대상 PK 값 필터' }
+ *       - in: query
  *         name: action_type
  *         schema: { type: integer, description: '10=CREATE, 20=UPDATE, 30=STATUS_CHANGE' }
+ *       - in: query
+ *         name: from_created_at
+ *         schema: { type: string, example: '2026-01-01 00:00:00', description: '조회 시작일시(포함)' }
+ *       - in: query
+ *         name: to_created_at
+ *         schema: { type: string, example: '2026-12-31 23:59:59', description: '조회 종료일시(포함)' }
  *     responses:
  *       200:
  *         description: 조회 성공
