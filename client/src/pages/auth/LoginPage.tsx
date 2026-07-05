@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Alert, Button, Card, Form, Input, Typography } from 'antd';
 import type { AxiosError } from 'axios';
+import { Link } from 'react-router-dom';
 import * as authApi from '../../api/auth.api';
 import { useAuthStore } from '../../stores/authStore';
 import type { ApiFailure } from '../../types';
@@ -34,7 +35,9 @@ function LoginPage() {
 
   return (
     <Card style={{ maxWidth: 360, margin: '80px auto' }}>
-      <Typography.Title level={4}>GM Platform 로그인</Typography.Title>
+      <Typography.Title level={4} style={{ textAlign: 'center' }}>
+        {import.meta.env.VITE_APP_NAME}
+      </Typography.Title>
       {errorMessage && (
         <Alert type="error" message={errorMessage} showIcon style={{ marginBottom: 16 }} />
       )}
@@ -58,6 +61,9 @@ function LoginPage() {
             로그인
           </Button>
         </Form.Item>
+        <Typography.Paragraph style={{ textAlign: 'center', marginBottom: 0 }}>
+          계정이 없으신가요? <Link to="/signup">회원가입</Link>
+        </Typography.Paragraph>
       </Form>
     </Card>
   );

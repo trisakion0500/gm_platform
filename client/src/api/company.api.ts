@@ -1,6 +1,16 @@
 import axiosInstance, { unwrap } from './axios';
 import type { CompanyRow, PaginatedResponse } from '../types';
 
+export interface CompanyLookupResult {
+  company_id: number;
+  company_name: string;
+}
+
+// 회원가입 화면 전용(인증 불필요) — company_code로 활성 회사 조회
+export function getCompanyByCode(companyCode: string): Promise<CompanyLookupResult> {
+  return axiosInstance.get('/companies/lookup', { params: { company_code: companyCode } }).then(unwrap<CompanyLookupResult>);
+}
+
 export function getCompanyList(page: number, pageSize: number, status?: number): Promise<PaginatedResponse<CompanyRow>> {
   return axiosInstance
     .get('/companies', { params: { page, page_size: pageSize, status } })

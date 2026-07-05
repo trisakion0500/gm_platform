@@ -15,6 +15,22 @@ export interface RefreshResult {
   role_code: RoleCode;
 }
 
+export interface SignupPayload {
+  company_id: number;
+  requested_project_id?: number;
+  login_id: string;
+  password: string;
+  user_name: string;
+  email: string;
+  phone_number: string;
+  department?: string;
+  position?: string;
+}
+
+export function signup(payload: SignupPayload): Promise<null> {
+  return axiosInstance.post('/auth/signup', payload).then(unwrap<null>);
+}
+
 export function login(login_id: string, password: string): Promise<LoginResult> {
   return axiosInstance.post('/auth/login', { login_id, password }).then(unwrap<LoginResult>);
 }

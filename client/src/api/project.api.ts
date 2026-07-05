@@ -1,6 +1,18 @@
 import axiosInstance, { unwrap } from './axios';
 import type { PaginatedResponse, ProjectRow } from '../types';
 
+export interface ProjectLookupResult {
+  project_id: number;
+  project_name: string;
+}
+
+// 회원가입 화면 전용(인증 불필요) — project_code로 활성 프로젝트 조회
+export function getProjectByCode(companyId: number, projectCode: string): Promise<ProjectLookupResult> {
+  return axiosInstance
+    .get('/projects/lookup', { params: { company_id: companyId, project_code: projectCode } })
+    .then(unwrap<ProjectLookupResult>);
+}
+
 export function getProjectList(
   page: number,
   pageSize: number,

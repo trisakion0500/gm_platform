@@ -6,6 +6,7 @@ import AuthLayout from '../components/layout/AuthLayout';
 import MainLayout from '../components/layout/MainLayout';
 import AdminLayout from '../components/layout/AdminLayout';
 import LoginPage from '../pages/auth/LoginPage';
+import SignupPage from '../pages/auth/SignupPage';
 import CompanyListPage from '../pages/admin/companies/CompanyListPage';
 import CompanyNewPage from '../pages/admin/companies/CompanyNewPage';
 import CompanyDetailPage from '../pages/admin/companies/CompanyDetailPage';
@@ -25,7 +26,7 @@ import ExecutionListPage from '../pages/main/executions/ExecutionListPage';
 import ExecutionDetailPage from '../pages/main/executions/ExecutionDetailPage';
 import ExecutionPendingListPage from '../pages/main/executions/ExecutionPendingListPage';
 import ExecutionPendingDetailPage from '../pages/main/executions/ExecutionPendingDetailPage';
-import PagePlaceholder from '../pages/PagePlaceholder';
+import MyAccountPage from '../pages/main/my-account/MyAccountPage';
 import ForbiddenPage from '../pages/errors/ForbiddenPage';
 import NotFoundPage from '../pages/errors/NotFoundPage';
 import { useAuthStore } from '../stores/authStore';
@@ -45,7 +46,7 @@ function AppRouter() {
         <Route element={<GuestGuard />}>
           <Route element={<AuthLayout />}>
             <Route path="/login" element={<LoginPage />} />
-            <Route path="/signup" element={<PagePlaceholder title="회원가입" />} />
+            <Route path="/signup" element={<SignupPage />} />
           </Route>
         </Route>
 
@@ -61,7 +62,7 @@ function AppRouter() {
               <Route path="/executions/pending/:api_execution_id" element={<ExecutionPendingDetailPage />} />
             </Route>
             <Route path="/executions/:api_execution_id" element={<ExecutionDetailPage />} />
-            <Route path="/my-account" element={<PagePlaceholder title="내 계정" />} />
+            <Route path="/my-account" element={<MyAccountPage />} />
           </Route>
 
           <Route path="/admin" element={<RoleGuard allow={[ROLE.SUPER_ADMIN, ROLE.DEVELOPER, ROLE.APPROVER]} />}>
