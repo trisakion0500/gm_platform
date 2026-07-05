@@ -45,7 +45,7 @@ export async function insertLogAudit(
  * @param fromCreatedAt 시작 일시 (null=제한없음)
  * @param toCreatedAt 종료 일시 (null=제한없음)
  * @param page 페이지 번호 (1부터)
- * @param pageSize 페이지 크기 (20/50/100)
+ * @param pageSize 페이지 크기 (20/30/50/100)
  * @param callerRoleCode 요청자 역할 코드
  * @param callerCompanyId 요청자 company_id
  * @returns { total_count, items }

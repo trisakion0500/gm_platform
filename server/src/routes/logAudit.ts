@@ -13,7 +13,7 @@ const router = Router();
  *     tags: [LogAudit]
  *     summary: 감사 로그 목록 조회
  *     description: |
- *       `page`와 `page_size`는 모두 필수이며, `page_size`는 20·50·100만 허용한다.
+ *       `page`와 `page_size`는 모두 필수이며, `page_size`는 20·30·50·100만 허용한다.
  *       DEVELOPER·APPROVER는 본인 소속 회사 로그만 반환된다.
  *     security:
  *       - bearerAuth: []
@@ -26,7 +26,7 @@ const router = Router();
  *       - in: query
  *         name: page_size
  *         required: true
- *         schema: { type: integer, enum: [20, 50, 100], example: 20 }
+ *         schema: { type: integer, enum: [20, 30, 50, 100], example: 20 }
  *       - in: query
  *         name: company_id
  *         schema: { type: integer, example: 1, description: '회사 ID 필터' }

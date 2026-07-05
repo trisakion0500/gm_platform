@@ -100,7 +100,7 @@ router.get('/lookup',        ctrl.getProjectByCode);
  *     summary: 프로젝트 목록 조회
  *     description: |
  *       DEVELOPER·APPROVER·OPERATOR는 본인이 역할을 가진 프로젝트만 반환된다.
- *       `page`와 `page_size`는 모두 필수이며, `page_size`는 20·50·100만 허용한다.
+ *       `page`와 `page_size`는 모두 필수이며, `page_size`는 20·30·50·100만 허용한다.
  *     security:
  *       - bearerAuth: []
  *     x-required-roles: SUPER_ADMIN, DEVELOPER, APPROVER, OPERATOR
@@ -112,7 +112,7 @@ router.get('/lookup',        ctrl.getProjectByCode);
  *       - in: query
  *         name: page_size
  *         required: true
- *         schema: { type: integer, enum: [20, 50, 100], example: 20 }
+ *         schema: { type: integer, enum: [20, 30, 50, 100], example: 20 }
  *       - in: query
  *         name: status
  *         schema: { type: integer, description: '1=사용, 0=중지', example: 1 }

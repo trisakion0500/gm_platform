@@ -14,7 +14,7 @@ const router = Router();
  *     summary: 사용자 목록 조회
  *     description: |
  *       DEVELOPER는 본인 소속 회사 사용자만 반환된다.
- *       `page`와 `page_size`는 모두 필수이며, `page_size`는 20·50·100만 허용한다.
+ *       `page`와 `page_size`는 모두 필수이며, `page_size`는 20·30·50·100만 허용한다.
  *     security:
  *       - bearerAuth: []
  *     x-required-roles: SUPER_ADMIN, DEVELOPER
@@ -26,7 +26,7 @@ const router = Router();
  *       - in: query
  *         name: page_size
  *         required: true
- *         schema: { type: integer, enum: [20, 50, 100], example: 20 }
+ *         schema: { type: integer, enum: [20, 30, 50, 100], example: 20 }
  *       - in: query
  *         name: status
  *         schema: { type: integer, description: '0=가입승인대기, 1=정상, 2=가입반려, 3=사용중지' }

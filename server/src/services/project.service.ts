@@ -51,7 +51,7 @@ export async function createProject(
  * @param companyId 회사 ID 필터 (null=전체)
  * @param status 상태 필터 (null=전체)
  * @param page 페이지 번호 (1부터)
- * @param pageSize 페이지 크기 (20/50/100)
+ * @param pageSize 페이지 크기 (20/30/50/100)
  * @param roleCode 요청자 역할 코드
  * @param userId 요청자 user_id (스코핑용)
  * @returns 페이지네이션 응답 { page, page_size, total_count, items }

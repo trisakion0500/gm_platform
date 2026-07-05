@@ -74,7 +74,7 @@ router.post('/',           authenticate, requireRole(ROLE.SUPER_ADMIN, ROLE.DEVE
  *     tags: [Api]
  *     summary: API 목록 조회
  *     description: |
- *       `project_id`, `page`, `page_size`는 필수이며, `page_size`는 20·50·100만 허용한다.
+ *       `project_id`, `page`, `page_size`는 필수이며, `page_size`는 20·30·50·100만 허용한다.
  *     security:
  *       - bearerAuth: []
  *     x-required-roles: SUPER_ADMIN, DEVELOPER, APPROVER, OPERATOR
@@ -90,7 +90,7 @@ router.post('/',           authenticate, requireRole(ROLE.SUPER_ADMIN, ROLE.DEVE
  *       - in: query
  *         name: page_size
  *         required: true
- *         schema: { type: integer, enum: [20, 50, 100], example: 20 }
+ *         schema: { type: integer, enum: [20, 30, 50, 100], example: 20 }
  *       - in: query
  *         name: status
  *         schema: { type: integer, description: '1=사용, 0=중지' }

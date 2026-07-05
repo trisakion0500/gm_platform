@@ -62,7 +62,7 @@ export async function updateApiExecutionResult(
  * @param status 상태 필터 (null=전체)
  * @param requiredApprovalOnly 승인 필요 건만 필터 (null=전체, 1=승인필요 건만)
  * @param page 페이지 번호 (1부터)
- * @param pageSize 페이지 크기 (20/50/100)
+ * @param pageSize 페이지 크기 (20/30/50/100)
  * @param callerRoleCode 요청자 역할 코드
  * @param callerCompanyId 요청자 company_id
  * @returns { total_count, items }
@@ -92,7 +92,7 @@ export async function getApiExecutionList(
  * @author trisakion
  * @param projectId 프로젝트 ID
  * @param page 페이지 번호 (1부터)
- * @param pageSize 페이지 크기 (20/50/100)
+ * @param pageSize 페이지 크기 (20/30/50/100)
  * @param callerRoleCode 요청자 역할 코드
  * @param callerCompanyId 요청자 company_id
  * @returns { total_count, items }

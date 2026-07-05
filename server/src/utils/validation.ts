@@ -19,7 +19,7 @@ export type PaginationResult =
   | { ok: false; error: ErrorEntry };
 
 /**
- * page/page_size 쿼리 파라미터를 검증한다. 둘 다 필수이며 page_size는 20/50/100만 허용한다.
+ * page/page_size 쿼리 파라미터를 검증한다. 둘 다 필수이며 page_size는 20/30/50/100만 허용한다.
  * @author trisakion
  * @param page req.query.page
  * @param pageSize req.query.page_size
@@ -32,7 +32,7 @@ export function parsePagination(page: unknown, pageSize: unknown): PaginationRes
   const pageSizeNum = Number(pageSize);
   if (!Number.isInteger(pageNum) || pageNum < 1)
     return { ok: false, error: ERROR_MAP.INVALID_FORMAT };
-  if (![20, 50, 100].includes(pageSizeNum))
+  if (![20, 30, 50, 100].includes(pageSizeNum))
     return { ok: false, error: ERROR_MAP.INVALID_VALUE };
   return { ok: true, page: pageNum, pageSize: pageSizeNum };
 }

@@ -44,7 +44,7 @@ export async function createCompany(
  * @author trisakion
  * @param status 상태 필터 (null=전체)
  * @param page 페이지 번호 (1부터)
- * @param pageSize 페이지 크기 (20/50/100)
+ * @param pageSize 페이지 크기 (20/30/50/100)
  * @param roleCode 요청자 역할 코드
  * @param companyId 요청자 소속 회사 ID (DEVELOPER 스코핑용)
  * @returns { total_count, items }

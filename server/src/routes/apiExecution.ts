@@ -14,7 +14,7 @@ const router = Router();
  *     summary: 승인 대기 목록 조회
  *     description: |
  *       status=10(PENDING)인 실행 이력 목록을 반환한다.
- *       `project_id`, `page`, `page_size`는 필수이며, `page_size`는 20·50·100만 허용한다. 다른 필터는 없다.
+ *       `project_id`, `page`, `page_size`는 필수이며, `page_size`는 20·30·50·100만 허용한다. 다른 필터는 없다.
  *     security:
  *       - bearerAuth: []
  *     x-required-roles: SUPER_ADMIN, DEVELOPER, APPROVER
@@ -30,7 +30,7 @@ const router = Router();
  *       - in: query
  *         name: page_size
  *         required: true
- *         schema: { type: integer, enum: [20, 50, 100], example: 20 }
+ *         schema: { type: integer, enum: [20, 30, 50, 100], example: 20 }
  *     responses:
  *       200:
  *         description: 조회 성공
@@ -75,7 +75,7 @@ router.get('/pending',                   authenticate, requireRole(ROLE.SUPER_AD
  *     tags: [ApiExecution]
  *     summary: 실행 이력 목록 조회
  *     description: |
- *       `project_id`, `page`, `page_size`는 필수이며, `page_size`는 20·50·100만 허용한다.
+ *       `project_id`, `page`, `page_size`는 필수이며, `page_size`는 20·30·50·100만 허용한다.
  *       OPERATOR는 본인이 요청한 이력만 반환된다(request_user_id 강제 적용).
  *     security:
  *       - bearerAuth: []
@@ -92,7 +92,7 @@ router.get('/pending',                   authenticate, requireRole(ROLE.SUPER_AD
  *       - in: query
  *         name: page_size
  *         required: true
- *         schema: { type: integer, enum: [20, 50, 100], example: 20 }
+ *         schema: { type: integer, enum: [20, 30, 50, 100], example: 20 }
  *       - in: query
  *         name: api_id
  *         schema: { type: integer, example: 1 }
