@@ -148,7 +148,7 @@ export async function approveApiExecution(
   callerRoleCode: number,
   callerCompanyId: number,
 ): Promise<APIExecutionRow> {
-  const row = await db.approveApiExecution(executionId, approveUserId);
+  const row = await db.approveApiExecution(executionId, approveUserId, callerRoleCode);
   if (!row)
     throw toAppError(ERROR_MAP.API_EXECUTION_NOT_FOUND);
 
@@ -164,14 +164,16 @@ export async function approveApiExecution(
  * @param executionId 실행 이력 ID
  * @param approveUserId 반려자 user_id
  * @param rejectReason 반려 사유
+ * @param callerRoleCode 반려자 역할 코드 (대상 프로젝트 재검증용)
  * @returns 반려된 실행 이력
  */
 export async function rejectApiExecution(
   executionId: number,
   approveUserId: number,
   rejectReason: string,
+  callerRoleCode: number,
 ): Promise<APIExecutionRow> {
-  const result = await db.rejectApiExecution(executionId, approveUserId, rejectReason);
+  const result = await db.rejectApiExecution(executionId, approveUserId, rejectReason, callerRoleCode);
   if (!result)
     throw toAppError(ERROR_MAP.API_EXECUTION_NOT_FOUND);
   return result;

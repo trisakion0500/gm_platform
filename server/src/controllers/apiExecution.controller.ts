@@ -211,7 +211,7 @@ export async function rejectApiExecution(req: Request, res: Response, next: Next
       fail(res, ERROR_MAP.REQUIRED_MISSING);
       return;
     }
-    const execution = await service.rejectApiExecution(executionId, req.user!.user_id, reject_reason);
+    const execution = await service.rejectApiExecution(executionId, req.user!.user_id, reject_reason, req.user!.role_code);
     success(res, formatApiExecution(execution));
   } catch (err) {
     next(err);

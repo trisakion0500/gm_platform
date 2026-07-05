@@ -143,17 +143,20 @@ export async function getApiExecution(
 /**
  * 실행 이력을 승인(10→20)하고 승인된 이력 + api_base_url을 반환한다.
  * 미존재 시 null, status=10이 아닌 경우 DBError(30003)를 던진다.
+ * SUPER_ADMIN 외에는 대상 프로젝트에 DEVELOPER/APPROVER 활성 권한이 없으면 null(31009, 이력 존재 자체를 숨김).
  * @author trisakion
  * @param apiExecutionId 승인할 실행 이력 ID
  * @param approveUserId 승인자 user_id
+ * @param callerRoleCode 승인자 역할 코드 (대상 프로젝트 재검증용)
  * @returns 승인된 실행 이력 + api_base_url, 없으면 null
  */
 export async function approveApiExecution(
   apiExecutionId: number,
   approveUserId: number,
+  callerRoleCode: number,
 ): Promise<APIExecutionRow & { api_base_url: string } | null> {
   const [status, [data]] = await callSP('SP_APPROVE_API_EXECUTION', [
-    apiExecutionId, approveUserId,
+    apiExecutionId, approveUserId, callerRoleCode,
   ]);
   switch (status[0].RESULT) {
     case 31009: return null;
@@ -165,19 +168,22 @@ export async function approveApiExecution(
 /**
  * 실행 이력을 반려(10→30)하고 반려된 이력을 반환한다.
  * 미존재 시 null, status=10이 아닌 경우 DBError(30003)를 던진다.
+ * SUPER_ADMIN 외에는 대상 프로젝트에 DEVELOPER/APPROVER 활성 권한이 없으면 null(31009, 이력 존재 자체를 숨김).
  * @author trisakion
  * @param apiExecutionId 반려할 실행 이력 ID
  * @param approveUserId 반려자 user_id
  * @param rejectReason 반려 사유
+ * @param callerRoleCode 반려자 역할 코드 (대상 프로젝트 재검증용)
  * @returns 반려된 실행 이력, 없으면 null
  */
 export async function rejectApiExecution(
   apiExecutionId: number,
   approveUserId: number,
   rejectReason: string,
+  callerRoleCode: number,
 ): Promise<APIExecutionRow | null> {
   const [status, [data]] = await callSP('SP_REJECT_API_EXECUTION', [
-    apiExecutionId, approveUserId, rejectReason,
+    apiExecutionId, approveUserId, rejectReason, callerRoleCode,
   ]);
   switch (status[0].RESULT) {
     case 31009: return null;
