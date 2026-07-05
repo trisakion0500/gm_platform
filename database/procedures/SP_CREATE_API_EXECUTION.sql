@@ -13,10 +13,12 @@ BEGIN
 -- 작성 : 2026-06-30 trisakion
 -- 내용 : API 실행 이력 생성
 --        api 존재·활성 검사 (31006, 30003)
---        api_stage 역할 접근 검사 (20001)
+--        대상 프로젝트 실제 권한 재검증 (20001, SUPER_ADMIN 제외 — i_role_code는 세션 전역값이라
+--        다른 프로젝트 권한으로 이 프로젝트의 api_stage 게이트를 통과하지 못하도록 user_role을 다시 조회)
+--        api_stage 역할 접근 검사 (20001, 프로젝트 실제 권한 기준)
 --        프로젝트 company 접근 검사 (20001, SUPER_ADMIN 제외)
 --        api_name/endpoint 스냅샷 저장
---        is_immediate: is_required_approval=0 또는 OPERATOR(40) 아닌 경우 1
+--        is_immediate: is_required_approval=0 또는 OPERATOR(40) 아닌 경우 1 (프로젝트 실제 권한 기준)
 -- 테이블 적용 순서 : api_execution
 -- --------------------------------- --
 
@@ -30,6 +32,7 @@ BEGIN
     DECLARE v_project_company_id    BIGINT;
     DECLARE v_api_base_url          VARCHAR(255);
     DECLARE v_is_immediate          TINYINT;
+    DECLARE v_actual_role_code      INT;
 
     DECLARE sql_state      CHAR(5)       DEFAULT '00000';
     DECLARE error_no       INT           DEFAULT 0;
@@ -64,12 +67,32 @@ BEGIN
             LEAVE transaction_block;
         END IF;
 
-        -- api_stage 역할 접근 검사
-        IF v_api_stage = 20 AND i_role_code NOT IN (10, 20) THEN
+        -- 대상 프로젝트 실제 권한 재검증 — i_role_code(세션 전역 role_code, 가진 프로젝트 중 최고 권한)를
+        -- 그대로 신뢰하면 다른 프로젝트의 권한으로 이 프로젝트의 api_stage 게이트를 통과할 수 있다.
+        -- SUPER_ADMIN은 user_role 배정 없이 항상 허용.
+        IF i_role_code = 10 THEN
+            SET v_actual_role_code = 10;
+        ELSE
+            SELECT ur.`role_code`
+            INTO   v_actual_role_code
+            FROM `user_role` ur
+            WHERE ur.`user_id`    = i_request_user_id
+              AND ur.`project_id` = v_project_id
+              AND ur.`status`     = 1
+            LIMIT 1;
+        END IF;
+
+        IF v_actual_role_code IS NULL THEN
             SELECT 20001 AS RESULT;
             LEAVE transaction_block;
         END IF;
-        IF v_api_stage = 30 AND i_role_code NOT IN (10, 20, 30) THEN
+
+        -- api_stage 역할 접근 검사 (프로젝트 실제 권한 기준)
+        IF v_api_stage = 20 AND v_actual_role_code NOT IN (10, 20) THEN
+            SELECT 20001 AS RESULT;
+            LEAVE transaction_block;
+        END IF;
+        IF v_api_stage = 30 AND v_actual_role_code NOT IN (10, 20, 30) THEN
             SELECT 20001 AS RESULT;
             LEAVE transaction_block;
         END IF;
@@ -80,8 +103,8 @@ BEGIN
             LEAVE transaction_block;
         END IF;
 
-        -- is_required_approval=0 또는 OPERATOR(40)가 아닌 경우 즉시 실행
-        SET v_is_immediate = IF(v_is_required_approval = 0 OR i_role_code != 40, 1, 0);
+        -- is_required_approval=0 또는 OPERATOR(40)가 아닌 경우 즉시 실행 (프로젝트 실제 권한 기준)
+        SET v_is_immediate = IF(v_is_required_approval = 0 OR v_actual_role_code != 40, 1, 0);
 
         START TRANSACTION;
 
