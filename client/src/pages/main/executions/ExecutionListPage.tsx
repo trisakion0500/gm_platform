@@ -5,6 +5,7 @@ import type { AxiosError } from 'axios';
 import { useNavigate } from 'react-router-dom';
 import DataTable from '../../../components/common/DataTable';
 import PageHeader from '../../../components/common/PageHeader';
+import PageSizeSelect from '../../../components/common/PageSizeSelect';
 import StatusBadge from '../../../components/common/StatusBadge';
 import { EXECUTION_STATUS_MAP } from '../../../constants/apiMeta';
 import * as apiApi from '../../../api/api.api';
@@ -30,6 +31,7 @@ function ExecutionListPage() {
   const [cancelTarget, setCancelTarget] = useState<ApiExecutionRow | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [pageSize, setPageSize] = useState(20);
 
   useEffect(() => {
     if (!selectedProjectId) {
@@ -116,11 +118,15 @@ function ExecutionListPage() {
             >
               승인 필요 건만
             </Checkbox>
+            <div style={{ marginLeft: 'auto' }}>
+              <PageSizeSelect value={pageSize} onChange={setPageSize} />
+            </div>
           </div>
           <DataTable<ApiExecutionRow>
             key={`${selectedProjectId}-${filter.apiId ?? 'all'}-${filter.status ?? 'all'}-${filter.requiredApprovalOnly ?? 'all'}-${refreshKey}`}
             columns={columns}
             rowKey="api_execution_id"
+            pageSize={pageSize}
             fetcher={(page, pageSize) =>
               apiExecutionApi.getApiExecutionList(
                 selectedProjectId, page, pageSize, filter.apiId, undefined, filter.status, filter.requiredApprovalOnly,

@@ -1,8 +1,10 @@
+import { useState } from 'react';
 import { Empty } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import { useNavigate } from 'react-router-dom';
 import DataTable from '../../../components/common/DataTable';
 import PageHeader from '../../../components/common/PageHeader';
+import PageSizeSelect from '../../../components/common/PageSizeSelect';
 import * as apiExecutionApi from '../../../api/apiExecution.api';
 import { useGlobalStore } from '../../../stores/globalStore';
 import type { ApiExecutionRow } from '../../../types';
@@ -17,6 +19,7 @@ const columns: ColumnsType<ApiExecutionRow> = [
 function ExecutionPendingListPage() {
   const navigate = useNavigate();
   const selectedProjectId = useGlobalStore((state) => state.selectedProjectId);
+  const [pageSize, setPageSize] = useState(20);
 
   return (
     <>
@@ -25,13 +28,19 @@ function ExecutionPendingListPage() {
       {!selectedProjectId && <Empty description="프로젝트를 선택하세요" style={{ marginTop: 80 }} />}
 
       {selectedProjectId && (
-        <DataTable<ApiExecutionRow>
-          key={selectedProjectId}
-          columns={columns}
-          rowKey="api_execution_id"
-          fetcher={(page, pageSize) => apiExecutionApi.getApiExecutionPending(selectedProjectId, page, pageSize)}
-          onRowClick={(record) => navigate(`/executions/pending/${record.api_execution_id}`)}
-        />
+        <>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 16 }}>
+            <PageSizeSelect value={pageSize} onChange={setPageSize} />
+          </div>
+          <DataTable<ApiExecutionRow>
+            key={selectedProjectId}
+            columns={columns}
+            rowKey="api_execution_id"
+            pageSize={pageSize}
+            fetcher={(page, pageSize) => apiExecutionApi.getApiExecutionPending(selectedProjectId, page, pageSize)}
+            onRowClick={(record) => navigate(`/executions/pending/${record.api_execution_id}`)}
+          />
+        </>
       )}
     </>
   );

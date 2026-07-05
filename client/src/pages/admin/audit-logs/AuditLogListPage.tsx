@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { DatePicker, Select } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import dayjs from 'dayjs';
@@ -5,6 +6,7 @@ import type { Dayjs } from 'dayjs';
 import { useNavigate } from 'react-router-dom';
 import DataTable from '../../../components/common/DataTable';
 import PageHeader from '../../../components/common/PageHeader';
+import PageSizeSelect from '../../../components/common/PageSizeSelect';
 import StatusBadge from '../../../components/common/StatusBadge';
 import * as logAuditApi from '../../../api/logAudit.api';
 import { useGlobalStore } from '../../../stores/globalStore';
@@ -48,6 +50,7 @@ function AuditLogListPage() {
   const projectId = useGlobalStore((state) => state.selectedProjectId);
   const filter = useListFilterStore((state) => state.auditLogFilter);
   const setFilter = useListFilterStore((state) => state.setAuditLogFilter);
+  const [pageSize, setPageSize] = useState(20);
 
   const dateRange: [Dayjs, Dayjs] | null =
     filter.fromDate && filter.toDate ? [dayjs(filter.fromDate), dayjs(filter.toDate)] : null;
@@ -84,11 +87,15 @@ function AuditLogListPage() {
             })
           }
         />
+        <div style={{ marginLeft: 'auto' }}>
+          <PageSizeSelect value={pageSize} onChange={setPageSize} />
+        </div>
       </div>
       <DataTable<LogAuditRow>
         key={`${companyId ?? 'all'}-${projectId ?? 'all'}-${filter.tableName ?? 'all'}-${filter.actionType ?? 'all'}-${filter.fromDate ?? ''}-${filter.toDate ?? ''}`}
         columns={COLUMNS}
         rowKey="log_audit_id"
+        pageSize={pageSize}
         fetcher={(page, pageSize) =>
           logAuditApi.getLogAuditList(page, pageSize, {
             company_id: companyId ?? undefined,

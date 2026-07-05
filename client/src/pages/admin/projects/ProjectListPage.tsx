@@ -1,8 +1,10 @@
+import { useState } from 'react';
 import { Button, Select } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import { useNavigate } from 'react-router-dom';
 import DataTable from '../../../components/common/DataTable';
 import PageHeader from '../../../components/common/PageHeader';
+import PageSizeSelect from '../../../components/common/PageSizeSelect';
 import PermissionGuard from '../../../components/common/PermissionGuard';
 import StatusBadge from '../../../components/common/StatusBadge';
 import * as projectApi from '../../../api/project.api';
@@ -31,6 +33,7 @@ function ProjectListPage() {
   const companyId = useGlobalStore((state) => state.selectedCompanyId);
   const status = useListFilterStore((state) => state.projectListStatus);
   const setStatus = useListFilterStore((state) => state.setProjectListStatus);
+  const [pageSize, setPageSize] = useState(20);
 
   return (
     <>
@@ -44,20 +47,26 @@ function ProjectListPage() {
           </PermissionGuard>
         }
       />
-      <Select
-        style={{ width: 160, marginBottom: 16 }}
-        value={status ?? 'ALL'}
-        onChange={(value) => setStatus(value === 'ALL' ? undefined : (value as number))}
-        options={[
-          { value: 'ALL', label: '전체' },
-          { value: 1, label: '활성' },
-          { value: 0, label: '비활성' },
-        ]}
-      />
+      <div style={{ display: 'flex', gap: 8, marginBottom: 16, alignItems: 'center' }}>
+        <Select
+          style={{ width: 160 }}
+          value={status ?? 'ALL'}
+          onChange={(value) => setStatus(value === 'ALL' ? undefined : (value as number))}
+          options={[
+            { value: 'ALL', label: '전체' },
+            { value: 1, label: '활성' },
+            { value: 0, label: '비활성' },
+          ]}
+        />
+        <div style={{ marginLeft: 'auto' }}>
+          <PageSizeSelect value={pageSize} onChange={setPageSize} />
+        </div>
+      </div>
       <DataTable<ProjectRow>
         key={`${companyId ?? 'all'}-${status ?? 'all'}`}
         columns={COLUMNS}
         rowKey="project_id"
+        pageSize={pageSize}
         fetcher={(page, pageSize) => projectApi.getProjectList(page, pageSize, companyId ?? undefined, status)}
         onRowClick={(record) => navigate(`/admin/projects/${record.project_id}`)}
       />

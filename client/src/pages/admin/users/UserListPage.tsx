@@ -1,8 +1,10 @@
+import { useState } from 'react';
 import { Select } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import { useNavigate } from 'react-router-dom';
 import DataTable from '../../../components/common/DataTable';
 import PageHeader from '../../../components/common/PageHeader';
+import PageSizeSelect from '../../../components/common/PageSizeSelect';
 import StatusBadge from '../../../components/common/StatusBadge';
 import { useGlobalStore } from '../../../stores/globalStore';
 import { useListFilterStore } from '../../../stores/listFilterStore';
@@ -34,26 +36,33 @@ function UserListPage() {
   const companyId = useGlobalStore((state) => state.selectedCompanyId);
   const status = useListFilterStore((state) => state.userListStatus);
   const setStatus = useListFilterStore((state) => state.setUserListStatus);
+  const [pageSize, setPageSize] = useState(20);
 
   return (
     <>
       <PageHeader title="사용자 목록" />
-      <Select
-        style={{ width: 160, marginBottom: 16 }}
-        value={status ?? 'ALL'}
-        onChange={(value) => setStatus(value === 'ALL' ? undefined : (value as number))}
-        options={[
-          { value: 'ALL', label: '전체' },
-          { value: 0, label: '승인대기' },
-          { value: 1, label: '정상' },
-          { value: 2, label: '반려' },
-          { value: 3, label: '사용중지' },
-        ]}
-      />
+      <div style={{ display: 'flex', gap: 8, marginBottom: 16, alignItems: 'center' }}>
+        <Select
+          style={{ width: 160 }}
+          value={status ?? 'ALL'}
+          onChange={(value) => setStatus(value === 'ALL' ? undefined : (value as number))}
+          options={[
+            { value: 'ALL', label: '전체' },
+            { value: 0, label: '승인대기' },
+            { value: 1, label: '정상' },
+            { value: 2, label: '반려' },
+            { value: 3, label: '사용중지' },
+          ]}
+        />
+        <div style={{ marginLeft: 'auto' }}>
+          <PageSizeSelect value={pageSize} onChange={setPageSize} />
+        </div>
+      </div>
       <DataTable<UserRow>
         key={`${companyId ?? 'all'}-${status ?? 'all'}`}
         columns={COLUMNS}
         rowKey="user_id"
+        pageSize={pageSize}
         fetcher={(page, pageSize) => userApi.getUserList(page, pageSize, status, companyId ?? undefined)}
         onRowClick={(record) => navigate(`/admin/users/${record.user_id}`)}
       />

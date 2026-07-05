@@ -1,8 +1,10 @@
+import { useState } from 'react';
 import { Button, Select } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import { useNavigate } from 'react-router-dom';
 import DataTable from '../../../components/common/DataTable';
 import PageHeader from '../../../components/common/PageHeader';
+import PageSizeSelect from '../../../components/common/PageSizeSelect';
 import PermissionGuard from '../../../components/common/PermissionGuard';
 import StatusBadge from '../../../components/common/StatusBadge';
 import * as companyApi from '../../../api/company.api';
@@ -27,6 +29,7 @@ function CompanyListPage() {
   const navigate = useNavigate();
   const status = useListFilterStore((state) => state.companyListStatus);
   const setStatus = useListFilterStore((state) => state.setCompanyListStatus);
+  const [pageSize, setPageSize] = useState(20);
 
   return (
     <>
@@ -40,20 +43,26 @@ function CompanyListPage() {
           </PermissionGuard>
         }
       />
-      <Select
-        style={{ width: 160, marginBottom: 16 }}
-        value={status ?? 'ALL'}
-        onChange={(value) => setStatus(value === 'ALL' ? undefined : (value as number))}
-        options={[
-          { value: 'ALL', label: '전체' },
-          { value: 1, label: '활성' },
-          { value: 0, label: '비활성' },
-        ]}
-      />
+      <div style={{ display: 'flex', gap: 8, marginBottom: 16, alignItems: 'center' }}>
+        <Select
+          style={{ width: 160 }}
+          value={status ?? 'ALL'}
+          onChange={(value) => setStatus(value === 'ALL' ? undefined : (value as number))}
+          options={[
+            { value: 'ALL', label: '전체' },
+            { value: 1, label: '활성' },
+            { value: 0, label: '비활성' },
+          ]}
+        />
+        <div style={{ marginLeft: 'auto' }}>
+          <PageSizeSelect value={pageSize} onChange={setPageSize} />
+        </div>
+      </div>
       <DataTable<CompanyRow>
         key={status ?? 'all'}
         columns={COLUMNS}
         rowKey="company_id"
+        pageSize={pageSize}
         fetcher={(page, pageSize) => companyApi.getCompanyList(page, pageSize, status)}
         onRowClick={(record) => navigate(`/admin/companies/${record.company_id}`)}
       />

@@ -9,6 +9,7 @@ interface DataTableProps<T> {
   columns: ColumnsType<T>;
   fetcher: (page: number, pageSize: number) => Promise<PaginatedResponse<T>>;
   rowKey: string | ((record: T) => Key);
+  // 페이지 크기 선택 콤보박스는 검색조건 라인(각 목록 페이지)에 두므로, 여기서는 그 값을 그대로 전달받기만 한다.
   pageSize?: number;
   onRowClick?: (record: T) => void;
 }
@@ -27,6 +28,14 @@ function DataTable<T>({ columns, fetcher, rowKey, pageSize = 20, onRowClick }: D
   const [error, setError] = useState<string | null>(null);
   const wrapperRef = useRef<HTMLDivElement>(null);
   const [scrollY, setScrollY] = useState(300);
+
+  // pageSize는 부모(검색조건 라인의 콤보박스)가 갖고 있는 controlled 값 — 바뀌면 1페이지로 되돌린다.
+  // 렌더 중에 바로 처리해 useEffect로 처리할 때 생기는 "이전 page로 한 번, page=1로 한 번" 중복 조회를 피한다.
+  const [prevPageSize, setPrevPageSize] = useState(pageSize);
+  if (pageSize !== prevPageSize) {
+    setPrevPageSize(pageSize);
+    setPage(1);
+  }
 
   useEffect(() => {
     setLoading(true);
