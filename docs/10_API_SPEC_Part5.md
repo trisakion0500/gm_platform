@@ -164,7 +164,7 @@ GET /log-audits
 | from_created_at | N    | 시작 일시                                          |
 | to_created_at   | N    | 종료 일시                                          |
 | page            | Y    | 페이지 번호                                        |
-| page_size       | Y    | 20/50/100 중 선택. 기본 20                         |
+| page_size       | Y    | 20/30/50/100 중 선택. 기본 20                         |
 
 ## 사용 패턴
 

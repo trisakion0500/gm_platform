@@ -133,7 +133,7 @@ GET /companies
 | --------- | -------- | ------------------------------ |
 | status    | N        |                                |
 | page      | Y        |                                |
-| page_size | Y        | 20/50/100 중 선택. 기본 20     |
+| page_size | Y        | 20/30/50/100 중 선택. 기본 20     |
 
 ### Sorting
 
@@ -309,7 +309,7 @@ GET /projects
 | company_id | N        |                                |
 | status     | N        |                                |
 | page       | Y        |                                |
-| page_size  | Y        | 20/50/100 중 선택. 기본 20     |
+| page_size  | Y        | 20/30/50/100 중 선택. 기본 20     |
 
 ### Sorting
 
@@ -522,7 +522,7 @@ GET /users
 | company_id           | N        | SUPER_ADMIN만 유효 (DEVELOPER는 항상 본인 소속 회사로 고정 스코핑) |
 | status               | N        | DEVELOPER도 자유롭게 필터 가능 (본인 소속 회사 스코핑은 별개로 적용) |
 | page                 | Y        |                                |
-| page_size            | Y        | 20/50/100 중 선택. 기본 20     |
+| page_size            | Y        | 20/30/50/100 중 선택. 기본 20     |
 
 ### Sorting
 

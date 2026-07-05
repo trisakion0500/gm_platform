@@ -201,7 +201,7 @@ GET /api-executions
 | status                  | N        |                                                       |
 | required_approval_only  | N        | 1이면 실행 시점 승인 필요(`is_required_approval=1`) 건만 반환, 생략 시 전체 |
 | page                    | Y        |                                                       |
-| page_size               | Y        | 20/50/100 중 선택. 기본 20                               |
+| page_size               | Y        | 20/30/50/100 중 선택. 기본 20                               |
 
 ### 권한별 조회 범위
 
@@ -289,7 +289,7 @@ GET /api-executions/pending
 | ---------- | -------- | ------------------ |
 | project_id | Y        |                    |
 | page       | Y        |                    |
-| page_size  | Y        | 20/50/100 중 선택. 기본 20 |
+| page_size  | Y        | 20/30/50/100 중 선택. 기본 20 |
 
 ### Condition
 

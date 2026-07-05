@@ -78,7 +78,7 @@ GET /apis
 | status     | N        |                                |
 | api_stage  | N        |                                |
 | page       | Y        |                                |
-| page_size  | Y        | 20/50/100 중 선택. 기본 20     |
+| page_size  | Y        | 20/30/50/100 중 선택. 기본 20     |
 
 ### Sorting
 
