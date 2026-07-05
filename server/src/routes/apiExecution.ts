@@ -14,13 +14,13 @@ const router = Router();
  *     summary: 승인 대기 목록 조회
  *     description: |
  *       status=10(PENDING)인 실행 이력 목록을 반환한다.
- *       `api_id`, `page`, `page_size`는 필수이며, `page_size`는 20·50·100만 허용한다.
+ *       `project_id`, `page`, `page_size`는 필수이며, `page_size`는 20·50·100만 허용한다. 다른 필터는 없다.
  *     security:
  *       - bearerAuth: []
  *     x-required-roles: SUPER_ADMIN, DEVELOPER, APPROVER
  *     parameters:
  *       - in: query
- *         name: api_id
+ *         name: project_id
  *         required: true
  *         schema: { type: integer, example: 1 }
  *       - in: query
@@ -75,14 +75,14 @@ router.get('/pending',                   authenticate, requireRole(ROLE.SUPER_AD
  *     tags: [ApiExecution]
  *     summary: 실행 이력 목록 조회
  *     description: |
- *       `api_id`, `page`, `page_size`는 필수이며, `page_size`는 20·50·100만 허용한다.
- *       OPERATOR는 본인이 요청한 이력만 반환된다.
+ *       `project_id`, `page`, `page_size`는 필수이며, `page_size`는 20·50·100만 허용한다.
+ *       OPERATOR는 본인이 요청한 이력만 반환된다(request_user_id 강제 적용).
  *     security:
  *       - bearerAuth: []
  *     x-required-roles: SUPER_ADMIN, DEVELOPER, APPROVER, OPERATOR
  *     parameters:
  *       - in: query
- *         name: api_id
+ *         name: project_id
  *         required: true
  *         schema: { type: integer, example: 1 }
  *       - in: query
@@ -93,6 +93,12 @@ router.get('/pending',                   authenticate, requireRole(ROLE.SUPER_AD
  *         name: page_size
  *         required: true
  *         schema: { type: integer, enum: [20, 50, 100], example: 20 }
+ *       - in: query
+ *         name: api_id
+ *         schema: { type: integer, example: 1 }
+ *       - in: query
+ *         name: request_user_id
+ *         schema: { type: integer, description: 'OPERATOR는 본인 user_id로 강제 적용되어 무시됨' }
  *       - in: query
  *         name: status
  *         schema: { type: integer, description: '10=PENDING, 20=APPROVED, 30=REJECTED, 40=SUCCESS, 50=FAILED, 60=CANCELED' }
@@ -197,7 +203,7 @@ router.get('/:api_execution_id',         authenticate, requireRole(ROLE.SUPER_AD
  *       - 호출 실패 → status: 50(FAILED)
  *     security:
  *       - bearerAuth: []
- *     x-required-roles: SUPER_ADMIN, APPROVER
+ *     x-required-roles: SUPER_ADMIN, DEVELOPER, APPROVER
  *     parameters:
  *       - in: path
  *         name: api_execution_id
@@ -229,7 +235,7 @@ router.post('/:api_execution_id/approve', authenticate, requireRole(ROLE.SUPER_A
  *     description: PENDING(10) 상태인 이력을 반려한다. 반려 사유를 입력할 수 있다.
  *     security:
  *       - bearerAuth: []
- *     x-required-roles: SUPER_ADMIN, APPROVER
+ *     x-required-roles: SUPER_ADMIN, DEVELOPER, APPROVER
  *     parameters:
  *       - in: path
  *         name: api_execution_id
