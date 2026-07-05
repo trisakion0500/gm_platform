@@ -137,6 +137,39 @@ router.get('/',              authenticate, requireRole(ROLE.SUPER_ADMIN, ROLE.DE
 
 /**
  * @swagger
+ * /companies/active-header-data:
+ *   get:
+ *     tags: [Company]
+ *     summary: 헤더 콤보박스용 활성 회사/프로젝트 조회 (페이지네이션 없음)
+ *     description: 로그인 직후 헤더가 1회 로드하는 활성 회사·프로젝트 전체를 한 호출로 반환한다. SUPER_ADMIN 외에는 본인 소속 회사 + 본인이 활성 user_role을 가진 프로젝트만 반환된다.
+ *     security:
+ *       - bearerAuth: []
+ *     x-required-roles: SUPER_ADMIN, DEVELOPER, APPROVER, OPERATOR
+ *     responses:
+ *       200:
+ *         description: 조회 성공
+ *         content:
+ *           application/json:
+ *             example:
+ *               result: 0
+ *               data:
+ *                 companies:
+ *                   - company_id: 1
+ *                     company_name: 회사A
+ *                 projects:
+ *                   - project_id: 1
+ *                     company_id: 1
+ *                     project_name: 프로젝트A
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       403:
+ *         $ref: '#/components/responses/Forbidden'
+ */
+// 정적 경로라 /:company_id 보다 먼저 등록해야 함(안 그러면 "active-header-data"가 company_id로 잘못 매칭)
+router.get('/active-header-data', authenticate, requireRole(ROLE.SUPER_ADMIN, ROLE.DEVELOPER, ROLE.APPROVER, ROLE.OPERATOR), ctrl.getActiveHeaderData);
+
+/**
+ * @swagger
  * /companies/{company_id}:
  *   get:
  *     tags: [Company]

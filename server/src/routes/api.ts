@@ -136,6 +136,42 @@ router.get('/',            authenticate, requireRole(ROLE.SUPER_ADMIN, ROLE.DEVE
 
 /**
  * @swagger
+ * /apis/active:
+ *   get:
+ *     tags: [Api]
+ *     summary: 사이드바 API 메뉴용 활성 API 전체 조회 (페이지네이션 없음)
+ *     description: 프로젝트의 활성(status=1) API 전체를 한 번에 반환한다. 페이지네이션 없이 `api_id`/`api_name`/`api_stage`만 포함.
+ *     security:
+ *       - bearerAuth: []
+ *     x-required-roles: SUPER_ADMIN, DEVELOPER, APPROVER, OPERATOR
+ *     parameters:
+ *       - in: query
+ *         name: project_id
+ *         required: true
+ *         schema: { type: integer, example: 1 }
+ *     responses:
+ *       200:
+ *         description: 조회 성공
+ *         content:
+ *           application/json:
+ *             example:
+ *               result: 0
+ *               data:
+ *                 - api_id: 1
+ *                   api_name: 아이템 지급
+ *                   api_stage: 20
+ *       400:
+ *         $ref: '#/components/responses/BadRequest'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       403:
+ *         $ref: '#/components/responses/Forbidden'
+ */
+// 정적 경로라 /:api_id 보다 먼저 등록해야 함(안 그러면 "active"가 api_id로 잘못 매칭)
+router.get('/active',      authenticate, requireRole(ROLE.SUPER_ADMIN, ROLE.DEVELOPER, ROLE.APPROVER, ROLE.OPERATOR), ctrl.getActiveApis);
+
+/**
+ * @swagger
  * /apis/{api_id}:
  *   get:
  *     tags: [Api]

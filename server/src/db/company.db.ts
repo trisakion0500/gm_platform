@@ -1,5 +1,5 @@
 import { callSP } from '../config/db';
-import { CompanyRow, CompanyLookupRow } from '../types';
+import { CompanyRow, CompanyLookupRow, ActiveProjectRow } from '../types';
 import { toDBError, ERROR_MAP } from '../constants/errors';
 
 /**
@@ -82,6 +82,27 @@ export async function getCompany(
     case 31001: return null;
   }
   return data[0] as unknown as CompanyRow;
+}
+
+/**
+ * 헤더 콤보박스용 활성 회사/프로젝트 목록을 한 번에 조회한다 (페이지네이션 없음).
+ * SUPER_ADMIN은 전체, 그 외는 본인 소속 회사 + 본인이 활성 user_role을 가진 프로젝트만 반환한다.
+ * @author trisakion
+ * @param roleCode 요청자 역할 코드
+ * @param companyId 요청자 소속 회사 ID (SUPER_ADMIN 외 스코핑용)
+ * @param userId 요청자 user_id (SUPER_ADMIN 외 프로젝트 스코핑용)
+ * @returns { companies, projects }
+ */
+export async function getActiveHeaderData(
+  roleCode: number,
+  companyId: number,
+  userId: number,
+): Promise<{ companies: CompanyLookupRow[]; projects: ActiveProjectRow[] }> {
+  const [, [companies, projects]] = await callSP('SP_GET_ACTIVE_HEADER_DATA', [roleCode, companyId, userId]);
+  return {
+    companies: companies as unknown as CompanyLookupRow[],
+    projects: projects as unknown as ActiveProjectRow[],
+  };
 }
 
 /**

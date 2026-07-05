@@ -1,5 +1,5 @@
 import { callSP } from '../config/db';
-import { APIRow, APIRequestRow, APIResponseRow } from '../types';
+import { APIRow, APIRequestRow, APIResponseRow, ActiveApiRow } from '../types';
 import { toDBError, ERROR_MAP } from '../constants/errors';
 
 /**
@@ -68,6 +68,24 @@ export async function getApiList(
     total_count: (countRows[0] as unknown as { total_count: number }).total_count,
     items: itemRows as unknown as APIRow[],
   };
+}
+
+/**
+ * 사이드바 API 메뉴용 활성 API 전체를 조회한다 (페이지네이션 없음).
+ * SUPER_ADMIN은 전체, 일반 사용자는 권한 있는 프로젝트만 조회 가능하다.
+ * @author trisakion
+ * @param projectId 프로젝트 ID
+ * @param callerRoleCode 요청자 역할 코드
+ * @param callerUserId 요청자 user_id
+ * @returns 활성 API 목록
+ */
+export async function getActiveApis(
+  projectId: number,
+  callerRoleCode: number,
+  callerUserId: number,
+): Promise<ActiveApiRow[]> {
+  const [, [items]] = await callSP('SP_GET_ACTIVE_APIS', [projectId, callerRoleCode, callerUserId]);
+  return items as unknown as ActiveApiRow[];
 }
 
 /**

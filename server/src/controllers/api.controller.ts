@@ -111,6 +111,32 @@ export async function getApiList(req: Request, res: Response, next: NextFunction
 }
 
 /**
+ * GET /apis/active — 사이드바 API 메뉴용 활성 API 전체 조회 (전체 역할, 페이지네이션 없음)
+ * @author trisakion
+ * @param req query: { project_id }
+ * @param res 200 — 활성 API 목록 배열
+ * @param next 오류 전달
+ */
+export async function getActiveApis(req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    const { project_id } = req.query;
+    if (!project_id) {
+      fail(res, ERROR_MAP.REQUIRED_MISSING);
+      return;
+    }
+    const projectId = parsePositiveInt(project_id);
+    if (projectId === null) {
+      fail(res, ERROR_MAP.INVALID_FORMAT);
+      return;
+    }
+    const items = await apiService.getActiveApis(projectId, req.user!.role_code, req.user!.user_id);
+    success(res, items);
+  } catch (err) {
+    next(err);
+  }
+}
+
+/**
  * GET /apis/:api_id — API 단건 조회 (전체 역할)
  * @author trisakion
  * @param req params: { api_id }

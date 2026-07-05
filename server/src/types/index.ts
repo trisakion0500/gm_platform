@@ -310,6 +310,20 @@ export interface ProjectLookupRow {
   project_name: string;
 }
 
+/** 헤더 콤보박스 등 선택용 활성 프로젝트 조회 결과 - 페이지네이션 없이 전체 반환 */
+export interface ActiveProjectRow {
+  project_id: number;
+  company_id: number;
+  project_name: string;
+}
+
+/** 사이드바 API 메뉴 등 선택용 활성 API 조회 결과 - 페이지네이션 없이 전체 반환 */
+export interface ActiveApiRow {
+  api_id: number;
+  api_name: string;
+  api_stage: number;
+}
+
 export interface CompanyRow {
   /** 회사 ID */
   company_id: number;

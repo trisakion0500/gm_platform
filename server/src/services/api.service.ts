@@ -1,4 +1,4 @@
-import { APIRow, APIRequestRow, APIResponseRow } from '../types';
+import { APIRow, APIRequestRow, APIResponseRow, ActiveApiRow } from '../types';
 import { toAppError, ERROR_MAP } from '../constants/errors';
 import { ROLE } from '../constants/roles';
 import * as db from '../db/api.db';
@@ -60,6 +60,22 @@ export async function getApiList(
   callerUserId: number,
 ): Promise<{ total_count: number; items: APIRow[] }> {
   return db.getApiList(projectId, status, apiStage, page, pageSize, callerRoleCode, callerUserId);
+}
+
+/**
+ * 사이드바 API 메뉴용 활성 API 전체를 조회한다 (페이지네이션 없음).
+ * @author trisakion
+ * @param projectId 프로젝트 ID
+ * @param callerRoleCode 요청자 역할 코드
+ * @param callerUserId 요청자 user_id
+ * @returns 활성 API 목록
+ */
+export async function getActiveApis(
+  projectId: number,
+  callerRoleCode: number,
+  callerUserId: number,
+): Promise<ActiveApiRow[]> {
+  return db.getActiveApis(projectId, callerRoleCode, callerUserId);
 }
 
 /**

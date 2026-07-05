@@ -1,4 +1,4 @@
-import { CompanyRow, CompanyLookupRow } from '../types';
+import { CompanyRow, CompanyLookupRow, ActiveProjectRow } from '../types';
 import { toAppError, ERROR_MAP } from '../constants/errors';
 import * as db from '../db/company.db';
 import * as audit from './logAudit.service';
@@ -73,6 +73,22 @@ export async function getCompany(
   if (!company)
     throw toAppError(ERROR_MAP.COMPANY_NOT_FOUND);
   return company;
+}
+
+/**
+ * 헤더 콤보박스용 활성 회사/프로젝트 목록을 한 번에 조회한다 (페이지네이션 없음).
+ * @author trisakion
+ * @param roleCode 요청자 역할 코드
+ * @param companyId 요청자 소속 회사 ID (SUPER_ADMIN 외 스코핑용)
+ * @param userId 요청자 user_id (SUPER_ADMIN 외 프로젝트 스코핑용)
+ * @returns { companies, projects }
+ */
+export async function getActiveHeaderData(
+  roleCode: number,
+  companyId: number,
+  userId: number,
+): Promise<{ companies: CompanyLookupRow[]; projects: ActiveProjectRow[] }> {
+  return db.getActiveHeaderData(roleCode, companyId, userId);
 }
 
 /**

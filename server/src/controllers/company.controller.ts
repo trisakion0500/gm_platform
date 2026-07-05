@@ -112,6 +112,23 @@ export async function getCompanyList(req: Request, res: Response, next: NextFunc
 }
 
 /**
+ * GET /companies/active-header-data — 헤더 콤보박스용 활성 회사/프로젝트 조회 (전체 역할, 페이지네이션 없음)
+ * @author trisakion
+ * @param req -
+ * @param res 200 — { companies, projects }
+ * @param next 오류 전달
+ * @returns void
+ */
+export async function getActiveHeaderData(req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    const result = await companyService.getActiveHeaderData(req.user!.role_code, req.user!.company_id, req.user!.user_id);
+    success(res, result);
+  } catch (err) {
+    next(err);
+  }
+}
+
+/**
  * GET /companies/:company_id — 회사 단건 조회 (SUPER_ADMIN, DEVELOPER)
  * @author trisakion
  * @param req params: { company_id }
