@@ -162,8 +162,8 @@ AI는 문서 초안 작성과 반복적인 코드 작업의 속도를 높이는 
 - ✅ 프로젝트 폴더 구조 정의 완료
 - ✅ Backend 구현 완료
   - ✅ Auth API — 로그인 / 회원가입 / 토큰 재발급 / 로그아웃 / 내 정보 / 비밀번호 변경
-  - ✅ Company API — 목록 / 등록 / 상세 / 수정
-  - ✅ Project API — 목록 / 등록 / 상세 / 수정
+  - ✅ Company API — 목록 / 등록 / 상세 / 수정 / 코드조회(lookup, 회원가입 화면 전용 인증 불필요)
+  - ✅ Project API — 목록 / 등록 / 상세 / 수정 / 코드조회(lookup, 회원가입 화면 전용 인증 불필요)
   - ✅ User API — 목록 / 상세 / 수정 / 가입 승인·반려 / 비밀번호 강제 초기화
   - ✅ User Role API — 목록 / 등록 / 수정
   - ✅ API API — 목록 / 등록 / 상세 / 수정 / Request·Response 파라미터 관리 / 실행
@@ -178,4 +178,6 @@ AI는 문서 초안 작성과 반복적인 코드 작업의 속도를 높이는 
   - ✅ Stage 2 — 라우터·레이아웃·가드·공통 컴포넌트 (AuthGuard/RoleGuard/GuestGuard, Header/Sidebar/Footer, globalStore, PermissionGuard/DataTable/ConfirmModal 등)
   - ✅ Stage 3 — 그룹 A: 회사·프로젝트 관리 (List/New/Detail 표준 패턴 확정, 목록 회사 필터는 헤더 전역 선택 사용, listFilterStore로 검색조건 유지)
   - ✅ Stage 4 — 그룹 B: 사용자·권한·감사로그 (사용자 목록/상세, User Role 서브테이블, 감사로그 목록/상세 — 가입승인·반려/비밀번호초기화/정지·재개/권한부여 액션이 감사로그에 정확히 기록됨을 검증)
-  - ⬜ Stage 5~7 — 업무 화면(API 정의·실행·코드그룹) / 회원가입·내 계정 / 마무리
+  - ✅ Stage 5 — 그룹 C: API 정의·실행·코드그룹 (코드그룹 엑셀형 그리드, API 정의 List/New/Detail, API 실행 워크스페이스, 실행이력 목록/상세, 승인대기 목록/상세 — 승인/반려는 상세에서만 처리)
+  - ✅ Stage 6 — 그룹 D: 회원가입·내 계정 (회사/프로젝트코드 직접 입력 방식 회원가입, 내 정보 조회·비밀번호 변경·로그아웃)
+  - ⬜ Stage 7 — 마무리 (403/404 점검, 역할별 접근 매트릭스 재대조, 프로덕션 빌드 확인)

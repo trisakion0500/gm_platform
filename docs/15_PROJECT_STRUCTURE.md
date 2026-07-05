@@ -42,8 +42,8 @@ server/
 │   ├── routes/
 │   │   ├── index.ts         # 전체 라우터 통합 및 앱에 등록
 │   │   ├── auth.ts          # /auth — 로그인, 회원가입, 토큰, 세션
-│   │   ├── company.ts       # /companies — 회사 관리
-│   │   ├── project.ts       # /projects — 프로젝트 관리
+│   │   ├── company.ts       # /companies — 회사 관리 (lookup은 회원가입 화면 전용, 인증 불필요)
+│   │   ├── project.ts       # /projects — 프로젝트 관리 (lookup은 회원가입 화면 전용, 인증 불필요)
 │   │   ├── user.ts          # /users — 사용자 관리
 │   │   ├── userRole.ts      # /user-roles — 사용자 권한 관리
 │   │   ├── api.ts           # /apis — API 정의 및 실행
@@ -56,8 +56,8 @@ server/
 │   │
 │   ├── controllers/
 │   │   ├── auth.controller.ts          # 로그인 / 회원가입 / 토큰 재발급 / 로그아웃 / 내 정보 / 비밀번호 변경
-│   │   ├── company.controller.ts       # 회사 목록 / 상세 / 등록 / 수정
-│   │   ├── project.controller.ts       # 프로젝트 목록 / 상세 / 등록 / 수정
+│   │   ├── company.controller.ts       # 회사 목록 / 상세 / 등록 / 수정 / 코드조회(lookup)
+│   │   ├── project.controller.ts       # 프로젝트 목록 / 상세 / 등록 / 수정 / 코드조회(lookup)
 │   │   ├── user.controller.ts          # 사용자 목록 / 상세 / 수정 / 가입 승인·반려 / 비밀번호 초기화
 │   │   ├── userRole.controller.ts      # 권한 목록 / 등록 / 수정
 │   │   ├── api.controller.ts           # API 목록 / 상세 / 등록 / 수정 / 실행
@@ -157,7 +157,7 @@ client/
 │   │   │   └── PermissionGuard.tsx  # role 조건 충족 시만 children 렌더링
 │   │   │
 │   │   └── layout/
-│   │       ├── AuthLayout.tsx       # 로그인 / 회원가입 전용 레이아웃 (사이드바 없음)
+│   │       ├── AuthLayout.tsx       # 로그인 / 회원가입 전용 레이아웃 (사이드바·헤더 없음, Footer만 공통 적용)
 │   │       ├── MainLayout.tsx       # 비관리 메뉴 레이아웃 (Header + Sidebar + Footer)
 │   │       ├── AdminLayout.tsx      # 관리 메뉴 레이아웃 (Header + Sidebar + Footer)
 │   │       ├── Header.tsx           # 공통 헤더 (로고, 회사/프로젝트 선택, 관리 버튼, 사용자 메뉴)
@@ -167,7 +167,7 @@ client/
 │   ├── pages/
 │   │   ├── auth/
 │   │   │   ├── LoginPage.tsx        # 로그인 ID / 비밀번호 입력, 상태별 오류 메시지
-│   │   │   └── SignupPage.tsx       # 회사 / 프로젝트 선택, 사용자 정보 입력, 가입 후 승인 대기 안내
+│   │   │   └── SignupPage.tsx       # 회사코드 / 프로젝트코드(선택) 입력(드롭다운 아님, GET /companies·/projects가 인증 필수라 사용 불가), 사용자 정보 입력, 가입 후 승인 대기 안내
 │   │   │
 │   │   ├── errors/
 │   │   │   ├── ForbiddenPage.tsx    # 403 — 권한 없는 role의 route 접근 시

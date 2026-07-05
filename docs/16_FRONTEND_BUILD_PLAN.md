@@ -6,7 +6,7 @@
 
 # 1. 전체 화면 목록 및 그룹 구분
 
-[12_SCREEN_LIST.md](./12_SCREEN_LIST.md) 기준 21개 화면을 4개 그룹으로 나누고, 공통 인프라를 먼저 구축한 뒤 그룹 단위로 개발을 진행한다.
+[12_SCREEN_LIST.md](./12_SCREEN_LIST.md) 기준 22개 화면을 4개 그룹으로 나누고, 공통 인프라를 먼저 구축한 뒤 그룹 단위로 개발을 진행한다.
 
 ## 1.0 공통 인프라 (화면 아님, 선행 구축)
 
@@ -171,7 +171,7 @@
 ## Stage 7 — 마무리
 
 - 403/404 페이지, 전체 ERROR_MAP 메시지 매핑 점검
-- 21개 화면 × 4역할 접근 매트릭스 재대조([11_MENU_PERMISSION.md](./11_MENU_PERMISSION.md), [12_SCREEN_LIST.md](./12_SCREEN_LIST.md), [13_LAYOUT.md](./13_LAYOUT.md)와 실제 동작 비교)
+- 22개 화면 × 4역할 접근 매트릭스 재대조([11_MENU_PERMISSION.md](./11_MENU_PERMISSION.md), [12_SCREEN_LIST.md](./12_SCREEN_LIST.md), [13_LAYOUT.md](./13_LAYOUT.md)와 실제 동작 비교)
 - `npm run build` 프로덕션 빌드 통과 확인
 
 ---
@@ -192,4 +192,4 @@
 
 # 5. 검증 방법
 
-각 Stage마다 `cd server && npm run dev` + `cd client && npm run dev` 동시 기동 후 브라우저(`localhost:5173`)에서 시드 계정(`sa/dev/apv/op`, 각 pw `1234`)으로 실제 시나리오를 수행하여 확인한다. Stage 완료 후 다음 Stage 진행 여부를 사용자에게 확인받는다.
+각 Stage마다 `cd server && npm run dev` + `cd client && npm run dev` 동시 기동 후 브라우저(`localhost:5173`)에서 시드 계정(`sa/dev/apv/op`, 각 pw `1234`)으로 실제 시나리오를 수행하여 확인한다.
