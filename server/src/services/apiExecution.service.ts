@@ -1,6 +1,7 @@
 import axios from 'axios';
 import { APIExecutionRow } from '../types';
 import { toAppError, ERROR_MAP } from '../constants/errors';
+import { env } from '../config/env';
 import * as db from '../db/apiExecution.db';
 
 /**
@@ -16,7 +17,7 @@ import * as db from '../db/apiExecution.db';
  */
 async function callExternalApi(executionId: number, url: string, body: unknown): Promise<void> {
   try {
-    const response = await axios.post(url, body, { timeout: 10000 });
+    const response = await axios.post(url, body, { timeout: env.apiExecutionTimeoutMs });
     const resultCode = response.data?.result;
     if (resultCode !== undefined && resultCode !== 0) {
       const msg = typeof response.data?.message === 'string' ? response.data.message : `외부 API 오류 (result=${resultCode})`;

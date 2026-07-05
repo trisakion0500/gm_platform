@@ -41,4 +41,5 @@ export const env = {
     debugErrors: process.env.LOG_DEBUG_ERRORS === 'true',
   },
   swaggerEnabled: process.env.SWAGGER_ENABLED === 'true',
+  apiExecutionTimeoutMs: Number(process.env.API_EXECUTION_TIMEOUT_MS ?? 10000), // 외부 API(S2S) 호출 타임아웃, 기본 10초
 };
