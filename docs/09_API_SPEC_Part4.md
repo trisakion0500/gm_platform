@@ -56,7 +56,7 @@ status = 0
 ### Endpoint
 
 ```http
-POST /projects/{project_id}/code-groups
+POST /code-groups
 ```
 
 ### Permission
@@ -70,6 +70,7 @@ DEVELOPER
 
 ```json
 {
+  "project_id": 100,
   "code_group_code": "ITEM_GRADE",
   "code_group_name": "아이템 등급",
   "description": "아이템 희귀도 정의"
@@ -115,14 +116,15 @@ UNIQUE(project_id, code_group_code)
 ### Endpoint
 
 ```http
-GET /projects/{project_id}/code-groups
+GET /code-groups
 ```
 
 ### Query Parameters
 
-| Name   | Required | Description |
-| ------ | -------- | ----------- |
-| status | N        | 상태 필터       |
+| Name       | Required | Description |
+| ---------- | -------- | ----------- |
+| project_id | Y        | 대상 프로젝트   |
+| status     | N        | 상태 필터       |
 
 ---
 
@@ -131,6 +133,19 @@ GET /projects/{project_id}/code-groups
 ```sql
 ORDER BY status DESC,
          code_group_name ASC
+```
+
+### Response
+
+```json
+{
+  "result": 0,
+  "data": {
+    "items": [
+      { "...": "생략" }
+    ]
+  }
+}
 ```
 
 ---
@@ -185,7 +200,7 @@ code_group_code
 ### Endpoint
 
 ```http
-POST /code-groups/{code_group_id}/items
+POST /code-items
 ```
 
 ### Permission
@@ -199,6 +214,7 @@ DEVELOPER
 
 ```json
 {
+  "code_group_id": 1,
   "code_value": "LEGEND",
   "code_name": "전설",
   "description": "최고 등급",
@@ -246,14 +262,15 @@ UNIQUE(code_group_id, code_value)
 ### Endpoint
 
 ```http
-GET /code-groups/{code_group_id}/items
+GET /code-items
 ```
 
 ### Query Parameters
 
-| Name   | Required | Description |
-| ------ | -------- | ----------- |
-| status | N        | 상태 필터       |
+| Name          | Required | Description |
+| ------------- | -------- | ----------- |
+| code_group_id | Y        | 대상 코드 그룹  |
+| status        | N        | 상태 필터       |
 
 ---
 
@@ -262,6 +279,19 @@ GET /code-groups/{code_group_id}/items
 ```sql
 ORDER BY status DESC,
          display_order ASC
+```
+
+### Response
+
+```json
+{
+  "result": 0,
+  "data": {
+    "items": [
+      { "...": "생략" }
+    ]
+  }
+}
 ```
 
 ---
@@ -347,16 +377,12 @@ ORDER BY display_order ASC
 ```json
 {
   "result": 0,
-  "data": [
-    {
-      "code_value": "LEGEND",
-      "code_name": "전설"
-    },
-    {
-      "code_value": "UNIQUE",
-      "code_name": "유니크"
-    }
-  ]
+  "data": {
+    "items": [
+      { "code_value": "LEGEND", "code_name": "전설" },
+      { "code_value": "UNIQUE", "code_name": "유니크" }
+    ]
+  }
 }
 ```
 
@@ -405,17 +431,19 @@ ORDER BY code_group_name ASC, display_order ASC
 ```json
 {
   "result": 0,
-  "data": [
-    {
-      "code_group_id": 1,
-      "code_group_code": "GRADE",
-      "code_group_name": "등급",
-      "items": [
-        { "code_value": "LEGEND", "code_name": "전설" },
-        { "code_value": "UNIQUE", "code_name": "유니크" }
-      ]
-    }
-  ]
+  "data": {
+    "items": [
+      {
+        "code_group_id": 1,
+        "code_group_code": "GRADE",
+        "code_group_name": "등급",
+        "items": [
+          { "code_value": "LEGEND", "code_name": "전설" },
+          { "code_value": "UNIQUE", "code_name": "유니크" }
+        ]
+      }
+    ]
+  }
 }
 ```
 

@@ -82,7 +82,28 @@ SUPER_ADMIN은 어떤 프로젝트에 연결되어도 무관함
 
 ---
 
-## 5. api
+## 5. user_session
+
+사용자 인증 세션(Access Token / Refresh Token 기반)
+
+### 특징
+
+- `access_token_jti`(JWT의 jti)를 UNIQUE 키로 관리 — refresh 시마다 갱신되어 이전 access token을 무효화
+- `refresh_token_hash` — refresh token 원문은 저장하지 않고 해시값만 저장
+- `user_id`에 FK를 의도적으로 적용하지 않음 — 세션 조회가 `access_token_jti` 기준으로 이뤄져, MySQL → Redis 저장소 전환 시 인증 로직 수정 없이 확장 가능하도록 설계
+- `user.status`와 별도로 관리되는 세션 단위 상태 — 비밀번호 변경(`SP_UPDATE_PASSWORD`) 시 전체 세션이 즉시 종료됨
+
+### 상태
+
+| 값  | 설명     |
+| --- | -------- |
+| 0   | 로그아웃 |
+| 1   | 사용     |
+| 2   | 만료     |
+
+---
+
+## 6. api
 
 GM API 정의
 
@@ -148,7 +169,7 @@ SUPER_ADMIN, DEVELOPER 가 PATCH /apis/{api_id} 로 api_stage 를 변경한다.
 
 ---
 
-## 6. api_request
+## 7. api_request
 
 API 요청 파라미터 정의
 
@@ -203,7 +224,7 @@ code_group_id = 0 이면 오류
 
 ---
 
-## 7. api_response
+## 8. api_response
 
 API 응답 정의
 
@@ -246,7 +267,7 @@ data 배열 구조 고정
 
 ---
 
-## 8. api_execution
+## 9. api_execution
 
 API 승인 및 실행 이력
 
@@ -371,7 +392,7 @@ CANCELED
 
 ---
 
-## 9. code_group
+## 10. code_group
 
 공통 코드 그룹 정의
 
@@ -397,7 +418,7 @@ ORDER BY status DESC,
 
 ---
 
-## 10. code_item
+## 11. code_item
 
 공통 코드 상세 정의
 
@@ -423,7 +444,7 @@ ORDER BY status DESC,
 
 ---
 
-## 11. log_audit
+## 12. log_audit
 
 시스템 설정 변경 감사 로그
 

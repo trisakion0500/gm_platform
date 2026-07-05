@@ -149,7 +149,7 @@ MainLayout, AdminLayout에서 동일하게 사용한다.
 MainLayout, AdminLayout 하단 공통.
 
 ```
-© 2025 GM Platform  |  v1.0.0  |  문의: support@example.com
+© 2026 GM Platform  |  v1.0.0  |  문의: support@example.com
 ```
 
 ---

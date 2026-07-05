@@ -225,6 +225,7 @@ erDiagram
 |------|------|
 | `api_name` | `api.api_name` |
 | `endpoint` | `api.endpoint` |
+| `is_required_approval` | `api.is_required_approval` |
 
 `api_base_url` 은 스냅샷 저장하지 않으며 호출 시점의 `project.api_base_url` 을 사용한다.
 

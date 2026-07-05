@@ -81,7 +81,7 @@ DB_PASSWORD=your_db_password
 DB_NAME=gm_platform
 
 JWT_SECRET=your_jwt_secret_key
-JWT_ACCESS_EXPIRES_IN=15m
+JWT_ACCESS_EXPIRES_IN=30m
 JWT_REFRESH_EXPIRES_IN=7d
 
 ENCRYPTION_KEY=your_64_char_hex_encryption_key

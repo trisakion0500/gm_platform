@@ -92,7 +92,6 @@ GM-Tool API는 HTTP Status Code와 Result Code를 함께 사용한다.
 | 10000~19999 | Authentication   |
 | 20000~29999 | Authorization    |
 | 30000~39999 | Validation       |
-| 40000~49999 | State Transition |
 | 50000~59999 | System           |
 
 ---
@@ -118,7 +117,6 @@ Validation 오류는 아래 범위를 사용한다.
 | 401 Unauthorized          | 10000~19999  | Authentication         |
 | 403 Forbidden             | 20000~29999  | Authorization          |
 | 404 Not Found             | 31000~31999  | Validation (Not Found) |
-| 409 Conflict              | 40000~49999  | State Transition       |
 | 500 Internal Server Error | 50000~59999  | System                 |
 
 ---
@@ -276,37 +274,7 @@ API 없음
 
 ---
 
-## 2.9 409 Conflict
-
-상태 전이 오류
-
-적용 Result 범위
-
-```text
-40000~49999
-```
-
-예시
-
-```text
-이미 승인된 사용자
-이미 반려된 사용자
-이미 운영 상태인 API
-허용되지 않은 상태 전이
-```
-
-예시 응답
-
-```json
-{
-  "result": 40001,
-  "message": "Invalid state transition"
-}
-```
-
----
-
-## 2.10 500 Internal Server Error
+## 2.9 500 Internal Server Error
 
 시스템 오류
 
@@ -335,7 +303,7 @@ DB 오류
 
 ---
 
-## 2.11 오류 처리 원칙
+## 2.10 오류 처리 원칙
 
 GM-Tool은 비즈니스 오류를 HTTP 200으로 반환하지 않는다.
 
@@ -347,9 +315,6 @@ GM-Tool은 비즈니스 오류를 HTTP 200으로 반환하지 않는다.
 
 권한 없음
 → 403 Forbidden
-
-상태 전이 불가
-→ 409 Conflict
 ```
 
 모든 비정상 상황은 적절한 HTTP Status Code와 Result Code를 함께 반환해야 한다.

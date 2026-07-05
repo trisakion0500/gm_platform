@@ -24,7 +24,7 @@
 | Framework     | React 18 + TypeScript |
 | Build         | Vite                  |
 | UI 컴포넌트   | Ant Design (antd)     |
-| 폼 상태 관리  | Ant Design Form (antd `Form`)       |
+| 폼 상태 관리  | Ant Design Form (antd `Form`, 일부 컴포넌트는 react-hook-form) |
 | 상태 관리     | Zustand               |
 | HTTP          | Axios                 |
 
@@ -47,4 +47,5 @@ CORS_ALLOWED_ORIGINS
 PORT
 LOG_DEBUG_ERRORS
 SWAGGER_ENABLED
+API_EXECUTION_TIMEOUT_MS
 ```

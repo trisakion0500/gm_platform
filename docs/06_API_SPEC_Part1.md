@@ -215,6 +215,38 @@ created_at
 
 ---
 
+## 2.5 Get Company by Code (Lookup)
+
+### Endpoint
+
+```http
+GET /companies/lookup?company_code={code}
+```
+
+### Permission
+
+- 인증 불필요 (Anonymous)
+
+### Description
+
+회원가입 화면(SCR-002) 전용. 로그인 전이라 `GET /companies`를 호출할 수 없어 신설된 공개 엔드포인트. 활성(status=1) 회사만 조회하며, `/companies/{company_id}`보다 먼저 등록해야 하는 정적 경로다.
+
+### Response
+
+```json
+{
+  "result": 0,
+  "data": {
+    "company_id": 1,
+    "company_name": "Game Company"
+  }
+}
+```
+
+`api_base_url` 등 민감정보는 반환하지 않는다. 미존재/비활성 시 31001.
+
+---
+
 # 3. Project APIs
 
 ## 3.1 Create Project
@@ -374,6 +406,38 @@ company_id
 ### Business Rules
 
 - project.company_id 수정 불가
+
+---
+
+## 3.5 Get Project by Code (Lookup)
+
+### Endpoint
+
+```http
+GET /projects/lookup?company_id={id}&project_code={code}
+```
+
+### Permission
+
+- 인증 불필요 (Anonymous)
+
+### Description
+
+회원가입 화면(SCR-002) 전용. 해당 회사 소속의 활성(status=1) 프로젝트만 조회하며, `/projects/{project_id}`보다 먼저 등록해야 하는 정적 경로다.
+
+### Response
+
+```json
+{
+  "result": 0,
+  "data": {
+    "project_id": 10,
+    "project_name": "RPG Project"
+  }
+}
+```
+
+`api_base_url` 등 민감정보는 반환하지 않는다. 미존재/비활성 시 31002.
 
 ---
 
