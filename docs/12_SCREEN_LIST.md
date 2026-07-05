@@ -34,7 +34,8 @@ GM-Tool 프론트엔드 화면 목록 및 역할별 접근 권한 정의.
 | SCR-100 | API (실행 워크스페이스) | `/apis`                     | O           | O         | O        | O        | List/New/Detail 패턴 아님 — 사이드바에서 API를 체크박스로 다중 선택하면 선택 순서대로 우측에 실행 패널(Request 입력폼+Response 결과)이 열림. project_id 선택 필요 |
 | SCR-110 | API 실행 이력 목록  | `/executions`                   | O           | O         | O        | O        | OPERATOR: 본인 건만; project_id 선택 필요               |
 | SCR-111 | API 실행 이력 상세  | `/executions/:api_execution_id` | O           | O         | O        | O        |                                                         |
-| SCR-120 | 승인 대기 목록      | `/executions/pending`           | O           | O         | O        | -        | project_id 선택 필요                                    |
+| SCR-120 | 승인 대기 목록      | `/executions/pending`           | O           | O         | O        | -        | project_id 선택 필요, 조회 전용(승인/반려 버튼 없음)     |
+| SCR-121 | 승인 대기 상세      | `/executions/pending/:api_execution_id` | O   | O         | O        | -        | 승인/반려는 이 화면에서만 처리(파라미터 확인 없이 처리 못 하도록 목록에서 액션 제거) |
 | **내 계정** |
 | SCR-200 | 내 계정             | `/my-account`                   | O           | O         | O        | O        | 내 정보 조회 + 비밀번호 변경 + 로그아웃                 |
 
@@ -308,7 +309,7 @@ GM-Tool 프론트엔드 화면 목록 및 역할별 접근 권한 정의.
 
 - **Route:** `/executions`
 - **접근:** SUPER_ADMIN, DEVELOPER, APPROVER, OPERATOR (OPERATOR: 본인 건만)
-- **주요 기능:** 프로젝트 선택, 실행 이력 목록 조회 (API / 상태 / 요청자 필터, 페이지네이션), 상세 이동, 취소 버튼 (요청자 본인·PENDING 상태만)
+- **주요 기능:** 프로젝트 선택, 실행 이력 목록 조회 (API / 상태 / 요청자 / 승인 필요 건만 필터, 페이지네이션), 상세 이동, 취소 버튼 (요청자 본인·PENDING 상태만)
 - **연관 API:**
 
   | Method | Endpoint                    | 설명                                  |
@@ -335,14 +336,27 @@ GM-Tool 프론트엔드 화면 목록 및 역할별 접근 권한 정의.
 
 - **Route:** `/executions/pending`
 - **접근:** SUPER_ADMIN, DEVELOPER, APPROVER
-- **주요 기능:** 프로젝트 선택, PENDING 실행 목록 조회 (요청 오래된 순), 승인 / 반려 처리
+- **주요 기능:** 프로젝트 선택, PENDING 실행 목록 조회 (요청 오래된 순), 행 클릭 시 SCR-121로 이동. 조회 전용 — 승인/반려는 상세 화면에서만 처리(요청 파라미터를 보지 않고 승인/반려할 수 없도록 의도적으로 목록 액션 제거)
 - **연관 API:**
 
   | Method | Endpoint                       | 설명                             |
   | ------ | ------------------------------ | -------------------------------- |
   | GET    | /api-executions/pending        | 승인 대기 목록 (project_id 필수) |
-  | POST   | /api-executions/{id}/approve   | 실행 승인                        |
-  | POST   | /api-executions/{id}/reject    | 실행 반려                        |
+
+---
+
+### SCR-121. 승인 대기 상세
+
+- **Route:** `/executions/pending/:api_execution_id`
+- **접근:** SUPER_ADMIN, DEVELOPER, APPROVER
+- **주요 기능:** 실행 정보 조회(SCR-111과 동일 구성) + 승인 / 반려 처리. "목록으로"는 SCR-120(`/executions/pending`)으로 복귀 — SCR-111(`/executions/:id`)과 별도 화면으로 둔 이유는 SCR-111의 "목록으로"가 실행이력 목록(`/executions`)으로 가버려 승인대기 목록으로 못 돌아오는 문제 때문
+- **연관 API:**
+
+  | Method | Endpoint                           | 설명           |
+  | ------ | ----------------------------------- | -------------- |
+  | GET    | /api-executions/{api_execution_id}  | 실행 이력 상세 |
+  | POST   | /api-executions/{id}/approve        | 실행 승인      |
+  | POST   | /api-executions/{id}/reject         | 실행 반려      |
 
 ---
 

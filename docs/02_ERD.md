@@ -124,6 +124,7 @@ erDiagram
         BIGINT       api_id              FK
         VARCHAR200   api_name            "스냅샷"
         VARCHAR500   endpoint            "스냅샷"
+        TINYINT      is_required_approval "스냅샷"
         BIGINT       request_user_id     FK
         BIGINT       approve_user_id     FK "NULL허용"
         TINYINT      status

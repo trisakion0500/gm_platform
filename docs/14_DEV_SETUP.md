@@ -93,6 +93,9 @@ PORT=3000
 LOG_DEBUG_ERRORS=false
 
 SWAGGER_ENABLED=true
+
+# API 실행(S2S) 호출 타임아웃(ms) — 생략 시 기본값 10000
+API_EXECUTION_TIMEOUT_MS=10000
 ```
 
 `ENCRYPTION_KEY`는 `phone_number` 등 개인정보를 AES-256-CBC로 암호화하는 데 사용하는 32바이트 hex 키다. 아래 명령으로 생성한다.

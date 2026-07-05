@@ -146,8 +146,11 @@ request_json 은 반드시 저장한다.
 ```text id="e13"
 api_name
 endpoint
+is_required_approval
 request_json
 ```
+
+`is_required_approval`은 관리자가 API의 승인 필요 여부를 이후에 바꾸더라도 과거 실행 이력의 판정(승인 시나리오를 탔는지)이 흔들리지 않도록 실행 시점 값을 그대로 저장한다.
 
 실제 호출 URL 조합
 
@@ -190,14 +193,15 @@ GET /api-executions
 
 ### Query Parameters
 
-| Name            | Required | Description                                           |
-| --------------- | -------- | ----------------------------------------------------- |
-| project_id      | Y        | SUPER_ADMIN: 전체 가능 / 그 외: 자신이 속한 company의 project만 가능 |
-| api_id          | N        |                                                       |
-| request_user_id | N        | OPERATOR: 서버가 자동으로 본인 ID 강제 적용 (파라미터 무시)             |
-| status          | N        |                                                       |
-| page            | Y        |                                                       |
-| page_size       | Y        | 20/50/100 중 선택. 기본 20                               |
+| Name                    | Required | Description                                           |
+| ----------------------- | -------- | ----------------------------------------------------- |
+| project_id              | Y        | SUPER_ADMIN: 전체 가능 / 그 외: 자신이 속한 company의 project만 가능 |
+| api_id                  | N        |                                                       |
+| request_user_id         | N        | OPERATOR: 서버가 자동으로 본인 ID 강제 적용 (파라미터 무시)             |
+| status                  | N        |                                                       |
+| required_approval_only  | N        | 1이면 실행 시점 승인 필요(`is_required_approval=1`) 건만 반환, 생략 시 전체 |
+| page                    | Y        |                                                       |
+| page_size               | Y        | 20/50/100 중 선택. 기본 20                               |
 
 ### 권한별 조회 범위
 
@@ -241,8 +245,10 @@ GET /api-executions/{api_execution_id}
     "api_id": 10,
     "api_name": "재화 지급",
     "endpoint": "/reward/give",
+    "is_required_approval": 1,
     "request_user_id": 10,
-    "approve_user_id": 20,
+    "request_user_name": "operator1",
+    "approve_user_name": "approver1",
     "status": 40,
     "request_json": {
       "...": "생략"
@@ -258,6 +264,8 @@ GET /api-executions/{api_execution_id}
   }
 }
 ```
+
+`request_user_id`는 취소 권한 판단(요청자 본인 여부) 용도로만 raw 값을 유지하고, 그 외 사용자 표시는 `request_user_name`/`approve_user_name`을 사용한다(`approve_user_id`는 응답에 포함하지 않음).
 
 ---
 

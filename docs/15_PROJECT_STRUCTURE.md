@@ -199,9 +199,10 @@ client/
 │   │       │   ├── ApiNewPage.tsx         # API 등록 폼
 │   │       │   └── ApiDetailPage.tsx      # API 상세 / 수정 / 파라미터 관리 / 실행 (APPROVER/OPERATOR는 GET /code-groups/active-with-items로 코드값 참조)
 │   │       ├── executions/
-│   │       │   ├── ExecutionListPage.tsx    # 실행 이력 목록 (API / 상태 / 요청자 필터)
-│   │       │   ├── ExecutionDetailPage.tsx  # 실행 상세 (요청 파라미터 / 응답 데이터 / 상태 이력)
-│   │       │   └── ExecutionPendingPage.tsx # 승인 대기 목록 및 승인 / 반려 처리
+│   │       │   ├── ExecutionListPage.tsx          # 실행 이력 목록 (API / 상태 / 요청자 / 승인 필요 건만 필터)
+│   │       │   ├── ExecutionDetailPage.tsx        # 실행 상세 조회 전용 (요청 파라미터 / 응답 데이터 / 상태 이력)
+│   │       │   ├── ExecutionPendingListPage.tsx   # 승인 대기 목록 (조회 전용, 승인/반려 버튼 없음)
+│   │       │   └── ExecutionPendingDetailPage.tsx # 승인 대기 상세 — 승인 / 반려는 이 화면에서만 처리
 │   │       └── my-account/
 │   │           └── MyAccountPage.tsx        # 내 정보 조회 / 비밀번호 변경 / 로그아웃
 │   │

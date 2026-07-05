@@ -74,7 +74,7 @@ MainLayout, AdminLayout에서 동일하게 사용한다.
 | 실행이력 | `/executions` | O | O | O | O |
 | 승인대기 | `/executions/pending` | O | O | O | - |
 
-> "API"는 다른 항목과 달리 클릭해도 바로 이동하는 단순 링크가 아니라 펼치기/접기 가능한 항목이다 — 펼치면 현재 선택된 프로젝트의 활성 API가 체크박스 목록으로 나타나고(실행 불가능한 `api_stage`의 API는 숨김, §3.2 기준 역할별 실행 가능 여부로 필터), 체크하면 `/apis`로 이동하며 우측 작업영역에 해당 API 패널이 열린다. 상세 내용은 `12_SCREEN_LIST.md` SCR-100 참고.
+> "API"는 다른 항목과 달리 펼치기/접기가 가능한 항목이라 클릭 영역이 둘로 나뉜다 — 캐럿 아이콘(항상 보이는 원형 배경, 호버에 의존하지 않음 — 터치 기기 대응)을 누르면 펼치기/접기만 되고, "API" 텍스트를 누르면 펼침 상태를 유지한 채 `/apis`로 이동한다. 펼치면 현재 선택된 프로젝트의 활성 API가 체크박스 목록으로 나타나고(실행 불가능한 `api_stage`의 API는 숨김, §3.2 기준 역할별 실행 가능 여부로 필터), 체크하면 `/apis`로 이동하며 우측 작업영역에 해당 API 패널이 열린다. 상세 내용은 `12_SCREEN_LIST.md` SCR-100 참고.
 
 > 내 계정(`/my-account`)은 사이드바가 아니라 헤더 우측 아바타 드롭다운에서 접근한다(§2.1) — 같은 화면으로 가는 진입점을 사이드바에 중복 등록하지 않기 위함.
 
@@ -158,13 +158,12 @@ MainLayout, AdminLayout 하단 공통.
 /signup                       → AuthLayout   (미인증 전용)
 /                             → redirect → /apis
 
-/apis                         → MainLayout
-/apis/new                     → MainLayout
-/apis/:api_id                 → MainLayout
-/executions                   → MainLayout
-/executions/pending           → MainLayout
-/executions/:api_execution_id → MainLayout
-/my-account                   → MainLayout
+/apis                                 → MainLayout   (List/New/Detail 아님 — 체크박스 워크스페이스, SCR-100)
+/executions                          → MainLayout
+/executions/pending                  → MainLayout
+/executions/pending/:api_execution_id → MainLayout   (SCR-121, 승인/반려는 여기서만)
+/executions/:api_execution_id        → MainLayout
+/my-account                           → MainLayout
 
 /admin                        → AdminLayout  (역할별 첫 메뉴로 redirect)
 /admin/companies              → AdminLayout
@@ -176,6 +175,9 @@ MainLayout, AdminLayout 하단 공통.
 /admin/users                  → AdminLayout
 /admin/users/:user_id         → AdminLayout
 /admin/code-groups            → AdminLayout  (등록/상세 별도 라우트 없음 — 한 페이지 엑셀형 그리드)
+/admin/apis                   → AdminLayout
+/admin/apis/new                → AdminLayout
+/admin/apis/:api_id           → AdminLayout
 /admin/audit-logs             → AdminLayout
 /admin/audit-logs/:log_audit_id → AdminLayout
 ```
@@ -189,7 +191,7 @@ MainLayout, AdminLayout 하단 공통.
 | 미인증 상태로 인증 필요 Route 접근 | `/login` 리다이렉트 |
 | 인증 상태로 `/login`, `/signup` 접근 | `/apis` 리다이렉트 |
 | OPERATOR가 `/admin/*` 접근 | 403 페이지 |
-| APPROVER가 `/admin/companies`, `/admin/projects`, `/admin/users`, `/admin/code-groups` 접근 | 403 페이지 |
+| APPROVER가 `/admin/companies`, `/admin/projects`, `/admin/users`, `/admin/code-groups`, `/admin/apis` 접근 | 403 페이지 |
 | `/admin` 접근 시 역할별 첫 메뉴 redirect | SUPER_ADMIN / DEVELOPER → `/admin/companies` / APPROVER → `/admin/audit-logs` |
 
 ---
