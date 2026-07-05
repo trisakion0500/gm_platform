@@ -94,7 +94,7 @@ function ExecutionListPage() {
 
       {selectedProjectId && (
         <>
-          <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
+          <div style={{ display: 'flex', gap: 8, marginBottom: 16, alignItems: 'center' }}>
             <Select
               style={{ width: 200 }}
               value={filter.apiId ?? 'ALL'}
