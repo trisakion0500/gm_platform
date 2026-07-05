@@ -2,19 +2,23 @@ import axiosInstance, { unwrap } from './axios';
 import type { ApiExecutionRow, PaginatedResponse } from '../types';
 
 export function getApiExecutionList(
-  apiId: number,
+  projectId: number,
   page: number,
   pageSize: number,
+  apiId?: number,
+  requestUserId?: number,
   status?: number,
 ): Promise<PaginatedResponse<ApiExecutionRow>> {
   return axiosInstance
-    .get('/api-executions', { params: { api_id: apiId, page, page_size: pageSize, status } })
+    .get('/api-executions', {
+      params: { project_id: projectId, page, page_size: pageSize, api_id: apiId, request_user_id: requestUserId, status },
+    })
     .then(unwrap<PaginatedResponse<ApiExecutionRow>>);
 }
 
-export function getApiExecutionPending(apiId: number, page: number, pageSize: number): Promise<PaginatedResponse<ApiExecutionRow>> {
+export function getApiExecutionPending(projectId: number, page: number, pageSize: number): Promise<PaginatedResponse<ApiExecutionRow>> {
   return axiosInstance
-    .get('/api-executions/pending', { params: { api_id: apiId, page, page_size: pageSize } })
+    .get('/api-executions/pending', { params: { project_id: projectId, page, page_size: pageSize } })
     .then(unwrap<PaginatedResponse<ApiExecutionRow>>);
 }
 

@@ -184,8 +184,8 @@ export interface ApiExecutionRow {
   api_id: number;
   api_name: string;
   endpoint: string;
-  request_user_id: number;
-  approve_user_id: number | null;
+  request_user_name: string;
+  approve_user_name: string | null;
   status: number;
   request_json?: Record<string, unknown>;
   response_data?: unknown;

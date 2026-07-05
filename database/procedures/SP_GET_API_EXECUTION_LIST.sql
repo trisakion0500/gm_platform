@@ -36,12 +36,14 @@ BEGIN
       AND (i_status          IS NULL OR ae.`status`          = i_status);
 
     SELECT ae.`api_execution_id`, ae.`api_id`, ae.`api_name`, ae.`endpoint`,
-           ae.`request_user_id`, ae.`approve_user_id`, ae.`status`,
+           u1.`user_name` AS `request_user_name`, u2.`user_name` AS `approve_user_name`, ae.`status`,
            ae.`reject_reason`, ae.`error_message`,
            ae.`requested_at`, ae.`approved_at`, ae.`executed_at`, ae.`updated_at`
     FROM `api_execution` ae
     JOIN `api` a ON a.`api_id` = ae.`api_id`
     JOIN `project` p ON p.`project_id` = a.`project_id`
+    LEFT JOIN `user` u1 ON u1.`user_id` = ae.`request_user_id`
+    LEFT JOIN `user` u2 ON u2.`user_id` = ae.`approve_user_id`
     WHERE p.`project_id` = i_project_id
       AND (i_caller_role_code = 10 OR p.`company_id`       = i_caller_company_id)
       AND (i_api_id          IS NULL OR ae.`api_id`         = i_api_id)

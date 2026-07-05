@@ -436,10 +436,10 @@ export interface APIExecutionRow {
   api_name: string;
   /** Endpoint 스냅샷 */
   endpoint: string;
-  /** 요청자 user_id */
-  request_user_id: number;
-  /** 승인/반려자 user_id (없으면 null) */
-  approve_user_id: number | null;
+  /** 요청자 이름 */
+  request_user_name: string;
+  /** 승인/반려자 이름 (없으면 null) */
+  approve_user_name: string | null;
   /** 상태 (10:PENDING, 20:APPROVED, 30:REJECTED, 40:SUCCESS, 50:FAILED, 60:CANCELED) */
   status: number;
   /** 요청 파라미터 JSON (상세 조회 시만 포함) */
