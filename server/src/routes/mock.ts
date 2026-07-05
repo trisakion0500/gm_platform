@@ -42,10 +42,12 @@ function randomDateTime(): string {
 
 router.post('/mock-user-search', (req: Request, res: Response) => {
   // status 요청 파라미터가 오면 랜덤 대신 그 값으로 고정 — 필터링 동작을 흉내낸다.
+  // 단, 0(전체)은 특정 상태로 고정할 대상이 아니므로 미지정과 동일하게 취급해 랜덤(1~3)을 반환한다.
   const requestedStatus = req.body?.status;
-  const fixedStatus = requestedStatus !== undefined && requestedStatus !== null && requestedStatus !== ''
+  const requestedStatusStr = requestedStatus !== undefined && requestedStatus !== null && requestedStatus !== ''
     ? String(requestedStatus)
     : null;
+  const fixedStatus = requestedStatusStr && requestedStatusStr !== '0' ? requestedStatusStr : null;
 
   const rowCount = 8 + Math.floor(Math.random() * 5); // 8~12건
   const data = Array.from({ length: rowCount }, () => ({
