@@ -23,6 +23,8 @@ import ApiDetailPage from '../pages/admin/apis/ApiDetailPage';
 import ApiWorkspacePage from '../pages/main/apis/ApiWorkspacePage';
 import ExecutionListPage from '../pages/main/executions/ExecutionListPage';
 import ExecutionDetailPage from '../pages/main/executions/ExecutionDetailPage';
+import ExecutionPendingListPage from '../pages/main/executions/ExecutionPendingListPage';
+import ExecutionPendingDetailPage from '../pages/main/executions/ExecutionPendingDetailPage';
 import PagePlaceholder from '../pages/PagePlaceholder';
 import ForbiddenPage from '../pages/errors/ForbiddenPage';
 import NotFoundPage from '../pages/errors/NotFoundPage';
@@ -54,7 +56,10 @@ function AppRouter() {
           <Route element={<MainLayout />}>
             <Route path="/apis" element={<ApiWorkspacePage />} />
             <Route path="/executions" element={<ExecutionListPage />} />
-            <Route path="/executions/pending" element={<PagePlaceholder title="승인대기" />} />
+            <Route element={<RoleGuard allow={[ROLE.SUPER_ADMIN, ROLE.DEVELOPER, ROLE.APPROVER]} />}>
+              <Route path="/executions/pending" element={<ExecutionPendingListPage />} />
+              <Route path="/executions/pending/:api_execution_id" element={<ExecutionPendingDetailPage />} />
+            </Route>
             <Route path="/executions/:api_execution_id" element={<ExecutionDetailPage />} />
             <Route path="/my-account" element={<PagePlaceholder title="내 계정" />} />
           </Route>
