@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Alert, Button, Descriptions, Form, Input, InputNumber, Modal, Select, Space, Spin, Table, Tabs } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
-import type { AxiosError } from 'axios';
 import { useNavigate, useParams } from 'react-router-dom';
 import PageHeader from '../../../components/common/PageHeader';
 import StatusBadge from '../../../components/common/StatusBadge';
@@ -9,6 +8,7 @@ import * as apiApi from '../../../api/api.api';
 import * as apiRequestApi from '../../../api/apiRequest.api';
 import * as apiResponseApi from '../../../api/apiResponse.api';
 import * as codeGroupApi from '../../../api/codeGroup.api';
+import { getErrorMessage } from '../../../utils/error';
 import {
   API_STAGE_LABEL,
   API_STAGE_OPTIONS,
@@ -22,7 +22,7 @@ import {
   RESPONSE_VIEW_TYPE_LABEL,
   RESPONSE_VIEW_TYPE_OPTIONS,
 } from '../../../constants/apiMeta';
-import type { ApiFailure, ApiRequestRow, ApiResponseRow, ApiRow, CodeGroupRow } from '../../../types';
+import type { ApiRequestRow, ApiResponseRow, ApiRow, CodeGroupRow } from '../../../types';
 
 const API_CODE_PATTERN = /^[a-zA-Z0-9_.-]{1,50}$/;
 
@@ -92,8 +92,8 @@ function ApiDetailPage() {
         return codeGroupApi.getCodeGroupList(detail.api.project_id);
       })
       .then(setCodeGroups)
-      .catch((err: AxiosError<ApiFailure>) => {
-        setErrorMessage(err.response?.data?.message ?? 'API 정보를 불러오지 못했습니다.');
+      .catch((err: unknown) => {
+        setErrorMessage(getErrorMessage(err, 'API 정보를 불러오지 못했습니다.'));
       })
       .finally(() => {
         if (showSpinner)
@@ -117,7 +117,7 @@ function ApiDetailPage() {
       setApi(updated);
       setEditing(false);
     } catch (err) {
-      setErrorMessage((err as AxiosError<ApiFailure>).response?.data?.message ?? 'API 수정에 실패했습니다.');
+      setErrorMessage(getErrorMessage(err, 'API 수정에 실패했습니다.'));
     } finally {
       setSubmitting(false);
     }
@@ -130,7 +130,7 @@ function ApiDetailPage() {
       setCreateRequestOpen(false);
       load(false);
     } catch (err) {
-      setErrorMessage((err as AxiosError<ApiFailure>).response?.data?.message ?? 'Request 파라미터 등록에 실패했습니다.');
+      setErrorMessage(getErrorMessage(err, 'Request 파라미터 등록에 실패했습니다.'));
       setCreateRequestOpen(false);
     } finally {
       setSubmitting(false);
@@ -146,7 +146,7 @@ function ApiDetailPage() {
       setEditingRequest(null);
       load(false);
     } catch (err) {
-      setErrorMessage((err as AxiosError<ApiFailure>).response?.data?.message ?? 'Request 파라미터 수정에 실패했습니다.');
+      setErrorMessage(getErrorMessage(err, 'Request 파라미터 수정에 실패했습니다.'));
       setEditingRequest(null);
     } finally {
       setSubmitting(false);
@@ -160,7 +160,7 @@ function ApiDetailPage() {
       setCreateResponseOpen(false);
       load(false);
     } catch (err) {
-      setErrorMessage((err as AxiosError<ApiFailure>).response?.data?.message ?? 'Response 파라미터 등록에 실패했습니다.');
+      setErrorMessage(getErrorMessage(err, 'Response 파라미터 등록에 실패했습니다.'));
       setCreateResponseOpen(false);
     } finally {
       setSubmitting(false);
@@ -176,7 +176,7 @@ function ApiDetailPage() {
       setEditingResponse(null);
       load(false);
     } catch (err) {
-      setErrorMessage((err as AxiosError<ApiFailure>).response?.data?.message ?? 'Response 파라미터 수정에 실패했습니다.');
+      setErrorMessage(getErrorMessage(err, 'Response 파라미터 수정에 실패했습니다.'));
       setEditingResponse(null);
     } finally {
       setSubmitting(false);

@@ -1,13 +1,13 @@
 import { useEffect, useState } from 'react';
 import { Alert, Button, Descriptions, Form, Input, Select, Space, Spin } from 'antd';
-import type { AxiosError } from 'axios';
 import { useNavigate, useParams } from 'react-router-dom';
 import PageHeader from '../../../components/common/PageHeader';
 import PermissionGuard from '../../../components/common/PermissionGuard';
 import StatusBadge from '../../../components/common/StatusBadge';
 import * as companyApi from '../../../api/company.api';
 import { useGlobalStore } from '../../../stores/globalStore';
-import type { ApiFailure, CompanyRow } from '../../../types';
+import { getErrorMessage } from '../../../utils/error';
+import type { CompanyRow } from '../../../types';
 import { ROLE } from '../../../types';
 
 const STATUS_MAP = {
@@ -40,8 +40,8 @@ function CompanyDetailPage() {
     companyApi
       .getCompany(Number(company_id))
       .then(setCompany)
-      .catch((err: AxiosError<ApiFailure>) => {
-        setErrorMessage(err.response?.data?.message ?? '회사 정보를 불러오지 못했습니다.');
+      .catch((err: unknown) => {
+        setErrorMessage(getErrorMessage(err, '회사 정보를 불러오지 못했습니다.'));
       })
       .finally(() => setLoading(false));
   }, [company_id]);
@@ -57,8 +57,7 @@ function CompanyDetailPage() {
       );
       setEditing(false);
     } catch (err) {
-      const message = (err as AxiosError<ApiFailure>).response?.data?.message ?? '회사 수정에 실패했습니다.';
-      setErrorMessage(message);
+      setErrorMessage(getErrorMessage(err, '회사 수정에 실패했습니다.'));
     } finally {
       setSubmitting(false);
     }

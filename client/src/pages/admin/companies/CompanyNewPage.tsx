@@ -1,11 +1,10 @@
 import { useState } from 'react';
 import { Alert, Button, Card, Form, Input, Space } from 'antd';
-import type { AxiosError } from 'axios';
 import { useNavigate } from 'react-router-dom';
 import PageHeader from '../../../components/common/PageHeader';
 import * as companyApi from '../../../api/company.api';
 import { useGlobalStore } from '../../../stores/globalStore';
-import type { ApiFailure } from '../../../types';
+import { getErrorMessage } from '../../../utils/error';
 
 const COMPANY_CODE_PATTERN = /^[a-zA-Z0-9_.-]+$/;
 
@@ -30,8 +29,7 @@ function CompanyNewPage() {
       setCompanyList([...companyList, { company_id: company.company_id, company_name: company.company_name }]);
       navigate(`/admin/companies/${company.company_id}`);
     } catch (err) {
-      const message = (err as AxiosError<ApiFailure>).response?.data?.message ?? '회사 등록에 실패했습니다.';
-      setErrorMessage(message);
+      setErrorMessage(getErrorMessage(err, '회사 등록에 실패했습니다.'));
     } finally {
       setSubmitting(false);
     }

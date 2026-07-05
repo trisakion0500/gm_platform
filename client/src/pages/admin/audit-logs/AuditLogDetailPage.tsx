@@ -1,11 +1,11 @@
 import { useEffect, useState } from 'react';
 import { Alert, Button, Card, Descriptions, Spin } from 'antd';
-import type { AxiosError } from 'axios';
 import { useNavigate, useParams } from 'react-router-dom';
 import PageHeader from '../../../components/common/PageHeader';
 import StatusBadge from '../../../components/common/StatusBadge';
 import * as logAuditApi from '../../../api/logAudit.api';
-import type { ApiFailure, LogAuditRow } from '../../../types';
+import { getErrorMessage } from '../../../utils/error';
+import type { LogAuditRow } from '../../../types';
 
 const ACTION_TYPE_MAP = {
   10: { label: '생성', color: 'green' },
@@ -47,8 +47,8 @@ function AuditLogDetailPage() {
     logAuditApi
       .getLogAudit(Number(log_audit_id))
       .then(setLog)
-      .catch((err: AxiosError<ApiFailure>) => {
-        setErrorMessage(err.response?.data?.message ?? '감사 로그 정보를 불러오지 못했습니다.');
+      .catch((err: unknown) => {
+        setErrorMessage(getErrorMessage(err, '감사 로그 정보를 불러오지 못했습니다.'));
       })
       .finally(() => setLoading(false));
   }, [log_audit_id]);

@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react';
 import { Alert, Button, Input, InputNumber, Select, Space, Table } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
-import type { AxiosError } from 'axios';
 import * as codeItemApi from '../../../api/codeItem.api';
-import type { ApiFailure, CodeItemRow } from '../../../types';
+import { getErrorMessage } from '../../../utils/error';
+import type { CodeItemRow } from '../../../types';
 
 interface EditableItemRow {
   _key: string;
@@ -103,9 +103,7 @@ function CodeItemGrid({ codeGroupId, editable }: CodeItemGridProps) {
           });
         }
       } catch (err) {
-        const message = err instanceof Error && !(err as AxiosError).isAxiosError
-          ? err.message
-          : (err as AxiosError<ApiFailure>).response?.data?.message ?? '저장에 실패했습니다.';
+        const message = getErrorMessage(err, '저장에 실패했습니다.');
         errors.push(`${row.code_value || '(신규 행)'}: ${message}`);
         setRows((prev) => prev.map((r) => (r._key === row._key ? { ...r, _error: message } : r)));
       }

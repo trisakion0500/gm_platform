@@ -1,13 +1,13 @@
 import { useEffect, useState } from 'react';
 import { Alert, Button, Descriptions, Form, Input, Select, Space, Spin } from 'antd';
-import type { AxiosError } from 'axios';
 import { useNavigate, useParams } from 'react-router-dom';
 import PageHeader from '../../../components/common/PageHeader';
 import PermissionGuard from '../../../components/common/PermissionGuard';
 import StatusBadge from '../../../components/common/StatusBadge';
 import * as projectApi from '../../../api/project.api';
 import { useGlobalStore } from '../../../stores/globalStore';
-import type { ApiFailure, ProjectRow } from '../../../types';
+import { getErrorMessage } from '../../../utils/error';
+import type { ProjectRow } from '../../../types';
 import { ROLE } from '../../../types';
 
 const STATUS_MAP = {
@@ -41,8 +41,8 @@ function ProjectDetailPage() {
     projectApi
       .getProject(Number(project_id))
       .then(setProject)
-      .catch((err: AxiosError<ApiFailure>) => {
-        setErrorMessage(err.response?.data?.message ?? '프로젝트 정보를 불러오지 못했습니다.');
+      .catch((err: unknown) => {
+        setErrorMessage(getErrorMessage(err, '프로젝트 정보를 불러오지 못했습니다.'));
       })
       .finally(() => setLoading(false));
   }, [project_id]);
@@ -62,8 +62,7 @@ function ProjectDetailPage() {
       );
       setEditing(false);
     } catch (err) {
-      const message = (err as AxiosError<ApiFailure>).response?.data?.message ?? '프로젝트 수정에 실패했습니다.';
-      setErrorMessage(message);
+      setErrorMessage(getErrorMessage(err, '프로젝트 수정에 실패했습니다.'));
     } finally {
       setSubmitting(false);
     }

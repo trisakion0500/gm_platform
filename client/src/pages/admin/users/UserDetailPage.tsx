@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Alert, Button, Descriptions, Form, Input, Modal, Select, Space, Spin, Table } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
-import type { AxiosError } from 'axios';
 import { useNavigate, useParams } from 'react-router-dom';
 import ConfirmModal from '../../../components/common/ConfirmModal';
 import PageHeader from '../../../components/common/PageHeader';
@@ -11,7 +10,8 @@ import { usePermission } from '../../../hooks/usePermission';
 import * as userApi from '../../../api/user.api';
 import * as userRoleApi from '../../../api/userRole.api';
 import * as projectApi from '../../../api/project.api';
-import type { ApiFailure, ProjectRow, UserRoleRow, UserRow } from '../../../types';
+import { getErrorMessage } from '../../../utils/error';
+import type { ProjectRow, UserRoleRow, UserRow } from '../../../types';
 import { ROLE, ROLE_LABEL } from '../../../types';
 
 const STATUS_MAP = {
@@ -118,8 +118,7 @@ function UserDetailPage() {
       setCreateRoleOpen(false);
       loadUserRoles();
     } catch (err) {
-      const message = (err as AxiosError<ApiFailure>).response?.data?.message ?? '권한 등록에 실패했습니다.';
-      setErrorMessage(message);
+      setErrorMessage(getErrorMessage(err, '권한 등록에 실패했습니다.'));
       setCreateRoleOpen(false);
     } finally {
       setSubmitting(false);
@@ -135,8 +134,7 @@ function UserDetailPage() {
       setEditingRole(null);
       loadUserRoles();
     } catch (err) {
-      const message = (err as AxiosError<ApiFailure>).response?.data?.message ?? '권한 수정에 실패했습니다.';
-      setErrorMessage(message);
+      setErrorMessage(getErrorMessage(err, '권한 수정에 실패했습니다.'));
       setEditingRole(null);
     } finally {
       setSubmitting(false);
@@ -148,8 +146,8 @@ function UserDetailPage() {
     userApi
       .getUser(Number(user_id))
       .then(setUser)
-      .catch((err: AxiosError<ApiFailure>) => {
-        setErrorMessage(err.response?.data?.message ?? '사용자 정보를 불러오지 못했습니다.');
+      .catch((err: unknown) => {
+        setErrorMessage(getErrorMessage(err, '사용자 정보를 불러오지 못했습니다.'));
       })
       .finally(() => setLoading(false));
   }
@@ -167,8 +165,7 @@ function UserDetailPage() {
       setUser(updated);
       setEditing(false);
     } catch (err) {
-      const message = (err as AxiosError<ApiFailure>).response?.data?.message ?? '사용자 수정에 실패했습니다.';
-      setErrorMessage(message);
+      setErrorMessage(getErrorMessage(err, '사용자 수정에 실패했습니다.'));
     } finally {
       setSubmitting(false);
     }
@@ -192,8 +189,7 @@ function UserDetailPage() {
       setConfirmAction(null);
       loadUser();
     } catch (err) {
-      const message = (err as AxiosError<ApiFailure>).response?.data?.message ?? '처리에 실패했습니다.';
-      setErrorMessage(message);
+      setErrorMessage(getErrorMessage(err, '처리에 실패했습니다.'));
       setConfirmAction(null);
     } finally {
       setSubmitting(false);
@@ -206,8 +202,7 @@ function UserDetailPage() {
       await userApi.resetPassword(Number(user_id), values.new_password);
       setResetPasswordOpen(false);
     } catch (err) {
-      const message = (err as AxiosError<ApiFailure>).response?.data?.message ?? '비밀번호 초기화에 실패했습니다.';
-      setErrorMessage(message);
+      setErrorMessage(getErrorMessage(err, '비밀번호 초기화에 실패했습니다.'));
       setResetPasswordOpen(false);
     } finally {
       setSubmitting(false);

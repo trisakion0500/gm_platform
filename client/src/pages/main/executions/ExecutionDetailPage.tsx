@@ -1,12 +1,12 @@
 import { useEffect, useState } from 'react';
 import { Alert, Button, Card, Descriptions, Spin } from 'antd';
-import type { AxiosError } from 'axios';
 import { useNavigate, useParams } from 'react-router-dom';
 import PageHeader from '../../../components/common/PageHeader';
 import StatusBadge from '../../../components/common/StatusBadge';
 import { EXECUTION_STATUS_MAP } from '../../../constants/apiMeta';
 import * as apiExecutionApi from '../../../api/apiExecution.api';
-import type { ApiExecutionRow, ApiFailure } from '../../../types';
+import { getErrorMessage } from '../../../utils/error';
+import type { ApiExecutionRow } from '../../../types';
 
 function formatJson(value: unknown): string {
   if (value === undefined || value === null)
@@ -26,8 +26,8 @@ function ExecutionDetailPage() {
     apiExecutionApi
       .getApiExecution(Number(api_execution_id))
       .then(setExecution)
-      .catch((err: AxiosError<ApiFailure>) => {
-        setErrorMessage(err.response?.data?.message ?? '실행 이력 정보를 불러오지 못했습니다.');
+      .catch((err: unknown) => {
+        setErrorMessage(getErrorMessage(err, '실행 이력 정보를 불러오지 못했습니다.'));
       })
       .finally(() => setLoading(false));
   }, [api_execution_id]);

@@ -1,11 +1,10 @@
 import { useState } from 'react';
 import { Alert, Button, Card, Descriptions, Form, Input, Space } from 'antd';
-import type { AxiosError } from 'axios';
 import PageHeader from '../../../components/common/PageHeader';
 import * as authApi from '../../../api/auth.api';
 import { useAuth } from '../../../hooks/useAuth';
 import { useGlobalStore } from '../../../stores/globalStore';
-import type { ApiFailure } from '../../../types';
+import { getErrorMessage } from '../../../utils/error';
 
 interface PasswordFormValues {
   current_password: string;
@@ -33,7 +32,7 @@ function MyAccountPage() {
       form.resetFields();
       setTimeout(logout, 1500);
     } catch (err) {
-      setErrorMessage((err as AxiosError<ApiFailure>).response?.data?.message ?? '비밀번호 변경에 실패했습니다.');
+      setErrorMessage(getErrorMessage(err, '비밀번호 변경에 실패했습니다.'));
     } finally {
       setSubmitting(false);
     }

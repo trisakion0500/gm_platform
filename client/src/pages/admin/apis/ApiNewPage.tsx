@@ -1,12 +1,11 @@
 import { useState } from 'react';
 import { Alert, Button, Card, Form, Input, InputNumber, Select, Space } from 'antd';
-import type { AxiosError } from 'axios';
 import { useNavigate } from 'react-router-dom';
 import PageHeader from '../../../components/common/PageHeader';
 import * as apiApi from '../../../api/api.api';
 import { useGlobalStore } from '../../../stores/globalStore';
 import { APPROVAL_OPTIONS, RESPONSE_VIEW_TYPE_OPTIONS } from '../../../constants/apiMeta';
-import type { ApiFailure } from '../../../types';
+import { getErrorMessage } from '../../../utils/error';
 
 const API_CODE_PATTERN = /^[a-zA-Z0-9_.-]{1,50}$/;
 
@@ -35,8 +34,7 @@ function ApiNewPage() {
       const api = await apiApi.createApi({ ...values, project_id: projectId });
       navigate(`/admin/apis/${api.api_id}`);
     } catch (err) {
-      const message = (err as AxiosError<ApiFailure>).response?.data?.message ?? 'API 등록에 실패했습니다.';
-      setErrorMessage(message);
+      setErrorMessage(getErrorMessage(err, 'API 등록에 실패했습니다.'));
     } finally {
       setSubmitting(false);
     }

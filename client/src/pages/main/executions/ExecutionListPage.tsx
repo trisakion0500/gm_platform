@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Alert, Button, Checkbox, Empty, Form, Input, Modal, Select, Space } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
-import type { AxiosError } from 'axios';
 import { useNavigate } from 'react-router-dom';
 import DataTable from '../../../components/common/DataTable';
 import PageHeader from '../../../components/common/PageHeader';
@@ -13,7 +12,8 @@ import * as apiExecutionApi from '../../../api/apiExecution.api';
 import { useAuthStore } from '../../../stores/authStore';
 import { useGlobalStore } from '../../../stores/globalStore';
 import { useListFilterStore } from '../../../stores/listFilterStore';
-import type { ApiExecutionRow, ApiFailure, ApiRow } from '../../../types';
+import { getErrorMessage } from '../../../utils/error';
+import type { ApiExecutionRow, ApiRow } from '../../../types';
 
 interface CancelFormValues {
   reject_reason: string;
@@ -50,8 +50,7 @@ function ExecutionListPage() {
       setCancelTarget(null);
       setRefreshKey((key) => key + 1);
     } catch (err) {
-      const message = (err as AxiosError<ApiFailure>).response?.data?.message ?? '실행 취소에 실패했습니다.';
-      setErrorMessage(message);
+      setErrorMessage(getErrorMessage(err, '실행 취소에 실패했습니다.'));
       setCancelTarget(null);
     } finally {
       setSubmitting(false);

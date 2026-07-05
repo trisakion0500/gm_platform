@@ -1,12 +1,12 @@
 import { useEffect, useState } from 'react';
 import { Alert, Button, Input, Select, Space, Table } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
-import type { AxiosError } from 'axios';
 import PageHeader from '../../../components/common/PageHeader';
 import { usePermission } from '../../../hooks/usePermission';
 import { useGlobalStore } from '../../../stores/globalStore';
 import * as codeGroupApi from '../../../api/codeGroup.api';
-import type { ApiFailure, CodeGroupRow } from '../../../types';
+import { getErrorMessage } from '../../../utils/error';
+import type { CodeGroupRow } from '../../../types';
 import { ROLE } from '../../../types';
 import CodeItemGrid from './CodeItemGrid';
 
@@ -105,9 +105,7 @@ function CodeGroupPage() {
           });
         }
       } catch (err) {
-        const message = err instanceof Error && !(err as AxiosError).isAxiosError
-          ? err.message
-          : (err as AxiosError<ApiFailure>).response?.data?.message ?? '저장에 실패했습니다.';
+        const message = getErrorMessage(err, '저장에 실패했습니다.');
         errors.push(`${row.code_group_code || '(신규 행)'}: ${message}`);
         setRows((prev) => prev.map((r) => (r._key === row._key ? { ...r, _error: message } : r)));
       }

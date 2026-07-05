@@ -1,10 +1,9 @@
 import { useState } from 'react';
 import { Alert, Button, Card, Form, Input, Typography } from 'antd';
-import type { AxiosError } from 'axios';
 import { Link } from 'react-router-dom';
 import * as authApi from '../../api/auth.api';
 import { useAuthStore } from '../../stores/authStore';
-import type { ApiFailure } from '../../types';
+import { getErrorMessage } from '../../utils/error';
 
 interface LoginFormValues {
   login_id: string;
@@ -26,8 +25,7 @@ function LoginPage() {
       setTokens(access_token, role_code, refresh_token);
       setUser(await authApi.me());
     } catch (err) {
-      const message = (err as AxiosError<ApiFailure>).response?.data?.message ?? '로그인에 실패했습니다.';
-      setErrorMessage(message);
+      setErrorMessage(getErrorMessage(err, '로그인에 실패했습니다.'));
     } finally {
       setSubmitting(false);
     }

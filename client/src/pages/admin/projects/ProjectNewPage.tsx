@@ -1,11 +1,10 @@
 import { useState } from 'react';
 import { Alert, Button, Card, Form, Input, Select, Space } from 'antd';
-import type { AxiosError } from 'axios';
 import { useNavigate } from 'react-router-dom';
 import PageHeader from '../../../components/common/PageHeader';
 import * as projectApi from '../../../api/project.api';
 import { useGlobalStore } from '../../../stores/globalStore';
-import type { ApiFailure } from '../../../types';
+import { getErrorMessage } from '../../../utils/error';
 
 const PROJECT_CODE_PATTERN = /^[a-zA-Z0-9_.-]+$/;
 
@@ -33,8 +32,7 @@ function ProjectNewPage() {
       setProjectList([...projectList, { project_id: project.project_id, company_id: project.company_id, project_name: project.project_name }]);
       navigate(`/admin/projects/${project.project_id}`);
     } catch (err) {
-      const message = (err as AxiosError<ApiFailure>).response?.data?.message ?? '프로젝트 등록에 실패했습니다.';
-      setErrorMessage(message);
+      setErrorMessage(getErrorMessage(err, '프로젝트 등록에 실패했습니다.'));
     } finally {
       setSubmitting(false);
     }

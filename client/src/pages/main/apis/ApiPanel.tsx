@@ -1,13 +1,13 @@
 import { useState } from 'react';
 import { Alert, Button, Card, Checkbox, DatePicker, Descriptions, Form, Input, InputNumber, Radio, Select, Space, Table, Tag, Typography } from 'antd';
 import { CloseOutlined } from '@ant-design/icons';
-import type { AxiosError } from 'axios';
 import type { Dayjs } from 'dayjs';
 import * as apiApi from '../../../api/api.api';
 import { useApiWorkspaceStore } from '../../../stores/apiWorkspaceStore';
 import { useAuthStore } from '../../../stores/authStore';
+import { getErrorMessage } from '../../../utils/error';
 import { ROLE } from '../../../types';
-import type { ActiveCodeGroupWithItems, ApiDetail, ApiFailure, ApiRequestRow, ApiResponseRow } from '../../../types';
+import type { ActiveCodeGroupWithItems, ApiDetail, ApiRequestRow, ApiResponseRow } from '../../../types';
 
 interface ApiPanelProps {
   apiId: number;
@@ -146,7 +146,7 @@ function ApiPanel({ apiId, detail, codeGroupMap }: ApiPanelProps) {
       const result = await apiApi.executeApi(apiId, formatSubmitValues(activeRequests, rawValues));
       setExecutionResult(apiId, result);
     } catch (err) {
-      setErrorMessage((err as AxiosError<ApiFailure>).response?.data?.message ?? '실행 요청에 실패했습니다.');
+      setErrorMessage(getErrorMessage(err, '실행 요청에 실패했습니다.'));
     } finally {
       setExecuting(false);
     }

@@ -1,11 +1,10 @@
 import { useState } from 'react';
 import { Alert, Button, Card, Form, Input, Result, Typography } from 'antd';
-import type { AxiosError } from 'axios';
 import { Link, useNavigate } from 'react-router-dom';
 import * as authApi from '../../api/auth.api';
 import * as companyApi from '../../api/company.api';
 import * as projectApi from '../../api/project.api';
-import type { ApiFailure } from '../../types';
+import { getErrorMessage } from '../../utils/error';
 
 const LOGIN_ID_PATTERN = /^[a-zA-Z0-9_.-]+$/;
 
@@ -38,7 +37,7 @@ function SignupPage() {
         companyId = (await companyApi.getCompanyByCode(values.company_code.trim())).company_id;
       } catch (err) {
         form.setFields([
-          { name: 'company_code', errors: [(err as AxiosError<ApiFailure>).response?.data?.message ?? '회사코드를 확인하세요.'] },
+          { name: 'company_code', errors: [getErrorMessage(err, '회사코드를 확인하세요.')] },
         ]);
         return;
       }
@@ -49,7 +48,7 @@ function SignupPage() {
           projectId = (await projectApi.getProjectByCode(companyId, values.project_code.trim())).project_id;
         } catch (err) {
           form.setFields([
-            { name: 'project_code', errors: [(err as AxiosError<ApiFailure>).response?.data?.message ?? '프로젝트코드를 확인하세요.'] },
+            { name: 'project_code', errors: [getErrorMessage(err, '프로젝트코드를 확인하세요.')] },
           ]);
           return;
         }
@@ -68,7 +67,7 @@ function SignupPage() {
       });
       setSubmitted(true);
     } catch (err) {
-      setErrorMessage((err as AxiosError<ApiFailure>).response?.data?.message ?? '회원가입에 실패했습니다.');
+      setErrorMessage(getErrorMessage(err, '회원가입에 실패했습니다.'));
     } finally {
       setSubmitting(false);
     }

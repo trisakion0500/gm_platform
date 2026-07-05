@@ -2,8 +2,8 @@ import { useEffect, useRef, useState } from 'react';
 import type { Key } from 'react';
 import { Alert, Table } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
-import type { AxiosError } from 'axios';
-import type { ApiFailure, PaginatedResponse } from '../../types';
+import { getErrorMessage } from '../../utils/error';
+import type { PaginatedResponse } from '../../types';
 
 interface DataTableProps<T> {
   columns: ColumnsType<T>;
@@ -45,8 +45,8 @@ function DataTable<T>({ columns, fetcher, rowKey, pageSize = 20, onRowClick }: D
         setItems(res.items);
         setTotalCount(res.total_count);
       })
-      .catch((err: AxiosError<ApiFailure>) => {
-        setError(err.response?.data?.message ?? '목록을 불러오지 못했습니다. 서버 연결을 확인해주세요.');
+      .catch((err: unknown) => {
+        setError(getErrorMessage(err, '목록을 불러오지 못했습니다. 서버 연결을 확인해주세요.'));
         setItems([]);
         setTotalCount(0);
       })
