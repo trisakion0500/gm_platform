@@ -22,6 +22,7 @@ import ApiNewPage from '../pages/admin/apis/ApiNewPage';
 import ApiDetailPage from '../pages/admin/apis/ApiDetailPage';
 import ApiWorkspacePage from '../pages/main/apis/ApiWorkspacePage';
 import ExecutionListPage from '../pages/main/executions/ExecutionListPage';
+import ExecutionDetailPage from '../pages/main/executions/ExecutionDetailPage';
 import PagePlaceholder from '../pages/PagePlaceholder';
 import ForbiddenPage from '../pages/errors/ForbiddenPage';
 import NotFoundPage from '../pages/errors/NotFoundPage';
@@ -54,7 +55,7 @@ function AppRouter() {
             <Route path="/apis" element={<ApiWorkspacePage />} />
             <Route path="/executions" element={<ExecutionListPage />} />
             <Route path="/executions/pending" element={<PagePlaceholder title="승인대기" />} />
-            <Route path="/executions/:api_execution_id" element={<PagePlaceholder title="실행이력 상세" />} />
+            <Route path="/executions/:api_execution_id" element={<ExecutionDetailPage />} />
             <Route path="/my-account" element={<PagePlaceholder title="내 계정" />} />
           </Route>
 
