@@ -321,6 +321,8 @@ POST /api-executions/{api_execution_id}/approve
 - DEVELOPER
 - APPROVER
 
+라우트 레벨 역할 검사와 별개로, SUPER_ADMIN 외에는 대상 실행이 속한 프로젝트에 대해 DEVELOPER 또는 APPROVER 활성 `user_role`을 실제로 보유해야 한다(`SP_APPROVE_API_EXECUTION`이 `api_execution→api→project`를 조인해 재검증). 다른 프로젝트에서만 권한을 가진 사용자가 세션의 전역 `role_code`만으로 무관한 프로젝트의 승인대기 건을 처리할 수 없도록 하기 위함 — 미보유 시 31009(이력 존재 자체를 숨김).
+
 ### State Transition
 
 ```text id="e26"
@@ -377,6 +379,8 @@ POST /api-executions/{api_execution_id}/reject
 - SUPER_ADMIN
 - DEVELOPER
 - APPROVER
+
+Approve와 동일하게 SUPER_ADMIN 외에는 대상 프로젝트에 DEVELOPER/APPROVER 활성 `user_role`을 실제로 보유해야 한다(`SP_REJECT_API_EXECUTION` 재검증, 미보유 시 31009).
 
 ### State Transition
 
