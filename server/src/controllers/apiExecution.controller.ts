@@ -56,13 +56,13 @@ export async function executeApi(req: Request, res: Response, next: NextFunction
 /**
  * GET /api-executions — 실행 이력 목록 조회 (전체 역할)
  * @author trisakion
- * @param req query: { project_id, page, page_size, api_id?, request_user_id?, status? }
+ * @param req query: { project_id, page, page_size, api_id?, request_user_id?, status?, required_approval_only? }
  * @param res 200 — 페이지네이션 응답
  * @param next 오류 전달
  */
 export async function getApiExecutionList(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
-    const { project_id, page, page_size, api_id, request_user_id, status } = req.query;
+    const { project_id, page, page_size, api_id, request_user_id, status, required_approval_only } = req.query;
     if (!project_id || !page || !page_size) {
       fail(res, ERROR_MAP.REQUIRED_MISSING);
       return;
@@ -85,6 +85,7 @@ export async function getApiExecutionList(req: Request, res: Response, next: Nex
 
     const apiIdNum = api_id !== undefined ? Number(api_id) : null;
     const statusNum = status !== undefined ? Number(status) : null;
+    const requiredApprovalOnlyNum = required_approval_only !== undefined ? Number(required_approval_only) : null;
 
     // OPERATOR는 본인 요청 건만 조회 가능 — request_user_id 강제 적용
     const requestUserIdNum = req.user!.role_code === ROLE.OPERATOR
@@ -92,7 +93,7 @@ export async function getApiExecutionList(req: Request, res: Response, next: Nex
       : (request_user_id !== undefined ? Number(request_user_id) : null);
 
     const result = await service.getApiExecutionList(
-      projectId, apiIdNum, requestUserIdNum, statusNum,
+      projectId, apiIdNum, requestUserIdNum, statusNum, requiredApprovalOnlyNum,
       pageNum, pageSizeNum, req.user!.role_code, req.user!.company_id,
     );
     success(res, {

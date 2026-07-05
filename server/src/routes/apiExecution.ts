@@ -96,6 +96,9 @@ router.get('/pending',                   authenticate, requireRole(ROLE.SUPER_AD
  *       - in: query
  *         name: status
  *         schema: { type: integer, description: '10=PENDING, 20=APPROVED, 30=REJECTED, 40=SUCCESS, 50=FAILED, 60=CANCELED' }
+ *       - in: query
+ *         name: required_approval_only
+ *         schema: { type: integer, enum: [1], description: '1이면 실행 시점 승인 필요(is_required_approval=1) 건만 반환, 생략 시 전체' }
  *     responses:
  *       200:
  *         description: 조회 성공

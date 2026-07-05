@@ -60,6 +60,7 @@ export async function updateApiExecutionResult(
  * @param apiId API ID 필터 (null=전체)
  * @param requestUserId 요청자 필터 (null=전체)
  * @param status 상태 필터 (null=전체)
+ * @param requiredApprovalOnly 승인 필요 건만 필터 (null=전체, 1=승인필요 건만)
  * @param page 페이지 번호 (1부터)
  * @param pageSize 페이지 크기 (20/50/100)
  * @param callerRoleCode 요청자 역할 코드
@@ -71,13 +72,14 @@ export async function getApiExecutionList(
   apiId: number | null,
   requestUserId: number | null,
   status: number | null,
+  requiredApprovalOnly: number | null,
   page: number,
   pageSize: number,
   callerRoleCode: number,
   callerCompanyId: number,
 ): Promise<{ total_count: number; items: APIExecutionRow[] }> {
   const [, [countRows, itemRows]] = await callSP('SP_GET_API_EXECUTION_LIST', [
-    projectId, apiId, requestUserId, status, page, pageSize, callerRoleCode, callerCompanyId,
+    projectId, apiId, requestUserId, status, requiredApprovalOnly, page, pageSize, callerRoleCode, callerCompanyId,
   ]);
   return {
     total_count: (countRows[0] as unknown as { total_count: number }).total_count,

@@ -436,6 +436,8 @@ export interface APIExecutionRow {
   api_name: string;
   /** Endpoint 스냅샷 */
   endpoint: string;
+  /** 실행 시점 승인 필요 여부 스냅샷 (0:즉시실행, 1:승인필요) */
+  is_required_approval: number;
   /** 요청자 user_id (취소 버튼 등 본인 여부 판단용) */
   request_user_id: number;
   /** 요청자 이름 */

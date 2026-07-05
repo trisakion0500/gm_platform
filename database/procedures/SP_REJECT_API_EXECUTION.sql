@@ -67,7 +67,7 @@ BEGIN
         COMMIT;
 
         SELECT 0 AS RESULT;
-        SELECT `api_execution_id`, `api_id`, `api_name`, `endpoint`,
+        SELECT `api_execution_id`, `api_id`, `api_name`, `endpoint`, `is_required_approval`,
                `request_user_id`, `approve_user_id`, `status`,
                `request_json`, `response_data`, `reject_reason`, `error_message`,
                `requested_at`, `approved_at`, `executed_at`, `updated_at`

@@ -27,7 +27,7 @@ BEGIN
       AND (i_caller_role_code = 10 OR p.`company_id` = i_caller_company_id)
       AND ae.`status` = 10;
 
-    SELECT ae.`api_execution_id`, ae.`api_id`, ae.`api_name`, ae.`endpoint`,
+    SELECT ae.`api_execution_id`, ae.`api_id`, ae.`api_name`, ae.`endpoint`, ae.`is_required_approval`,
            ae.`request_user_id`, u1.`user_name` AS `request_user_name`, u2.`user_name` AS `approve_user_name`, ae.`status`,
            ae.`reject_reason`, ae.`error_message`,
            ae.`requested_at`, ae.`approved_at`, ae.`executed_at`, ae.`updated_at`

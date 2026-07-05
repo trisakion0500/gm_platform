@@ -61,6 +61,7 @@ CREATE TABLE `api_execution` (
   `api_id`					BIGINT		UNSIGNED	NOT NULL															COMMENT 'API ID',
   `api_name`				VARCHAR(200)			NOT NULL															COMMENT '실행 시점 API명',
   `endpoint`				VARCHAR(500)			NOT NULL															COMMENT '실행 시점 서비스 호출 Endpoint',
+  `is_required_approval`	TINYINT		UNSIGNED	NOT NULL															COMMENT '실행 시점 승인 필요 여부 스냅샷 (0:즉시실행, 1:승인필요) - api.is_required_approval이 이후 바뀌어도 과거 이력 판정에 영향받지 않도록 저장',
   `request_user_id`			BIGINT		UNSIGNED	NOT NULL															COMMENT '요청 사용자 ID',
   `approve_user_id`			BIGINT		UNSIGNED				DEFAULT NULL											COMMENT '승인 사용자 ID',
   `status`					TINYINT		UNSIGNED	NOT NULL	DEFAULT 10												COMMENT '상태 (10:PENDING, 20:APPROVED, 30:REJECTED, 40:SUCCESS, 50:FAILED, 60:CANCELED)',

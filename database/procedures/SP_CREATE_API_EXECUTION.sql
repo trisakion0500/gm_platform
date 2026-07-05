@@ -86,17 +86,17 @@ BEGIN
         START TRANSACTION;
 
             INSERT INTO `api_execution` (
-                `api_id`, `api_name`, `endpoint`,
+                `api_id`, `api_name`, `endpoint`, `is_required_approval`,
                 `request_user_id`, `status`, `request_json`, `requested_at`, `updated_at`
             ) VALUES (
-                i_api_id, v_api_name, v_endpoint,
+                i_api_id, v_api_name, v_endpoint, v_is_required_approval,
                 i_request_user_id, 10, i_request_json, v_now, v_now
             );
 
         COMMIT;
 
         SELECT 0 AS RESULT;
-        SELECT ae.`api_execution_id`, ae.`api_id`, ae.`api_name`, ae.`endpoint`,
+        SELECT ae.`api_execution_id`, ae.`api_id`, ae.`api_name`, ae.`endpoint`, ae.`is_required_approval`,
                ae.`request_user_id`, ae.`approve_user_id`, ae.`status`,
                ae.`request_json`, ae.`response_data`, ae.`reject_reason`, ae.`error_message`,
                ae.`requested_at`, ae.`approved_at`, ae.`executed_at`, ae.`updated_at`,
