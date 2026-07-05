@@ -187,7 +187,7 @@ AI는 문서 초안 작성과 반복적인 코드 작업의 속도를 높이는 
   - ✅ Code Item API — 목록 / 등록 / 상세 / 수정
   - ✅ Audit Log API — 목록 / 상세
   - ✅ Swagger UI — `GET /api/docs` (`SWAGGER_ENABLED=true` 시 활성화)
-- 🔄 Frontend 구현 — [16_FRONTEND_BUILD_PLAN.md](docs/16_FRONTEND_BUILD_PLAN.md) 기준 Stage 0~7 진행 중
+- ✅ Frontend 구현 — [16_FRONTEND_BUILD_PLAN.md](docs/16_FRONTEND_BUILD_PLAN.md) 기준 Stage 0~7 전체 완료
   - ✅ Stage 0 — 프로젝트 스캐폴딩 (Vite + React 18 + TypeScript, 의존성 설치, CORS 연동 확인, 프로덕션 빌드 검증)
   - ✅ Stage 1 — 인증 인프라 (authStore, axios 인터셉터의 401 자동 refresh, 로그인 화면)
   - ✅ Stage 2 — 라우터·레이아웃·가드·공통 컴포넌트 (AuthGuard/RoleGuard/GuestGuard, Header/Sidebar/Footer, globalStore, PermissionGuard/DataTable/ConfirmModal 등)
@@ -195,4 +195,4 @@ AI는 문서 초안 작성과 반복적인 코드 작업의 속도를 높이는 
   - ✅ Stage 4 — 그룹 B: 사용자·권한·감사로그 (사용자 목록/상세, User Role 서브테이블, 감사로그 목록/상세 — 가입승인·반려/비밀번호초기화/정지·재개/권한부여 액션이 감사로그에 정확히 기록됨을 검증)
   - ✅ Stage 5 — 그룹 C: API 정의·실행·코드그룹 (코드그룹 엑셀형 그리드, API 정의 List/New/Detail, API 실행 워크스페이스, 실행이력 목록/상세, 승인대기 목록/상세 — 승인/반려는 상세에서만 처리)
   - ✅ Stage 6 — 그룹 D: 회원가입·내 계정 (회사/프로젝트코드 직접 입력 방식 회원가입, 내 정보 조회·비밀번호 변경·로그아웃)
-  - ⬜ Stage 7 — 마무리 (403/404 점검, 역할별 접근 매트릭스 재대조, 프로덕션 빌드 확인)
+  - ✅ Stage 7 — 마무리 (403/404·오류 메시지 점검 중 발견한 백엔드 다운 시 강제 로그아웃 버그 등 2건 수정, 역할별 접근 매트릭스 재대조, 프로덕션 빌드 확인)

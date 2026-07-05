@@ -168,11 +168,14 @@
 - **`MyAccountPage`는 별도 API 호출 없이 `useAuth()`의 `user`(이미 앱 전역에 로드됨)와 `globalStore.companyList`(회사명 조회용)만으로 구성** — 이름/이메일/소속회사/최근로그인 조회 전용 Descriptions + 비밀번호 변경 폼. 비밀번호 변경 성공 시 "변경 즉시 모든 세션 종료"(SP_UPDATE_PASSWORD 설계, CLAUDE.md 참고) 정책 때문에 방금 변경한 본인 세션도 무효화되므로, 성공 메시지를 보여준 뒤 곧바로 `logout()`을 호출해 재로그인을 유도한다.
 - **검증**: 회원가입(잘못된 회사코드→필드 에러 확인→올바른 코드로 재제출→승인대기 안내 화면), 내 계정 정보 표시, 비밀번호 오입력 시 에러 확인, 로그아웃→보호 라우트 재접근 시 `/login` 리다이렉트까지 확인.
 
-## Stage 7 — 마무리
+## Stage 7 — 마무리 ✅ 완료
 
-- 403/404 페이지, 전체 ERROR_MAP 메시지 매핑 점검
-- 22개 화면 × 4역할 접근 매트릭스 재대조([11_MENU_PERMISSION.md](./11_MENU_PERMISSION.md), [12_SCREEN_LIST.md](./12_SCREEN_LIST.md), [13_LAYOUT.md](./13_LAYOUT.md)와 실제 동작 비교)
-- `npm run build` 프로덕션 빌드 통과 확인
+- 403/404 페이지 확인, `ERROR_MAP`(서버) 전체 코드가 사용자 노출용 한국어 메시지를 갖추고 있는지 점검 — 누락 없음.
+- **점검 중 발견해 함께 고친 버그 2건** (둘 다 Playwright로 백엔드를 강제 종료해 재현 → 수정 → 재현 안 됨을 확인):
+  - `DataTable.tsx`의 `fetcher().then().finally()`에 `.catch()`가 없어 네트워크 에러 시 목록이 조용히 비던 문제 — `.catch()` 추가 + `Alert`로 에러 메시지 표시.
+  - `useAuth.ts`가 `GET /auth/me` 실패 시 원인 구분 없이 무조건 `clear()`(로그아웃)를 호출해, 백엔드가 잠깐 다운된 순간 새로고침만 해도 유효한 토큰이 강제로 지워지던 문제 — `err.response`가 있는(서버가 실제로 인증 실패를 응답한) 경우만 `clear()`하도록 수정.
+- 22개 화면 × 4역할 접근 매트릭스 재대조 — `router/index.tsx`의 `RoleGuard` allow 배열이 [11_MENU_PERMISSION.md](./11_MENU_PERMISSION.md)와 정확히 일치함을 코드 대조로 확인, 경계 케이스(APPROVER의 감사로그 허용/코드그룹·사용자·회사관리 차단, DEVELOPER의 API·사용자·코드그룹 허용, OPERATOR의 승인대기·API관리 차단)는 Playwright로 4계정 실제 로그인 후 라이브 검증까지 완료.
+- `npm run build` — client(`tsc && vite build`)·server(`tsc`) 모두 정상 통과. client 번들이 500KB 경고를 내지만 내부 전용 툴 특성상 코드 스플리팅 등 최적화는 후순위로 보류.
 
 ---
 
