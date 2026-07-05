@@ -66,7 +66,9 @@ function ApiMenuSection() {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (!selectedProjectId) {
+    // projectRoleCode는 프로젝트 전환 시 일단 null로 리셋된 뒤 서버에서 재조회된다(Header.tsx) — null인 동안
+    // 요청해도 canExecuteStage가 항상 false라 결과가 전부 걸러지므로, role이 확정될 때까지는 요청 자체를 건너뛴다.
+    if (!selectedProjectId || projectRoleCode === null) {
       setApis([]);
       return;
     }
