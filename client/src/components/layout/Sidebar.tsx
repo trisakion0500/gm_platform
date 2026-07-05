@@ -88,21 +88,38 @@ function ApiMenuSection() {
   return (
     <div style={{ borderRight: '1px solid transparent' }}>
       <div
-        onClick={() => setMenuExpanded(!menuExpanded)}
         style={{
           display: 'flex',
           alignItems: 'center',
-          gap: 8,
+          gap: 4,
           height: 40,
-          padding: '0 16px',
-          cursor: 'pointer',
+          padding: '0 12px',
           fontWeight: isApisActive ? 600 : 400,
           color: isApisActive ? '#1677ff' : undefined,
           background: isApisActive ? '#e6f4ff' : undefined,
         }}
       >
-        {menuExpanded ? <CaretDownOutlined /> : <CaretRightOutlined />}
-        API
+        {/* 펼치기/접기 전용 버튼 — 항상 보이는 원형 배경으로 "API" 텍스트(이동용)와 클릭 영역을 구분한다.
+            호버로만 구분하면 터치 기기에서는 신호가 전혀 안 가기 때문에 상시 표시 방식을 택함. */}
+        <span
+          onClick={() => setMenuExpanded(!menuExpanded)}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            width: 24,
+            height: 24,
+            borderRadius: '50%',
+            background: 'rgba(0, 0, 0, 0.06)',
+            cursor: 'pointer',
+            flexShrink: 0,
+          }}
+        >
+          {menuExpanded ? <CaretDownOutlined /> : <CaretRightOutlined />}
+        </span>
+        <span onClick={() => navigate('/apis')} style={{ cursor: 'pointer', flex: 1, padding: '0 4px' }}>
+          API
+        </span>
       </div>
 
       {menuExpanded && (
