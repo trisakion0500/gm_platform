@@ -27,7 +27,7 @@ function CompanyNewPage() {
     setSubmitting(true);
     try {
       const company = await companyApi.createCompany(values);
-      setCompanyList([...companyList, company]);
+      setCompanyList([...companyList, { company_id: company.company_id, company_name: company.company_name }]);
       navigate(`/admin/companies/${company.company_id}`);
     } catch (err) {
       const message = (err as AxiosError<ApiFailure>).response?.data?.message ?? '회사 등록에 실패했습니다.';

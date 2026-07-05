@@ -53,7 +53,13 @@ function ProjectDetailPage() {
     try {
       const updated = await projectApi.updateProject(Number(project_id), values);
       setProject(updated);
-      setProjectList(projectList.map((p) => (p.project_id === updated.project_id ? updated : p)));
+      setProjectList(
+        projectList.map((p) =>
+          p.project_id === updated.project_id
+            ? { project_id: updated.project_id, company_id: updated.company_id, project_name: updated.project_name }
+            : p,
+        ),
+      );
       setEditing(false);
     } catch (err) {
       const message = (err as AxiosError<ApiFailure>).response?.data?.message ?? '프로젝트 수정에 실패했습니다.';

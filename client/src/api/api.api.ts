@@ -1,5 +1,10 @@
 import axiosInstance, { unwrap } from './axios';
-import type { ApiDetail, ApiExecutionRow, ApiRequestRow, ApiResponseRow, ApiRow, PaginatedResponse } from '../types';
+import type { ActiveApi, ApiDetail, ApiExecutionRow, ApiRequestRow, ApiResponseRow, ApiRow, PaginatedResponse } from '../types';
+
+// 사이드바 API 메뉴용 활성 API 전체 조회 (페이지네이션 없음)
+export function getActiveApis(projectId: number): Promise<ActiveApi[]> {
+  return axiosInstance.get('/apis/active', { params: { project_id: projectId } }).then(unwrap<ActiveApi[]>);
+}
 
 export function getApiList(
   page: number,

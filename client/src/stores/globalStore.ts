@@ -1,15 +1,15 @@
 import { create } from 'zustand';
-import type { CompanyRow, ProjectRow, RoleCode } from '../types';
+import type { ActiveCompany, ActiveProject, RoleCode } from '../types';
 
 interface GlobalState {
-  companyList: CompanyRow[];
-  projectList: ProjectRow[];
+  companyList: ActiveCompany[];
+  projectList: ActiveProject[];
   selectedCompanyId: number | null;
   selectedProjectId: number | null;
   // 선택된 프로젝트에서 내 실제 role_code (GET /user-roles/me) — 로그인 시 JWT의 role_code(최고 권한)와 다를 수 있음
   projectRoleCode: RoleCode | null;
-  setCompanyList: (list: CompanyRow[]) => void;
-  setProjectList: (list: ProjectRow[]) => void;
+  setCompanyList: (list: ActiveCompany[]) => void;
+  setProjectList: (list: ActiveProject[]) => void;
   selectCompany: (companyId: number | null) => void;
   selectProject: (projectId: number | null) => void;
   setProjectRoleCode: (roleCode: RoleCode | null) => void;

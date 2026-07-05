@@ -30,7 +30,7 @@ function ProjectNewPage() {
     setSubmitting(true);
     try {
       const project = await projectApi.createProject(values);
-      setProjectList([...projectList, project]);
+      setProjectList([...projectList, { project_id: project.project_id, company_id: project.company_id, project_name: project.project_name }]);
       navigate(`/admin/projects/${project.project_id}`);
     } catch (err) {
       const message = (err as AxiosError<ApiFailure>).response?.data?.message ?? '프로젝트 등록에 실패했습니다.';

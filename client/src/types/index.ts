@@ -83,6 +83,24 @@ export interface ActiveCodeItem {
   code_name: string;
 }
 
+// 헤더 콤보박스/사이드바 메뉴 등 선택용 활성 목록 — 페이지네이션 없이 필요한 필드만 담는다.
+export interface ActiveCompany {
+  company_id: number;
+  company_name: string;
+}
+
+export interface ActiveProject {
+  project_id: number;
+  company_id: number;
+  project_name: string;
+}
+
+export interface ActiveApi {
+  api_id: number;
+  api_name: string;
+  api_stage: number;
+}
+
 export interface ActiveCodeGroupWithItems {
   code_group_id: number;
   code_group_code: string;

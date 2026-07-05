@@ -1,5 +1,5 @@
 import axiosInstance, { unwrap } from './axios';
-import type { CompanyRow, PaginatedResponse } from '../types';
+import type { ActiveCompany, ActiveProject, CompanyRow, PaginatedResponse } from '../types';
 
 export interface CompanyLookupResult {
   company_id: number;
@@ -9,6 +9,16 @@ export interface CompanyLookupResult {
 // 회원가입 화면 전용(인증 불필요) — company_code로 활성 회사 조회
 export function getCompanyByCode(companyCode: string): Promise<CompanyLookupResult> {
   return axiosInstance.get('/companies/lookup', { params: { company_code: companyCode } }).then(unwrap<CompanyLookupResult>);
+}
+
+export interface ActiveHeaderData {
+  companies: ActiveCompany[];
+  projects: ActiveProject[];
+}
+
+// 헤더 콤보박스가 로그인 시 1회 로드하는 활성 회사/프로젝트 목록 (페이지네이션 없음)
+export function getActiveHeaderData(): Promise<ActiveHeaderData> {
+  return axiosInstance.get('/companies/active-header-data').then(unwrap<ActiveHeaderData>);
 }
 
 export function getCompanyList(page: number, pageSize: number, status?: number): Promise<PaginatedResponse<CompanyRow>> {

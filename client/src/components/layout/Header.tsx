@@ -3,7 +3,6 @@ import { Avatar, Button, Dropdown, Layout, Select, Space, Typography } from 'ant
 import { UserOutlined } from '@ant-design/icons';
 import { useLocation, useNavigate } from 'react-router-dom';
 import * as companyApi from '../../api/company.api';
-import * as projectApi from '../../api/project.api';
 import * as userRoleApi from '../../api/userRole.api';
 import { useAuth } from '../../hooks/useAuth';
 import { usePermission } from '../../hooks/usePermission';
@@ -39,13 +38,14 @@ function Header() {
   const resetApiWorkspace = useApiWorkspaceStore((state) => state.reset);
 
   // 회사/프로젝트 목록은 로그인 상태에서 1회 로드 — 역할별 스코핑은 서버가 이미 처리(SA: 전체, 그 외: 보유분만)
+  // 페이지네이션 없는 전용 엔드포인트 하나로 함께 받아온다(예전엔 GET /companies, GET /projects 두 번 호출 + 100건 캡).
   useEffect(() => {
-    companyApi.getCompanyList(1, 100).then(({ items }) => {
-      setCompanyList(items);
-      if (items.length > 0)
-        selectCompany(items[0].company_id);
+    companyApi.getActiveHeaderData().then(({ companies, projects }) => {
+      setCompanyList(companies);
+      setProjectList(projects);
+      if (companies.length > 0)
+        selectCompany(companies[0].company_id);
     });
-    projectApi.getProjectList(1, 100).then(({ items }) => setProjectList(items));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

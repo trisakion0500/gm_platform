@@ -7,7 +7,7 @@ import { useApiWorkspaceStore } from '../../stores/apiWorkspaceStore';
 import { useAuthStore } from '../../stores/authStore';
 import { useGlobalStore } from '../../stores/globalStore';
 import { ROLE } from '../../types';
-import type { ApiRow, RoleCode } from '../../types';
+import type { ActiveApi, RoleCode } from '../../types';
 
 interface MenuDef {
   key: string;
@@ -62,7 +62,7 @@ function ApiMenuSection() {
   const setMenuExpanded = useApiWorkspaceStore((state) => state.setMenuExpanded);
   const openApiIds = useApiWorkspaceStore((state) => state.openApiIds);
   const toggleApi = useApiWorkspaceStore((state) => state.toggleApi);
-  const [apis, setApis] = useState<ApiRow[]>([]);
+  const [apis, setApis] = useState<ActiveApi[]>([]);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -74,8 +74,8 @@ function ApiMenuSection() {
     }
     setLoading(true);
     apiApi
-      .getApiList(1, 100, selectedProjectId, 1)
-      .then(({ items }) => setApis(items.filter((api) => canExecuteStage(api.api_stage, projectRoleCode))))
+      .getActiveApis(selectedProjectId)
+      .then((items) => setApis(items.filter((api) => canExecuteStage(api.api_stage, projectRoleCode))))
       .finally(() => setLoading(false));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedProjectId, projectRoleCode]);

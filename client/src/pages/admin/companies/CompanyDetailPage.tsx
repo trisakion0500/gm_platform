@@ -52,7 +52,9 @@ function CompanyDetailPage() {
     try {
       const updated = await companyApi.updateCompany(Number(company_id), values);
       setCompany(updated);
-      setCompanyList(companyList.map((c) => (c.company_id === updated.company_id ? updated : c)));
+      setCompanyList(
+        companyList.map((c) => (c.company_id === updated.company_id ? { company_id: updated.company_id, company_name: updated.company_name } : c)),
+      );
       setEditing(false);
     } catch (err) {
       const message = (err as AxiosError<ApiFailure>).response?.data?.message ?? '회사 수정에 실패했습니다.';
