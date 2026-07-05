@@ -7,7 +7,7 @@ CREATE PROCEDURE SP_GET_API_EXECUTION_LIST(
     IN  i_status                TINYINT,   -- 상태 필터 (NULL=전체)
     IN  i_required_approval_only TINYINT,  -- 승인 필요 건만 필터 (NULL=전체, 1=승인필요 건만)
     IN  i_page                  INT,       -- 페이지 번호 (1부터)
-    IN  i_page_size             INT,       -- 페이지 크기 (20/50/100)
+    IN  i_page_size             INT,       -- 페이지 크기 (20/30/50/100)
     IN  i_caller_role_code      INT,       -- 요청자 역할 코드
     IN  i_caller_company_id     BIGINT     -- 요청자 company_id (접근 검사용)
 ) COMMENT 'API 실행 이력 목록 조회 - 역할별 스코핑, 페이지네이션'

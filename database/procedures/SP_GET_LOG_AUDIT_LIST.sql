@@ -9,7 +9,7 @@ CREATE PROCEDURE SP_GET_LOG_AUDIT_LIST(
     IN  i_from_created_at    DATETIME,     -- 시작 일시 (NULL=제한없음)
     IN  i_to_created_at      DATETIME,     -- 종료 일시 (NULL=제한없음)
     IN  i_page               INT,          -- 페이지 번호 (1부터)
-    IN  i_page_size          INT,          -- 페이지 크기 (20/50/100)
+    IN  i_page_size          INT,          -- 페이지 크기 (20/30/50/100)
     IN  i_caller_role_code   INT,          -- 요청자 역할 코드
     IN  i_caller_company_id  BIGINT        -- 요청자 company_id (DEVELOPER/APPROVER 스코핑용)
 ) COMMENT '감사 로그 목록 조회 - 역할 스코핑, 페이지네이션'
