@@ -134,7 +134,7 @@ request_json 은 반드시 저장한다.
 
 - API 존재
 - API status=1
-- api_stage 에 따른 역할 접근 권한 확인
+- api_stage 에 따른 역할 접근 권한 확인 — SUPER_ADMIN 외에는 세션 `role_code`(가진 프로젝트 중 최고 권한)가 아니라 **대상 프로젝트에 대한 실제 활성 `user_role`**을 `SP_CREATE_API_EXECUTION`이 재조회해서 판정한다(`api_execution→api→project` 조인). 다른 프로젝트에서 얻은 권한으로 이 프로젝트의 stage 게이트를 통과할 수 없도록 하기 위함.
 - 프로젝트 접근 권한 존재
 
 ---
@@ -587,6 +587,8 @@ api_stage 별 실행 가능 역할
 | 20 (개발) | SUPER_ADMIN, DEVELOPER                     |
 | 30 (승인) | SUPER_ADMIN, DEVELOPER, APPROVER           |
 | 40 (운영) | SUPER_ADMIN, DEVELOPER, APPROVER, OPERATOR |
+
+이 표의 역할 판정은 대상 프로젝트에 대한 실제 `user_role` 기준이다(§4 Validation 참고, SUPER_ADMIN 제외).
 
 ---
 
