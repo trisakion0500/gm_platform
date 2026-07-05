@@ -277,6 +277,7 @@ const options: swaggerJsdoc.Options = {
             api_id:           { type: 'integer', example: 1 },
             api_name:         { type: 'string',  example: '아이템 지급' },
             endpoint:         { type: 'string',  example: '/v1/game/give-item' },
+            request_user_id:  { type: 'integer', example: 4 },
             request_user_name: { type: 'string', example: 'operator1' },
             approve_user_name: { type: 'string', nullable: true, example: null },
             status:           { type: 'integer', description: '10=PENDING, 20=APPROVED, 30=REJECTED, 40=SUCCESS, 50=FAILED, 60=CANCELED', example: 10 },

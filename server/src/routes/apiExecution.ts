@@ -48,6 +48,7 @@ const router = Router();
  *                     api_id: 1
  *                     api_name: 아이템 지급
  *                     endpoint: /v1/game/give-item
+ *                     request_user_id: 4
  *                     request_user_name: operator1
  *                     approve_user_name: null
  *                     status: 10
@@ -112,6 +113,7 @@ router.get('/pending',                   authenticate, requireRole(ROLE.SUPER_AD
  *                     api_id: 1
  *                     api_name: 아이템 지급
  *                     endpoint: /v1/game/give-item
+ *                     request_user_id: 4
  *                     request_user_name: operator1
  *                     approve_user_name: null
  *                     status: 10
@@ -159,6 +161,7 @@ router.get('/',                          authenticate, requireRole(ROLE.SUPER_AD
  *                 api_id: 1
  *                 api_name: 아이템 지급
  *                 endpoint: /v1/game/give-item
+ *                 request_user_id: 4
  *                 request_user_name: operator1
  *                 approve_user_name: null
  *                 status: 10
