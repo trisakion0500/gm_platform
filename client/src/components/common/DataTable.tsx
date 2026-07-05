@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 import type { Key } from 'react';
-import { Table } from 'antd';
+import { Alert, Table } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
-import type { PaginatedResponse } from '../../types';
+import type { AxiosError } from 'axios';
+import type { ApiFailure, PaginatedResponse } from '../../types';
 
 interface DataTableProps<T> {
   columns: ColumnsType<T>;
@@ -23,15 +24,22 @@ function DataTable<T>({ columns, fetcher, rowKey, pageSize = 20, onRowClick }: D
   const [page, setPage] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const wrapperRef = useRef<HTMLDivElement>(null);
   const [scrollY, setScrollY] = useState(300);
 
   useEffect(() => {
     setLoading(true);
+    setError(null);
     fetcher(page, pageSize)
       .then((res) => {
         setItems(res.items);
         setTotalCount(res.total_count);
+      })
+      .catch((err: AxiosError<ApiFailure>) => {
+        setError(err.response?.data?.message ?? '목록을 불러오지 못했습니다. 서버 연결을 확인해주세요.');
+        setItems([]);
+        setTotalCount(0);
       })
       .finally(() => setLoading(false));
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -50,6 +58,7 @@ function DataTable<T>({ columns, fetcher, rowKey, pageSize = 20, onRowClick }: D
 
   return (
     <div ref={wrapperRef} style={{ flex: 1, minHeight: 0 }}>
+      {error && <Alert type="error" message={error} showIcon style={{ marginBottom: 16 }} />}
       <Table<T>
         columns={columns}
         dataSource={items}
