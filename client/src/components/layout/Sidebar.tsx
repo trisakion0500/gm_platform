@@ -37,15 +37,16 @@ const ADMIN_MENU: MenuDef[] = [
 
 // api_stage별 실행 가능 역할 — SP_CREATE_API_EXECUTION의 검사와 정확히 동일해야 한다.
 // (20:개발 → SUPER_ADMIN/DEVELOPER, 30:스테이징 → +APPROVER, 40:운영 → 전체)
-// 서버가 실제로 검사에 쓰는 값은 프로젝트별 실제 권한이 아니라 JWT의 role_code(가진 프로젝트 중 최고 권한)이므로,
-// 이 필터도 projectRoleCode가 아닌 session roleCode를 기준으로 삼아야 "리스트에 보이는 것 = 실행 가능한 것"이 일치한다.
-function canExecuteStage(apiStage: number, roleCode: number | null): boolean {
-  if (roleCode === null)
+// SP_CREATE_API_EXECUTION이 세션 role_code(가진 프로젝트 중 최고 권한) 대신 user_role을 재조회해
+// "선택된 프로젝트에서의 실제 권한"으로 검사하도록 바뀌었으므로, 이 필터도 세션 roleCode가 아니라
+// projectRoleCode(GET /user-roles/me 결과)를 기준으로 삼아야 "리스트에 보이는 것 = 실행 가능한 것"이 일치한다.
+function canExecuteStage(apiStage: number, projectRoleCode: number | null): boolean {
+  if (projectRoleCode === null)
     return false;
   if (apiStage === 20)
-    return roleCode === ROLE.SUPER_ADMIN || roleCode === ROLE.DEVELOPER;
+    return projectRoleCode === ROLE.SUPER_ADMIN || projectRoleCode === ROLE.DEVELOPER;
   if (apiStage === 30)
-    return roleCode === ROLE.SUPER_ADMIN || roleCode === ROLE.DEVELOPER || roleCode === ROLE.APPROVER;
+    return projectRoleCode === ROLE.SUPER_ADMIN || projectRoleCode === ROLE.DEVELOPER || projectRoleCode === ROLE.APPROVER;
   return true; // 40:운영 — 전체 역할 실행 가능
 }
 
@@ -55,8 +56,8 @@ function canExecuteStage(apiStage: number, roleCode: number | null): boolean {
 function ApiMenuSection() {
   const navigate = useNavigate();
   const location = useLocation();
-  const roleCode = useAuthStore((state) => state.roleCode);
   const selectedProjectId = useGlobalStore((state) => state.selectedProjectId);
+  const projectRoleCode = useGlobalStore((state) => state.projectRoleCode);
   const menuExpanded = useApiWorkspaceStore((state) => state.menuExpanded);
   const setMenuExpanded = useApiWorkspaceStore((state) => state.setMenuExpanded);
   const openApiIds = useApiWorkspaceStore((state) => state.openApiIds);
@@ -72,10 +73,10 @@ function ApiMenuSection() {
     setLoading(true);
     apiApi
       .getApiList(1, 100, selectedProjectId, 1)
-      .then(({ items }) => setApis(items.filter((api) => canExecuteStage(api.api_stage, roleCode))))
+      .then(({ items }) => setApis(items.filter((api) => canExecuteStage(api.api_stage, projectRoleCode))))
       .finally(() => setLoading(false));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedProjectId, roleCode]);
+  }, [selectedProjectId, projectRoleCode]);
 
   function handleToggle(apiId: number): void {
     toggleApi(apiId);
