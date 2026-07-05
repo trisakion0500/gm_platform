@@ -7,6 +7,11 @@ export interface AuditLogFilter {
   toDate?: string;
 }
 
+export interface ExecutionListFilter {
+  apiId?: number;
+  status?: number;
+}
+
 interface ListFilterState {
   companyListStatus: number | undefined;
   setCompanyListStatus: (status: number | undefined) => void;
@@ -24,6 +29,9 @@ interface ListFilterState {
 
   auditLogFilter: AuditLogFilter;
   setAuditLogFilter: (filter: AuditLogFilter) => void;
+
+  executionListFilter: ExecutionListFilter;
+  setExecutionListFilter: (filter: ExecutionListFilter) => void;
 
   reset: () => void;
 }
@@ -48,6 +56,9 @@ export const useListFilterStore = create<ListFilterState>()((set) => ({
   auditLogFilter: {},
   setAuditLogFilter: (auditLogFilter) => set({ auditLogFilter }),
 
+  executionListFilter: {},
+  setExecutionListFilter: (executionListFilter) => set({ executionListFilter }),
+
   // 로그아웃 시 다른 계정의 필터가 남지 않도록 초기화 (useAuth.ts logout()에서 호출)
   reset: () =>
     set({
@@ -57,5 +68,6 @@ export const useListFilterStore = create<ListFilterState>()((set) => ({
       apiListStatus: undefined,
       apiListStage: undefined,
       auditLogFilter: {},
+      executionListFilter: {},
     }),
 }));
