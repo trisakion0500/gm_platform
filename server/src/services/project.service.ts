@@ -1,7 +1,18 @@
-import { ProjectRow } from '../types';
+import { ProjectRow, ProjectLookupRow } from '../types';
 import { toAppError, ERROR_MAP } from '../constants/errors';
 import * as db from '../db/project.db';
 import * as audit from './logAudit.service';
+
+/**
+ * 프로젝트코드로 활성 프로젝트를 조회한다 (회원가입 화면 전용, 인증 불필요).
+ * @author trisakion
+ * @param companyId 소속 회사 ID (먼저 확인된 company_id)
+ * @param projectCode 조회할 프로젝트 코드
+ * @returns { project_id, project_name }
+ */
+export async function getProjectByCode(companyId: number, projectCode: string): Promise<ProjectLookupRow> {
+  return db.getProjectByCode(companyId, projectCode);
+}
 
 /**
  * 프로젝트를 생성한다.

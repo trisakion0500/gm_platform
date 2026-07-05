@@ -1,6 +1,22 @@
 import { callSP } from '../config/db';
-import { ProjectRow } from '../types';
+import { ProjectRow, ProjectLookupRow } from '../types';
 import { toDBError, ERROR_MAP } from '../constants/errors';
+
+/**
+ * 프로젝트코드로 활성 프로젝트를 조회한다 (회원가입 화면 전용, 인증 불필요).
+ * 미존재/비활성/타사 소속 시 DBError(31002)를 던진다.
+ * @author trisakion
+ * @param companyId 소속 회사 ID (먼저 확인된 company_id)
+ * @param projectCode 조회할 프로젝트 코드
+ * @returns { project_id, project_name }
+ */
+export async function getProjectByCode(companyId: number, projectCode: string): Promise<ProjectLookupRow> {
+  const [status, [data]] = await callSP('SP_GET_PROJECT_BY_CODE', [companyId, projectCode]);
+  switch (status[0].RESULT) {
+    case 31002: throw toDBError(ERROR_MAP.PROJECT_NOT_FOUND);
+  }
+  return data[0] as unknown as ProjectLookupRow;
+}
 
 /**
  * 프로젝트를 생성하고 생성된 프로젝트 정보를 반환한다.

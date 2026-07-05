@@ -23,6 +23,37 @@ function formatProject(p: ProjectRow) {
 }
 
 /**
+ * GET /projects/lookup — 프로젝트코드로 활성 프로젝트 조회 (인증 불필요, 회원가입 화면 전용)
+ * @author trisakion
+ * @param req query: { company_id, project_code }
+ * @param res 200 — { project_id, project_name }
+ * @param next 오류 전달
+ * @returns void
+ */
+export async function getProjectByCode(req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    const { company_id, project_code } = req.query;
+    if (!company_id || !project_code) {
+      fail(res, ERROR_MAP.REQUIRED_MISSING);
+      return;
+    }
+    const companyId = Number(company_id);
+    if (!Number.isInteger(companyId) || companyId < 1) {
+      fail(res, ERROR_MAP.INVALID_FORMAT);
+      return;
+    }
+    if (typeof project_code !== 'string' || !PROJECT_CODE_PATTERN.test(project_code)) {
+      fail(res, ERROR_MAP.INVALID_FORMAT);
+      return;
+    }
+    const result = await projectService.getProjectByCode(companyId, project_code);
+    success(res, result);
+  } catch (err) {
+    next(err);
+  }
+}
+
+/**
  * POST /projects — 프로젝트 생성 (SUPER_ADMIN)
  * @author trisakion
  * @param req body: { company_id, project_code, project_name, api_base_url, description? }

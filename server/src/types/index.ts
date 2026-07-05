@@ -298,6 +298,18 @@ export interface ActiveCodeGroupWithItems {
  * company 테이블 조회 행 타입.
  * @author trisakion
  */
+/** 회원가입 화면(인증 전)에서 company_code로 조회한 결과 - company_id/company_name만 포함 */
+export interface CompanyLookupRow {
+  company_id: number;
+  company_name: string;
+}
+
+/** 회원가입 화면(인증 전)에서 project_code로 조회한 결과 - project_id/project_name만 포함 */
+export interface ProjectLookupRow {
+  project_id: number;
+  project_name: string;
+}
+
 export interface CompanyRow {
   /** 회사 ID */
   company_id: number;

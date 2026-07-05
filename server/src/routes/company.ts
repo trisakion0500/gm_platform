@@ -52,6 +52,38 @@ router.post('/',             authenticate, requireRole(ROLE.SUPER_ADMIN),       
 
 /**
  * @swagger
+ * /companies/lookup:
+ *   get:
+ *     tags: [Company]
+ *     summary: 회사코드로 활성 회사 조회 (인증 불필요)
+ *     description: |
+ *       회원가입 화면 전용 — 로그인 전 상태에서 호출한다.
+ *       company_id/company_name만 반환하며, 비활성(status=0) 회사는 조회되지 않는다.
+ *     parameters:
+ *       - in: query
+ *         name: company_code
+ *         required: true
+ *         schema: { type: string, example: COMPANY_A }
+ *     responses:
+ *       200:
+ *         description: 조회 성공
+ *         content:
+ *           application/json:
+ *             example:
+ *               result: 0
+ *               data:
+ *                 company_id: 1
+ *                 company_name: 회사A
+ *       400:
+ *         $ref: '#/components/responses/BadRequest'
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
+ */
+// 정적 경로라 /:company_id 보다 먼저 등록해야 함(안 그러면 "lookup" 문자열이 company_id로 잘못 매칭)
+router.get('/lookup',        ctrl.getCompanyByCode);
+
+/**
+ * @swagger
  * /companies:
  *   get:
  *     tags: [Company]

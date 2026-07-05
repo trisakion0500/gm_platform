@@ -1,6 +1,21 @@
 import { callSP } from '../config/db';
-import { CompanyRow } from '../types';
+import { CompanyRow, CompanyLookupRow } from '../types';
 import { toDBError, ERROR_MAP } from '../constants/errors';
+
+/**
+ * 회사코드로 활성 회사를 조회한다 (회원가입 화면 전용, 인증 불필요).
+ * 미존재/비활성 시 DBError(31001)를 던진다.
+ * @author trisakion
+ * @param companyCode 조회할 회사 코드
+ * @returns { company_id, company_name }
+ */
+export async function getCompanyByCode(companyCode: string): Promise<CompanyLookupRow> {
+  const [status, [data]] = await callSP('SP_GET_COMPANY_BY_CODE', [companyCode]);
+  switch (status[0].RESULT) {
+    case 31001: throw toDBError(ERROR_MAP.COMPANY_NOT_FOUND);
+  }
+  return data[0] as unknown as CompanyLookupRow;
+}
 
 /**
  * 회사를 생성하고 생성된 회사 정보를 반환한다.

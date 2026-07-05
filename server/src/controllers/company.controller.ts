@@ -22,6 +22,32 @@ function formatCompany(c: CompanyRow) {
 }
 
 /**
+ * GET /companies/lookup — 회사코드로 활성 회사 조회 (인증 불필요, 회원가입 화면 전용)
+ * @author trisakion
+ * @param req query: { company_code }
+ * @param res 200 — { company_id, company_name }
+ * @param next 오류 전달
+ * @returns void
+ */
+export async function getCompanyByCode(req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    const { company_code } = req.query;
+    if (!company_code) {
+      fail(res, ERROR_MAP.REQUIRED_MISSING);
+      return;
+    }
+    if (typeof company_code !== 'string' || !COMPANY_CODE_PATTERN.test(company_code)) {
+      fail(res, ERROR_MAP.INVALID_FORMAT);
+      return;
+    }
+    const result = await companyService.getCompanyByCode(company_code);
+    success(res, result);
+  } catch (err) {
+    next(err);
+  }
+}
+
+/**
  * POST /companies — 회사 생성 (SUPER_ADMIN)
  * @author trisakion
  * @param req body: { company_code, company_name, description? }

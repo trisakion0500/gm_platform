@@ -1,7 +1,17 @@
-import { CompanyRow } from '../types';
+import { CompanyRow, CompanyLookupRow } from '../types';
 import { toAppError, ERROR_MAP } from '../constants/errors';
 import * as db from '../db/company.db';
 import * as audit from './logAudit.service';
+
+/**
+ * 회사코드로 활성 회사를 조회한다 (회원가입 화면 전용, 인증 불필요).
+ * @author trisakion
+ * @param companyCode 조회할 회사 코드
+ * @returns { company_id, company_name }
+ */
+export async function getCompanyByCode(companyCode: string): Promise<CompanyLookupRow> {
+  return db.getCompanyByCode(companyCode);
+}
 
 /**
  * 회사를 생성한다.

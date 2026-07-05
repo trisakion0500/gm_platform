@@ -58,6 +58,42 @@ router.post('/',             authenticate, requireRole(ROLE.SUPER_ADMIN),       
 
 /**
  * @swagger
+ * /projects/lookup:
+ *   get:
+ *     tags: [Project]
+ *     summary: 프로젝트코드로 활성 프로젝트 조회 (인증 불필요)
+ *     description: |
+ *       회원가입 화면 전용 — 로그인 전 상태에서 호출한다.
+ *       project_id/project_name만 반환하며, company_id 소속이면서 활성(status=1)인 프로젝트만 조회된다.
+ *     parameters:
+ *       - in: query
+ *         name: company_id
+ *         required: true
+ *         schema: { type: integer, example: 1 }
+ *       - in: query
+ *         name: project_code
+ *         required: true
+ *         schema: { type: string, example: PROJECT_A }
+ *     responses:
+ *       200:
+ *         description: 조회 성공
+ *         content:
+ *           application/json:
+ *             example:
+ *               result: 0
+ *               data:
+ *                 project_id: 1
+ *                 project_name: 프로젝트A
+ *       400:
+ *         $ref: '#/components/responses/BadRequest'
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
+ */
+// 정적 경로라 /:project_id 보다 먼저 등록해야 함(안 그러면 "lookup" 문자열이 project_id로 잘못 매칭)
+router.get('/lookup',        ctrl.getProjectByCode);
+
+/**
+ * @swagger
  * /projects:
  *   get:
  *     tags: [Project]
