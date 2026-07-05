@@ -184,6 +184,7 @@ export interface ApiExecutionRow {
   api_id: number;
   api_name: string;
   endpoint: string;
+  is_required_approval: number;
   request_user_id: number;
   request_user_name: string;
   approve_user_name: string | null;

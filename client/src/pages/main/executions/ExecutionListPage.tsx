@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Alert, Button, Empty, Form, Input, Modal, Select, Space } from 'antd';
+import { Alert, Button, Checkbox, Empty, Form, Input, Modal, Select, Space } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import type { AxiosError } from 'axios';
 import { useNavigate } from 'react-router-dom';
@@ -110,13 +110,21 @@ function ExecutionListPage() {
                 ...Object.entries(EXECUTION_STATUS_MAP).map(([value, { label }]) => ({ value: Number(value), label })),
               ]}
             />
+            <Checkbox
+              checked={filter.requiredApprovalOnly === 1}
+              onChange={(e) => setFilter({ ...filter, requiredApprovalOnly: e.target.checked ? 1 : undefined })}
+            >
+              승인 필요 건만
+            </Checkbox>
           </div>
           <DataTable<ApiExecutionRow>
-            key={`${selectedProjectId}-${filter.apiId ?? 'all'}-${filter.status ?? 'all'}-${refreshKey}`}
+            key={`${selectedProjectId}-${filter.apiId ?? 'all'}-${filter.status ?? 'all'}-${filter.requiredApprovalOnly ?? 'all'}-${refreshKey}`}
             columns={columns}
             rowKey="api_execution_id"
             fetcher={(page, pageSize) =>
-              apiExecutionApi.getApiExecutionList(selectedProjectId, page, pageSize, filter.apiId, undefined, filter.status)
+              apiExecutionApi.getApiExecutionList(
+                selectedProjectId, page, pageSize, filter.apiId, undefined, filter.status, filter.requiredApprovalOnly,
+              )
             }
             onRowClick={(record) => navigate(`/executions/${record.api_execution_id}`)}
           />

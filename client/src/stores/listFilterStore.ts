@@ -10,6 +10,7 @@ export interface AuditLogFilter {
 export interface ExecutionListFilter {
   apiId?: number;
   status?: number;
+  requiredApprovalOnly?: number;
 }
 
 interface ListFilterState {

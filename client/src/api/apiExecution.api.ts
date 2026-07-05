@@ -8,10 +8,19 @@ export function getApiExecutionList(
   apiId?: number,
   requestUserId?: number,
   status?: number,
+  requiredApprovalOnly?: number,
 ): Promise<PaginatedResponse<ApiExecutionRow>> {
   return axiosInstance
     .get('/api-executions', {
-      params: { project_id: projectId, page, page_size: pageSize, api_id: apiId, request_user_id: requestUserId, status },
+      params: {
+        project_id: projectId,
+        page,
+        page_size: pageSize,
+        api_id: apiId,
+        request_user_id: requestUserId,
+        status,
+        required_approval_only: requiredApprovalOnly,
+      },
     })
     .then(unwrap<PaginatedResponse<ApiExecutionRow>>);
 }
