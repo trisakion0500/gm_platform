@@ -22,9 +22,8 @@ import {
   RESPONSE_VIEW_TYPE_LABEL,
   RESPONSE_VIEW_TYPE_OPTIONS,
 } from '../../../constants/apiMeta';
+import { API_CODE_PATTERN, API_CODE_PATTERN_MESSAGE } from '../../../constants/validation';
 import type { ApiRequestRow, ApiResponseRow, ApiRow, CodeGroupRow } from '../../../types';
-
-const API_CODE_PATTERN = /^[a-zA-Z0-9_.-]{1,50}$/;
 
 interface ApiEditFormValues {
   api_code: string;
@@ -248,7 +247,7 @@ function ApiDetailPage() {
       <Form.Item
         name="api_code"
         label="API코드"
-        rules={[{ required: true, message: 'API코드를 입력하세요.' }, { pattern: API_CODE_PATTERN, message: '영문, 숫자, _, ., - 만 사용할 수 있습니다(최대 50자).' }]}
+        rules={[{ required: true, message: 'API코드를 입력하세요.' }, { pattern: API_CODE_PATTERN, message: API_CODE_PATTERN_MESSAGE }]}
       >
         <Input />
       </Form.Item>

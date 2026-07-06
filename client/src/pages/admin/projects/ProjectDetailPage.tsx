@@ -7,6 +7,7 @@ import StatusBadge from '../../../components/common/StatusBadge';
 import * as projectApi from '../../../api/project.api';
 import { useGlobalStore } from '../../../stores/globalStore';
 import { getErrorMessage } from '../../../utils/error';
+import { CODE_PATTERN, CODE_PATTERN_MESSAGE } from '../../../constants/validation';
 import type { ProjectRow } from '../../../types';
 import { ROLE } from '../../../types';
 
@@ -14,8 +15,6 @@ const STATUS_MAP = {
   1: { label: '활성', color: 'green' },
   0: { label: '비활성', color: 'default' },
 };
-
-const PROJECT_CODE_PATTERN = /^[a-zA-Z0-9_.-]+$/;
 
 interface ProjectEditFormValues {
   project_code: string;
@@ -110,7 +109,7 @@ function ProjectDetailPage() {
             label="프로젝트코드"
             rules={[
               { required: true, message: '프로젝트코드를 입력하세요.' },
-              { pattern: PROJECT_CODE_PATTERN, message: '영문, 숫자, _, ., - 만 사용할 수 있습니다.' },
+              { pattern: CODE_PATTERN, message: CODE_PATTERN_MESSAGE },
               { max: 20, message: '프로젝트코드는 최대 20자입니다.' },
             ]}
           >

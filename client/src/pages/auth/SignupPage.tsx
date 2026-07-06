@@ -5,8 +5,7 @@ import * as authApi from '../../api/auth.api';
 import * as companyApi from '../../api/company.api';
 import * as projectApi from '../../api/project.api';
 import { getErrorMessage } from '../../utils/error';
-
-const LOGIN_ID_PATTERN = /^[a-zA-Z0-9_.-]+$/;
+import { CODE_PATTERN, CODE_PATTERN_MESSAGE } from '../../constants/validation';
 
 interface SignupFormValues {
   company_code: string;
@@ -113,7 +112,7 @@ function SignupPage() {
           label="아이디"
           rules={[
             { required: true, message: '아이디를 입력하세요.' },
-            { pattern: LOGIN_ID_PATTERN, message: '영문, 숫자, _, ., - 만 사용할 수 있습니다.' },
+            { pattern: CODE_PATTERN, message: CODE_PATTERN_MESSAGE },
           ]}
         >
           <Input />

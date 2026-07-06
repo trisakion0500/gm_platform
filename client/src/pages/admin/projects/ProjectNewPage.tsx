@@ -5,8 +5,7 @@ import PageHeader from '../../../components/common/PageHeader';
 import * as projectApi from '../../../api/project.api';
 import { useGlobalStore } from '../../../stores/globalStore';
 import { getErrorMessage } from '../../../utils/error';
-
-const PROJECT_CODE_PATTERN = /^[a-zA-Z0-9_.-]+$/;
+import { CODE_PATTERN, CODE_PATTERN_MESSAGE } from '../../../constants/validation';
 
 interface ProjectFormValues {
   company_id: number;
@@ -55,7 +54,7 @@ function ProjectNewPage() {
             label="프로젝트코드"
             rules={[
               { required: true, message: '프로젝트코드를 입력하세요.' },
-              { pattern: PROJECT_CODE_PATTERN, message: '영문, 숫자, _, ., - 만 사용할 수 있습니다.' },
+              { pattern: CODE_PATTERN, message: CODE_PATTERN_MESSAGE },
               { max: 20, message: '프로젝트코드는 최대 20자입니다.' },
             ]}
           >

@@ -6,8 +6,7 @@ import * as apiApi from '../../../api/api.api';
 import { useGlobalStore } from '../../../stores/globalStore';
 import { APPROVAL_OPTIONS, RESPONSE_VIEW_TYPE_OPTIONS } from '../../../constants/apiMeta';
 import { getErrorMessage } from '../../../utils/error';
-
-const API_CODE_PATTERN = /^[a-zA-Z0-9_.-]{1,50}$/;
+import { API_CODE_PATTERN, API_CODE_PATTERN_MESSAGE } from '../../../constants/validation';
 
 interface ApiFormValues {
   api_code: string;
@@ -65,7 +64,7 @@ function ApiNewPage() {
             label="API코드"
             rules={[
               { required: true, message: 'API코드를 입력하세요.' },
-              { pattern: API_CODE_PATTERN, message: '영문, 숫자, _, ., - 만 사용할 수 있습니다(최대 50자).' },
+              { pattern: API_CODE_PATTERN, message: API_CODE_PATTERN_MESSAGE },
             ]}
           >
             <Input autoFocus />
