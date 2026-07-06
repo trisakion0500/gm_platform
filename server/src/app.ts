@@ -2,6 +2,7 @@
 import "./config/env";
 import express from "express";
 import cors from "cors";
+import helmet from "helmet";
 import { env } from "./config/env";
 import { callSP } from "./config/db";
 import logger from "./utils/logger";
@@ -11,6 +12,9 @@ import router from "./routes";
 
 const app = express();
 
+// nginx 등 앞단 프록시가 항상 있다고 가정할 수 없어 앱 레벨에서도 최소 보안 헤더를 둔다.
+// SWAGGER_ENABLED=true면 Swagger UI(HTML, 인라인 스크립트/스타일 사용)가 함께 뜨므로 CSP만 끈다 — 나머지 헤더는 유지.
+app.use(helmet({ contentSecurityPolicy: env.swaggerEnabled ? false : undefined }));
 app.use(cors({ origin: env.cors.allowedOrigins }));
 app.use(express.json());
 app.use(requestLogger);
