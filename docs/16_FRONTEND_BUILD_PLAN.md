@@ -175,7 +175,7 @@
   - `DataTable.tsx`의 `fetcher().then().finally()`에 `.catch()`가 없어 네트워크 에러 시 목록이 조용히 비던 문제 — `.catch()` 추가 + `Alert`로 에러 메시지 표시.
   - `useAuth.ts`가 `GET /auth/me` 실패 시 원인 구분 없이 무조건 `clear()`(로그아웃)를 호출해, 백엔드가 잠깐 다운된 순간 새로고침만 해도 유효한 토큰이 강제로 지워지던 문제 — `err.response`가 있는(서버가 실제로 인증 실패를 응답한) 경우만 `clear()`하도록 수정.
 - 22개 화면 × 4역할 접근 매트릭스 재대조 — `router/index.tsx`의 `RoleGuard` allow 배열이 [11_MENU_PERMISSION.md](./11_MENU_PERMISSION.md)와 정확히 일치함을 코드 대조로 확인, 경계 케이스(APPROVER의 감사로그 허용/코드그룹·사용자·회사관리 차단, DEVELOPER의 API·사용자·코드그룹 허용, OPERATOR의 승인대기·API관리 차단)는 Playwright로 4계정 실제 로그인 후 라이브 검증까지 완료.
-- `npm run build` — client(`tsc && vite build`)·server(`tsc`) 모두 정상 통과. client 번들이 500KB 경고를 내지만 내부 전용 툴 특성상 코드 스플리팅 등 최적화는 후순위로 보류.
+- `npm run build` — client(`tsc && vite build`)·server(`tsc`) 모두 정상 통과. client 번들이 500KB 경고를 낸 것을 이 시점엔 내부 전용 툴 특성상 후순위로 보류했으나, **(해결됨, 이후) `router/index.tsx`의 페이지 컴포넌트 전체를 `React.lazy()` + `Suspense`로 전환해 라우트별 코드 스플리팅 적용** — 레이아웃/가드는 eager 유지, 26개 페이지만 지연 로딩. 상세 내용은 CLAUDE.md 핵심 결정사항 참고.
 
 ---
 
