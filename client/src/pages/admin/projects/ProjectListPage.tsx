@@ -10,20 +10,16 @@ import StatusBadge from '../../../components/common/StatusBadge';
 import * as projectApi from '../../../api/project.api';
 import { useGlobalStore } from '../../../stores/globalStore';
 import { useListFilterStore } from '../../../stores/listFilterStore';
+import { ACTIVE_STATUS_MAP } from '../../../constants/statusMaps';
 import type { ProjectRow } from '../../../types';
 import { ROLE } from '../../../types';
-
-const STATUS_MAP = {
-  1: { label: '활성', color: 'green' },
-  0: { label: '비활성', color: 'default' },
-};
 
 const COLUMNS: ColumnsType<ProjectRow> = [
   { title: '회사명', dataIndex: 'company_name' },
   { title: '프로젝트코드', dataIndex: 'project_code' },
   { title: '프로젝트명', dataIndex: 'project_name' },
   { title: 'API Base URL', dataIndex: 'api_base_url' },
-  { title: '상태', dataIndex: 'status', render: (status: number) => <StatusBadge status={status} map={STATUS_MAP} /> },
+  { title: '상태', dataIndex: 'status', render: (status: number) => <StatusBadge status={status} map={ACTIVE_STATUS_MAP} /> },
   { title: '등록일', dataIndex: 'created_at' },
 ];
 

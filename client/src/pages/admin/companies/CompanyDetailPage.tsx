@@ -8,13 +8,9 @@ import * as companyApi from '../../../api/company.api';
 import { useGlobalStore } from '../../../stores/globalStore';
 import { getErrorMessage } from '../../../utils/error';
 import { CODE_PATTERN, CODE_PATTERN_MESSAGE } from '../../../constants/validation';
+import { ACTIVE_STATUS_MAP } from '../../../constants/statusMaps';
 import type { CompanyRow } from '../../../types';
 import { ROLE } from '../../../types';
-
-const STATUS_MAP = {
-  1: { label: '활성', color: 'green' },
-  0: { label: '비활성', color: 'default' },
-};
 
 interface CompanyEditFormValues {
   company_code: string;
@@ -158,7 +154,7 @@ function CompanyDetailPage() {
         <Descriptions.Item label="회사명">{company.company_name}</Descriptions.Item>
         <Descriptions.Item label="설명">{company.description ?? '-'}</Descriptions.Item>
         <Descriptions.Item label="상태">
-          <StatusBadge status={company.status} map={STATUS_MAP} />
+          <StatusBadge status={company.status} map={ACTIVE_STATUS_MAP} />
         </Descriptions.Item>
         <Descriptions.Item label="등록일">{company.created_at}</Descriptions.Item>
         <Descriptions.Item label="수정일">{company.updated_at}</Descriptions.Item>

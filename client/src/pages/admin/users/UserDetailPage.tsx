@@ -11,6 +11,7 @@ import * as userApi from '../../../api/user.api';
 import * as userRoleApi from '../../../api/userRole.api';
 import * as projectApi from '../../../api/project.api';
 import { getErrorMessage } from '../../../utils/error';
+import { ACTIVE_STATUS_MAP } from '../../../constants/statusMaps';
 import type { ProjectRow, UserRoleRow, UserRow } from '../../../types';
 import { ROLE, ROLE_LABEL } from '../../../types';
 
@@ -19,11 +20,6 @@ const STATUS_MAP = {
   1: { label: '정상', color: 'green' },
   2: { label: '반려', color: 'red' },
   3: { label: '사용중지', color: 'default' },
-};
-
-const ROLE_STATUS_MAP = {
-  1: { label: '활성', color: 'green' },
-  0: { label: '비활성', color: 'default' },
 };
 
 const ASSIGNABLE_ROLE_OPTIONS = [
@@ -58,7 +54,7 @@ const ROLE_COLUMNS: ColumnsType<UserRoleRow> = [
   { title: '프로젝트코드', dataIndex: 'project_code' },
   { title: '프로젝트명', dataIndex: 'project_name' },
   { title: '역할', dataIndex: 'role_code', render: (roleCode: number) => ROLE_LABEL[roleCode as keyof typeof ROLE_LABEL] ?? roleCode },
-  { title: '상태', dataIndex: 'status', render: (status: number) => <StatusBadge status={status} map={ROLE_STATUS_MAP} /> },
+  { title: '상태', dataIndex: 'status', render: (status: number) => <StatusBadge status={status} map={ACTIVE_STATUS_MAP} /> },
   { title: '등록일', dataIndex: 'created_at' },
 ];
 

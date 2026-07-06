@@ -8,13 +8,9 @@ import * as projectApi from '../../../api/project.api';
 import { useGlobalStore } from '../../../stores/globalStore';
 import { getErrorMessage } from '../../../utils/error';
 import { CODE_PATTERN, CODE_PATTERN_MESSAGE } from '../../../constants/validation';
+import { ACTIVE_STATUS_MAP } from '../../../constants/statusMaps';
 import type { ProjectRow } from '../../../types';
 import { ROLE } from '../../../types';
-
-const STATUS_MAP = {
-  1: { label: '활성', color: 'green' },
-  0: { label: '비활성', color: 'default' },
-};
 
 interface ProjectEditFormValues {
   project_code: string;
@@ -179,7 +175,7 @@ function ProjectDetailPage() {
         <Descriptions.Item label="API Base URL">{project.api_base_url}</Descriptions.Item>
         <Descriptions.Item label="설명">{project.description ?? '-'}</Descriptions.Item>
         <Descriptions.Item label="상태">
-          <StatusBadge status={project.status} map={STATUS_MAP} />
+          <StatusBadge status={project.status} map={ACTIVE_STATUS_MAP} />
         </Descriptions.Item>
         <Descriptions.Item label="등록일">{project.created_at}</Descriptions.Item>
         <Descriptions.Item label="수정일">{project.updated_at}</Descriptions.Item>

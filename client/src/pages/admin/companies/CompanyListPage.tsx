@@ -9,19 +9,15 @@ import PermissionGuard from '../../../components/common/PermissionGuard';
 import StatusBadge from '../../../components/common/StatusBadge';
 import * as companyApi from '../../../api/company.api';
 import { useListFilterStore } from '../../../stores/listFilterStore';
+import { ACTIVE_STATUS_MAP } from '../../../constants/statusMaps';
 import type { CompanyRow } from '../../../types';
 import { ROLE } from '../../../types';
-
-const STATUS_MAP = {
-  1: { label: '활성', color: 'green' },
-  0: { label: '비활성', color: 'default' },
-};
 
 const COLUMNS: ColumnsType<CompanyRow> = [
   { title: '회사코드', dataIndex: 'company_code' },
   { title: '회사명', dataIndex: 'company_name' },
   { title: '설명', dataIndex: 'description' },
-  { title: '상태', dataIndex: 'status', render: (status: number) => <StatusBadge status={status} map={STATUS_MAP} /> },
+  { title: '상태', dataIndex: 'status', render: (status: number) => <StatusBadge status={status} map={ACTIVE_STATUS_MAP} /> },
   { title: '등록일', dataIndex: 'created_at' },
 ];
 
