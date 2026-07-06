@@ -12,7 +12,11 @@ const pool = mysql.createPool({
   waitForConnections: true,
   connectionLimit: 10,
   queueLimit: 0,
-  timezone: "+00:00", // MySQL 날짜/시간을 항상 UTC 기준으로 처리
+  // MySQL time_zone이 SYSTEM(=호스트 OS 로컬, 이 환경은 KST)이라 NOW() 등이 실제로는 로컬 시간을 반환한다.
+  // "+00:00"으로 고정하면 그 로컬 값을 UTC라고 잘못 라벨링하게 되어(실제 변환은 없음),
+  // Node에서 절대시각으로 계산한 Date(예: JWT 만료시각)를 DB에 저장할 때 로컬 NOW()와 9시간 어긋난다.
+  // "local"은 Node 프로세스의 로컬 시간대(=이 환경에서는 MySQL과 동일한 KST)를 그대로 사용해 양쪽을 일치시킨다.
+  timezone: "local",
   charset: "utf8mb4",
 });
 

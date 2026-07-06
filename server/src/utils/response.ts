@@ -33,6 +33,9 @@ export const fail = (res: Response, entry: ErrorEntry): void => {
 
 /**
  * Date 또는 문자열을 'YYYY-MM-DD HH:mm:ss' 형식으로 변환한다.
+ * Date는 항상 로컬(Node 프로세스 시간대 = 이 환경에서는 MySQL과 동일한 KST) 구성요소로 뽑는다 —
+ * toISOString()은 UTC 구성요소를 뽑기 때문에, DB에서 온 값(로컬 NOW() 기반)과
+ * JS에서 계산한 절대시각(예: JWT 만료시각)이 서로 다른 시간대로 보이는 불일치가 생겼었다.
  * @author trisakion
  * @param d 변환할 Date 객체 또는 날짜 문자열, null 허용
  * @returns 'YYYY-MM-DD HH:mm:ss' 형식의 문자열, null이면 null
@@ -42,5 +45,7 @@ export function formatDatetime(d: Date | string | null): string | null {
     return null;
   if (typeof d === 'string')
     return d.slice(0, 19).replace('T', ' ');
-  return d.toISOString().slice(0, 19).replace('T', ' ');
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} `
+    + `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
 }
