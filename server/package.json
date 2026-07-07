@@ -2,6 +2,7 @@
   "name": "gm-platform-server",
   "version": "1.0.0",
   "private": true,
+  "license": "SEE LICENSE IN LICENSE.md",
   "scripts": {
     "dev": "tsx watch src/app.ts",
     "build": "tsc",
