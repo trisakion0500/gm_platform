@@ -1,4 +1,4 @@
-Copyright (c) 2026 trisakion
+Copyright (c) 2026 trisakion@gmail.com
 
 이 프로젝트는 포트폴리오/학습 목적으로 공개됩니다.
 
