@@ -478,6 +478,17 @@ script-src-attr 'none'; style-src 'self' https: 'unsafe-inline'; upgrade-insecur
 
 알고리즘은 Fixed Window Counter를 사용한다(`express-rate-limit` 기본 구현). 윈도우 경계에서 최대 `max`의 2배까지 통과하는 경계 버스트가 이론상 가능하지만, 초 단위로 정밀하게 막아야 하는 시나리오가 아니라 로그인 브루트포스 방지 목적으로는 충분해 슬라이딩 윈도우 등 별도 라이브러리는 채택하지 않았다. `POST /auth/refresh`는 유효한 refresh_token 보유가 전제되어야 해 대상에서 제외한다.
 
+## 6.4 세션 정리(Session Cleanup) 정책
+
+`user_session`은 로그인마다 INSERT되고 로그아웃·비밀번호 변경·만료 시에는 `status`만 변경될 뿐 DELETE되지 않아, 정리 로직이 없으면 행이 무한정 누적된다.
+
+```text
+대상   : expired_at이 현재 시각보다 과거인 세션 (status 무관)
+주기   : SESSION_CLEANUP_CRON (기본 "0 4 * * *", 매일 새벽 4시)
+```
+
+서버 기동 시(`app.ts`) `node-cron`으로 크론 잡을 등록하고(`server/src/jobs/sessionCleanup.job.ts`), `SP_CLEANUP_EXPIRED_SESSIONS`를 호출해 대상 행을 DELETE한다. `expired_at`은 로그인 시점에 `JWT_REFRESH_EXPIRES_IN`만큼 더한 절대 시각으로 이미 저장돼 있어, 이 SP는 만료 기간 값 자체를 알 필요 없이 `NOW()`와 비교만 하면 된다 — `JWT_REFRESH_EXPIRES_IN`을 바꿔도 SP 수정은 불필요하다. `status=1`(활성)이면서 아직 만료되지 않은 세션은 조건에 걸리지 않아 삭제되지 않는다.
+
 ---
 
 # 7. Health Check
