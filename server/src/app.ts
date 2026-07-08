@@ -8,6 +8,7 @@ import { callSP } from "./config/db";
 import logger from "./utils/logger";
 import { requestLogger } from "./middleware/requestLogger";
 import { errorHandler } from "./middleware/errorHandler";
+import { startSessionCleanupJob } from "./jobs/sessionCleanup.job";
 import router from "./routes";
 
 const app = express();
@@ -35,6 +36,8 @@ async function start() {
     logger.error('DB connection failed:', err);
     process.exit(1);
   }
+
+  startSessionCleanupJob();
 
   app.listen(env.port, () => {
     logger.info(`Server running on port ${env.port}`);

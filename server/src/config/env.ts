@@ -46,4 +46,5 @@ export const env = {
     windowMs: Number(process.env.LOGIN_RATE_LIMIT_WINDOW_MS ?? 900000), // 기본 15분
     max: Number(process.env.LOGIN_RATE_LIMIT_MAX ?? 10), // 기본 IP당 10회
   },
+  sessionCleanupCron: process.env.SESSION_CLEANUP_CRON ?? '0 4 * * *', // 만료 세션 정리 크론 표현식, 기본 매일 새벽 4시
 };
