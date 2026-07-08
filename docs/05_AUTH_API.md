@@ -264,6 +264,19 @@ Session 조회 기준은 access_token_jti를 사용한다.
 
 ---
 
+## 2.7 요청 제한(Rate Limit) 정책
+
+`POST /auth/signup`, `POST /auth/login`은 인증 없이 호출 가능한 API 중 반복 요청 시 브루트포스 피해가 있는 유일한 엔드포인트라 IP 기준 요청 제한을 적용한다.
+
+```text
+기준   : IP당 windowMs 동안 max회 (기본 15분/10회, LOGIN_RATE_LIMIT_WINDOW_MS/LOGIN_RATE_LIMIT_MAX)
+초과 시 : 429 Too Many Requests, result 40001
+```
+
+`POST /auth/refresh`는 유효한 refresh_token 보유가 전제되어야 해 대상에서 제외한다. 자세한 내용은 [04_API_COMMON.md](./04_API_COMMON.md) §6.3 참고.
+
+---
+
 # 3. API 목록
 
 | Method | URI            | 설명                |
@@ -307,6 +320,8 @@ user.status = 0
 `login_id`는 영문(a-z, A-Z), 숫자(0-9), `_`, `.`, `-`만 허용한다. 그 외 문자 포함 시 30002(INVALID_FORMAT).
 `phone_number`는 필수이며 서버에서 AES-256-CBC로 암호화되어 저장된다(평문 최대 20자). `department`/`position`은 선택 입력.
 
+IP당 요청 제한이 적용된다 (2.7 참고).
+
 ### Response
 
 생성된 User 전체 정보 반환
@@ -341,6 +356,8 @@ user.status = 0
 ```
 
 `role_code`는 사용자가 활성 상태(`user_role.status=1`)로 배정된 모든 프로젝트 중 최고 권한(`MIN(role_code)`, 미배정 시 40)이다. JWT 페이로드에도 동일 값이 포함되며 세션 내내 고정된다.
+
+IP당 요청 제한이 적용된다 (2.7 참고).
 
 ### 처리 정책
 
@@ -488,6 +505,14 @@ user_session.status = 0 WHERE user_id = ? AND status = 1
 | 30001 | 필수 입력값 누락 |
 | 30002 | 입력값 형식 오류 |
 | 30003 | 허용되지 않은 값 |
+
+---
+
+## 요청 제한 오류
+
+| 코드  | 설명           |
+| ----- | -------------- |
+| 40001 | 요청 제한 초과 |
 
 ---
 

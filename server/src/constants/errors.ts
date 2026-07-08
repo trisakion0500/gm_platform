@@ -58,6 +58,9 @@ export const ERROR_MAP = {
   LOG_AUDIT_NOT_FOUND:     { code: 31010, message: '존재하지 않는 감사 로그입니다.',         httpStatus: 404 },
   /** 중복 데이터 */
   DUPLICATE_VALUE:       { code: 32001, message: '이미 사용 중인 값입니다.',              httpStatus: 400 },
+  // 요청 제한
+  /** 짧은 시간 내 과도한 요청 (로그인/회원가입 브루트포스 방지) */
+  TOO_MANY_REQUESTS:     { code: 40001, message: '요청이 너무 많습니다. 잠시 후 다시 시도해주세요.', httpStatus: 429 },
   // 시스템
   /** 예상치 못한 서버 오류 */
   SERVER_ERROR:          { code: 50000, message: '서버 오류가 발생했습니다.',             httpStatus: 500 },

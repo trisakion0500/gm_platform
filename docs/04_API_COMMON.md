@@ -92,6 +92,7 @@ GM-Tool API는 HTTP Status Code와 Result Code를 함께 사용한다.
 | 10000~19999 | Authentication   |
 | 20000~29999 | Authorization    |
 | 30000~39999 | Validation       |
+| 40000~49999 | Rate Limit       |
 | 50000~59999 | System           |
 
 ---
@@ -117,6 +118,7 @@ Validation 오류는 아래 범위를 사용한다.
 | 401 Unauthorized          | 10000~19999  | Authentication         |
 | 403 Forbidden             | 20000~29999  | Authorization          |
 | 404 Not Found             | 31000~31999  | Validation (Not Found) |
+| 429 Too Many Requests     | 40000~49999  | Rate Limit              |
 | 500 Internal Server Error | 50000~59999  | System                 |
 
 ---
@@ -274,7 +276,34 @@ API 없음
 
 ---
 
-## 2.9 500 Internal Server Error
+## 2.9 429 Too Many Requests
+
+요청 제한 초과
+
+적용 Result 범위
+
+```text
+40000~49999
+```
+
+예시
+
+```text
+로그인/회원가입 IP당 요청 횟수 초과
+```
+
+예시 응답
+
+```json
+{
+  "result": 40001,
+  "message": "Too many requests"
+}
+```
+
+---
+
+## 2.10 500 Internal Server Error
 
 시스템 오류
 
@@ -303,7 +332,7 @@ DB 오류
 
 ---
 
-## 2.10 오류 처리 원칙
+## 2.11 오류 처리 원칙
 
 GM-Tool은 비즈니스 오류를 HTTP 200으로 반환하지 않는다.
 
@@ -436,6 +465,19 @@ script-src-attr 'none'; style-src 'self' https: 'unsafe-inline'; upgrade-insecur
 
 `SWAGGER_ENABLED=true`(Swagger UI, HTML)일 때는 인라인 스크립트/스타일이 CSP에 막히므로 CSP만 비활성화하고 나머지 헤더(HSTS, X-Frame-Options, X-Content-Type-Options 등)는 그대로 유지한다.
 
+## 6.3 Rate Limiting 정책
+
+`POST /auth/login`, `POST /auth/signup`은 인증 없이 호출 가능한 API 중 반복 요청 시 실질적 피해(브루트포스)가 있는 유일한 엔드포인트라, IP 기준 요청 제한을 적용한다.
+
+```text
+기준   : IP당 windowMs 동안 max회
+초과 시 : 429 Too Many Requests, result 40001
+```
+
+`windowMs`/`max`는 환경변수(`LOGIN_RATE_LIMIT_WINDOW_MS`, `LOGIN_RATE_LIMIT_MAX`)로 관리하며 생략 시 기본값은 15분/10회다.
+
+알고리즘은 Fixed Window Counter를 사용한다(`express-rate-limit` 기본 구현). 윈도우 경계에서 최대 `max`의 2배까지 통과하는 경계 버스트가 이론상 가능하지만, 초 단위로 정밀하게 막아야 하는 시나리오가 아니라 로그인 브루트포스 방지 목적으로는 충분해 슬라이딩 윈도우 등 별도 라이브러리는 채택하지 않았다. `POST /auth/refresh`는 유효한 refresh_token 보유가 전제되어야 해 대상에서 제외한다.
+
 ---
 
 # 7. Health Check
@@ -555,6 +597,14 @@ Anonymous (인증 불필요)
 
 ---
 
+## 40000 — Rate Limit
+
+| 코드  | 설명           |
+| ----- | -------------- |
+| 40001 | 요청 제한 초과 |
+
+---
+
 ## 50000 — System
 
 | 코드  | 설명                  |
@@ -562,4 +612,4 @@ Anonymous (인증 불필요)
 | 50000 | 시스템 오류(서버 내부 오류) |
 | 50001 | 데이터베이스 오류(SP 내부 오류) |
 
-> 별도의 "State Transition"(40000번대) 오류 코드는 존재하지 않는다. `api_execution` 상태 전이 관련 오류(접근 불가·이미 처리된 요청 등)는 이력 존재 여부 자체를 노출하지 않기 위해 `31009`(API 실행 이력 없음)로 통일해서 반환한다 — CLAUDE.md "Execution SP 오류코드 정책" 참고.
+> 40000번대는 Rate Limit(40001) 전용이며 "State Transition" 용도로는 쓰지 않는다. `api_execution` 상태 전이 관련 오류(접근 불가·이미 처리된 요청 등)는 이력 존재 여부 자체를 노출하지 않기 위해 `31009`(API 실행 이력 없음)로 통일해서 반환한다 — CLAUDE.md "Execution SP 오류코드 정책" 참고.

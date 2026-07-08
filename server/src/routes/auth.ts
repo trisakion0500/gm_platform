@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { authenticate } from '../middleware/auth';
+import { loginLimiter } from '../middleware/rateLimiter';
 import * as ctrl from '../controllers/auth.controller';
 
 const router = Router();
@@ -51,7 +52,7 @@ const router = Router();
  *       400:
  *         $ref: '#/components/responses/BadRequest'
  */
-router.post('/signup',   ctrl.signup);
+router.post('/signup',   loginLimiter, ctrl.signup);
 
 /**
  * @swagger
@@ -89,7 +90,7 @@ router.post('/signup',   ctrl.signup);
  *       400:
  *         $ref: '#/components/responses/BadRequest'
  */
-router.post('/login',    ctrl.login);
+router.post('/login',    loginLimiter, ctrl.login);
 
 /**
  * @swagger

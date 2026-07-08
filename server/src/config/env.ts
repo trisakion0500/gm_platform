@@ -42,4 +42,8 @@ export const env = {
   },
   swaggerEnabled: process.env.SWAGGER_ENABLED === 'true',
   apiExecutionTimeoutMs: Number(process.env.API_EXECUTION_TIMEOUT_MS ?? 10000), // 외부 API(S2S) 호출 타임아웃, 기본 10초
+  loginRateLimit: {
+    windowMs: Number(process.env.LOGIN_RATE_LIMIT_WINDOW_MS ?? 900000), // 기본 15분
+    max: Number(process.env.LOGIN_RATE_LIMIT_MAX ?? 10), // 기본 IP당 10회
+  },
 };
