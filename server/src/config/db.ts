@@ -35,7 +35,17 @@ export async function callSP(
   params: unknown[],
 ): Promise<[RowDataPacket[], RowDataPacket[][]]> {
   const placeholders = params.map(() => "?").join(", ");
-  const [results] = await pool.query(`CALL ${sp}(${placeholders})`, params);
+  let results;
+  try {
+    [results] = await pool.query(`CALL ${sp}(${placeholders})`, params);
+  } catch (err) {
+    throw new DBError(
+      50001,
+      `${ERROR_MAP.DB_ERROR.message} [${sp}]: ${err instanceof Error ? err.message : String(err)}`,
+      ERROR_MAP.DB_ERROR.httpStatus,
+      { cause: err },
+    );
+  }
   const sets = results as RowDataPacket[][];
   const statusRow = sets[0]?.[0];
   if (statusRow?.RESULT === undefined) {

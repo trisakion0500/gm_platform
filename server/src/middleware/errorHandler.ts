@@ -23,7 +23,7 @@ export function errorHandler(
 ): void {
   if (err instanceof AppError) {
     if (err.httpStatus >= 500) {
-      logger.error(`${req.method} ${req.url} - [${err.name}] ${err.message}`, err.stack);
+      logger.error(`${req.method} ${req.url} - ${err.toString()}`, err.stack);
     } else {
       logger.warn(`${req.method} ${req.url} - ${err.httpStatus} [${err.name}:${err.result}] ${err.message}`);
     }
