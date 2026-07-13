@@ -25,4 +25,9 @@ CREATE TABLE `code_group` (
   CONSTRAINT `fk_code_group_created_by` FOREIGN KEY (`created_by`) REFERENCES `user` (`user_id`),
   CONSTRAINT `fk_code_group_updated_by` FOREIGN KEY (`updated_by`) REFERENCES `user` (`user_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='공통 코드 그룹 정의';
+INSERT INTO `code_group` (`code_group_id`, `project_id`, `code_group_code`, `code_group_name`, `description`, `status`, `created_by`, `updated_by`, `created_at`, `updated_at`)
+VALUES
+(1, 2, 'USER_STATUS', '유저상태', NULL, 1, 1, 1, '2026-07-13 21:41:31', '2026-07-13 21:41:31'),
+(2, 2, 'CURRENCY_TYPE', '재화종류', NULL, 1, 1, 1, '2026-07-13 21:42:14', '2026-07-13 21:42:14'),
+(3, 2, 'CARD', '카드종류', NULL, 1, 1, 1, '2026-07-13 21:42:55', '2026-07-13 21:42:55');
 SET FOREIGN_KEY_CHECKS = 1;
