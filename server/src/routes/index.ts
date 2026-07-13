@@ -11,7 +11,6 @@ import apiRequestRouter from './apiRequest';
 import apiResponseRouter from './apiResponse';
 import apiExecutionRouter from './apiExecution';
 import logAuditRouter from './logAudit';
-import mockRouter from './mock';
 
 const router = Router();
 
@@ -34,9 +33,6 @@ const router = Router();
 router.get('/health', (_req: Request, res: Response) => {
   res.json({ result: 0, data: { status: 'ok' } });
 });
-
-// API 실행 테스트용 mock 엔드포인트 모음 — 테스트 API가 여러 개 생길 수 있어 routes/mock.ts로 분리했다.
-router.use('/',              mockRouter);
 
 router.use('/auth',          authRouter);
 router.use('/companies',     companyRouter);
