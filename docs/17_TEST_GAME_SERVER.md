@@ -29,6 +29,14 @@ test_game_server/
 │   │   └── logger.ts           # log4js 설정 (gm_platform과 동일)
 │   ├── constants/
 │   │   └── errors.ts           # ERROR_MAP, toAppError(), toDBError()
+│   ├── controllers/            # 요청 파싱 · 응답 반환 (gm_platform server/와 동일 계층 구조)
+│   │   ├── user.controller.ts
+│   │   ├── currency.controller.ts
+│   │   └── card.controller.ts
+│   ├── services/                # db 호출 위임 (권한 재검증 등 로직이 없어 얇음)
+│   │   ├── user.service.ts
+│   │   ├── currency.service.ts
+│   │   └── card.service.ts
 │   ├── db/
 │   │   ├── user.db.ts
 │   │   ├── currency.db.ts
@@ -47,6 +55,7 @@ test_game_server/
 │   └── utils/
 │       ├── logger.ts
 │       ├── mask.ts
+│       ├── validation.ts       # parsePositiveInt
 │       └── response.ts         # success/fail — { result, message, data } 봉투
 ├── database/
 │   ├── tables/                 # user.sql, currency.sql, card.sql
