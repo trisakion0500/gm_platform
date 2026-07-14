@@ -19,3 +19,4 @@ Thumbs.db
 # Local only
 tests/
 CLAUDE.md
+.mcp.json
