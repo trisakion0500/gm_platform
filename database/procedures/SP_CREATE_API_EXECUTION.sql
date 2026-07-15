@@ -11,6 +11,7 @@ BEGIN
 -- --------------------------------- --
 -- 명칭 : SP_CREATE_API_EXECUTION
 -- 작성 : 2026-06-30 trisakion
+-- 수정 : 2026-07-15 trisakion - project.api_key(암호문) 반환 추가, callExternalApi가 복호화해 X-API-Key 헤더로 사용
 -- 내용 : API 실행 이력 생성
 --        api 존재·활성 검사 (31006, 30003)
 --        대상 프로젝트 실제 권한 재검증 (20001, SUPER_ADMIN 제외 — i_role_code는 세션 전역값이라
@@ -31,6 +32,7 @@ BEGIN
     DECLARE v_project_id            BIGINT;
     DECLARE v_project_company_id    BIGINT;
     DECLARE v_api_base_url          VARCHAR(255);
+    DECLARE v_api_key               VARCHAR(255);
     DECLARE v_is_immediate          TINYINT;
     DECLARE v_actual_role_code      INT;
 
@@ -50,9 +52,9 @@ BEGIN
     transaction_block: BEGIN
 
         SELECT a.`api_name`, a.`endpoint`, a.`api_stage`, a.`is_required_approval`,
-               a.`status`, a.`project_id`, p.`company_id`, p.`api_base_url`
+               a.`status`, a.`project_id`, p.`company_id`, p.`api_base_url`, p.`api_key`
         INTO   v_api_name, v_endpoint, v_api_stage, v_is_required_approval,
-               v_api_status, v_project_id, v_project_company_id, v_api_base_url
+               v_api_status, v_project_id, v_project_company_id, v_api_base_url, v_api_key
         FROM `api` a
         JOIN `project` p ON p.`project_id` = a.`project_id`
         WHERE a.`api_id` = i_api_id;
@@ -123,7 +125,7 @@ BEGIN
                ae.`request_user_id`, ae.`approve_user_id`, ae.`status`,
                ae.`request_json`, ae.`response_data`, ae.`reject_reason`, ae.`error_message`,
                ae.`requested_at`, ae.`approved_at`, ae.`executed_at`, ae.`updated_at`,
-               v_api_base_url AS api_base_url, v_is_immediate AS is_immediate
+               v_api_base_url AS api_base_url, v_api_key AS api_key, v_is_immediate AS is_immediate
         FROM `api_execution` ae
         WHERE ae.`api_execution_id` = LAST_INSERT_ID();
 

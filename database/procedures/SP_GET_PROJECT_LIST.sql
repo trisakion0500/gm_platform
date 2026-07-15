@@ -13,6 +13,7 @@ BEGIN
 -- 명칭 : SP_GET_PROJECT_LIST
 -- 작성 : 2026-06-29 trisakion
 -- 수정 : 2026-07-02 trisakion - 스코핑 기준을 company 소속에서 user_role 배정으로 변경
+-- 수정 : 2026-07-15 trisakion - api_key 원문 대신 has_api_key(발급 여부)만 반환
 -- 내용 : 프로젝트 목록 조회
 --        SUPER_ADMIN(10) : 전체 프로젝트 반환
 --        그 외           : 본인이 활성 user_role을 가진 프로젝트만 반환
@@ -37,7 +38,8 @@ BEGIN
 
     SELECT p.`project_id`, p.`company_id`, c.`company_code`, c.`company_name`,
            p.`project_code`, p.`project_name`, p.`api_base_url`, p.`description`,
-           p.`status`, p.`created_at`, p.`updated_at`
+           p.`status`, IF(p.`api_key` IS NOT NULL, 1, 0) AS has_api_key,
+           p.`created_at`, p.`updated_at`
     FROM `project` p
     JOIN `company` c ON c.`company_id` = p.`company_id`
     WHERE (i_status IS NULL OR p.`status` = i_status)

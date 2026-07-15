@@ -11,6 +11,7 @@ CREATE TABLE `project` (
   `project_code`			VARCHAR(20)				NOT NULL															COMMENT '프로젝트 코드',
   `project_name`			VARCHAR(100)			NOT NULL															COMMENT '프로젝트명',
   `api_base_url`			VARCHAR(255)			NOT NULL															COMMENT 'API Base URL (루트 주소)',
+  `api_key`					VARCHAR(255)						DEFAULT NULL											COMMENT 'GM Platform이 발급한 X-API-Key (AES-256-CBC 암호화 저장, 미발급 시 NULL)',
   `description`				VARCHAR(1000)						DEFAULT NULL											COMMENT 'Project 설명',
   `status`					TINYINT		UNSIGNED	NOT NULL	DEFAULT 1												COMMENT '상태 (1:사용, 0:중지)',
   `created_at`				DATETIME				NOT NULL	DEFAULT CURRENT_TIMESTAMP								COMMENT '생성일시',

@@ -11,6 +11,7 @@ BEGIN
 -- --------------------------------- --
 -- 명칭 : SP_CREATE_PROJECT
 -- 작성 : 2026-06-29 trisakion
+-- 수정 : 2026-07-15 trisakion - has_api_key(발급 여부) 반환 추가 (생성 직후는 항상 0)
 -- 내용 : 프로젝트 생성 처리
 --        company 존재 검사 후 project_code 중복 검사 (동일 company 내)
 --        생성된 project 전체 정보 반환 (company 정보 포함)
@@ -55,7 +56,8 @@ BEGIN
         SELECT 0 AS RESULT;
         SELECT p.`project_id`, p.`company_id`, c.`company_code`, c.`company_name`,
                p.`project_code`, p.`project_name`, p.`api_base_url`, p.`description`,
-               p.`status`, p.`created_at`, p.`updated_at`
+               p.`status`, IF(p.`api_key` IS NOT NULL, 1, 0) AS has_api_key,
+               p.`created_at`, p.`updated_at`
         FROM `project` p
         JOIN `company` c ON c.`company_id` = p.`company_id`
         WHERE p.`project_id` = v_project_id;

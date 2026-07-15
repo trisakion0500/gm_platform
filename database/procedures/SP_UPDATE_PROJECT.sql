@@ -12,6 +12,7 @@ BEGIN
 -- 명칭 : SP_UPDATE_PROJECT
 -- 작성 : 2026-06-29 trisakion
 -- 수정 : 2026-07-15 trisakion - api_base_url을 SP_UPDATE_PROJECT_CONNECTION으로 분리(DEVELOPER도 수정 가능하게 열 예정이라 프로젝트 정체성 필드와 쓰기 권한을 나눔)
+-- 수정 : 2026-07-15 trisakion - has_api_key(발급 여부) 반환 추가
 -- 내용 : 프로젝트 정보 수정 (project_code/project_name/description/status만, api_base_url은 SP_UPDATE_PROJECT_CONNECTION 전용)
 --        project 존재 검사 후 UPDATE
 --        project_code 변경 시 동일 company 내 중복 검사 (본인 제외)
@@ -65,7 +66,8 @@ BEGIN
         SELECT 0 AS RESULT;
         SELECT p.`project_id`, p.`company_id`, c.`company_code`, c.`company_name`,
                p.`project_code`, p.`project_name`, p.`api_base_url`, p.`description`,
-               p.`status`, p.`created_at`, p.`updated_at`
+               p.`status`, IF(p.`api_key` IS NOT NULL, 1, 0) AS has_api_key,
+               p.`created_at`, p.`updated_at`
         FROM `project` p
         JOIN `company` c ON c.`company_id` = p.`company_id`
         WHERE p.`project_id` = i_project_id;

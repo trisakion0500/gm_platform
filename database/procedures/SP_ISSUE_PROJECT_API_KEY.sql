@@ -1,19 +1,17 @@
-DROP PROCEDURE IF EXISTS SP_UPDATE_PROJECT_CONNECTION;
+DROP PROCEDURE IF EXISTS SP_ISSUE_PROJECT_API_KEY;
 DELIMITER $
-CREATE PROCEDURE SP_UPDATE_PROJECT_CONNECTION(
-    IN  i_project_id    BIGINT,       -- 수정할 프로젝트 ID
-    IN  i_api_base_url  VARCHAR(255)  -- 변경할 API Base URL
-) COMMENT '프로젝트 연결 정보(api_base_url) 수정 - project 테이블 UPDATE'
+CREATE PROCEDURE SP_ISSUE_PROJECT_API_KEY(
+    IN  i_project_id      BIGINT,        -- 대상 프로젝트 ID
+    IN  i_encrypted_key   VARCHAR(255)   -- 서비스 레이어에서 AES-256-CBC로 암호화한 api_key
+) COMMENT '프로젝트 X-API-Key 발급/재발급 - project.api_key UPDATE (기존 키 덮어씀)'
 BEGIN
 -- --------------------------------- --
--- 명칭 : SP_UPDATE_PROJECT_CONNECTION
+-- 명칭 : SP_ISSUE_PROJECT_API_KEY
 -- 작성 : 2026-07-15 trisakion
--- 수정 : 2026-07-15 trisakion - api_base_url 변경 시 저장된 api_key를 함께 NULL 폐기(대상 서버가 바뀌었는데
---        옛 키를 그대로 보내는 조용한 실수 방지), has_api_key(발급 여부) 반환 추가
--- 내용 : 프로젝트의 api_base_url만 수정 (project_code/project_name/description/status는 SP_UPDATE_PROJECT 전용)
---        project 존재 검사 후 UPDATE (api_base_url 변경과 함께 api_key도 NULL로 폐기)
---        SUPER_ADMIN 외에 DEVELOPER도 호출 가능한 라우트라 project_code 등 정체성 필드와 SP 자체를 분리해둠
---        수정된 project 전체 정보 반환 (company 정보 포함)
+-- 내용 : GM Platform이 대상 서버 호출용 X-API-Key를 발급/재발급
+--        project 존재 검사 후 api_key UPDATE (재발급 시 기존 암호문 덮어씀)
+--        평문은 서비스 레이어가 호출 직전에 생성해 응답에만 1회 실어보내고, 이 SP는 암호문만 다룬다
+--        수정된 project 전체 정보 반환 (company 정보 포함, has_api_key=1 확정)
 -- 테이블 적용 순서 : project
 -- --------------------------------- --
 
@@ -40,8 +38,7 @@ BEGIN
         START TRANSACTION;
 
             UPDATE `project`
-            SET `api_base_url` = i_api_base_url,
-                `api_key`      = NULL
+            SET `api_key` = i_encrypted_key
             WHERE `project_id` = i_project_id;
 
         COMMIT;
