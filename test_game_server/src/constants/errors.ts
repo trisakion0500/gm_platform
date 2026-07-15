@@ -1,6 +1,7 @@
 import { AppError, DBError } from "../types";
 
 export const ERROR_MAP = {
+  UNAUTHORIZED:       { code: 10001, message: "인증에 실패했습니다.",       httpStatus: 401 },
   INVALID_VALUE:      { code: 30003, message: "허용되지 않는 값입니다.",     httpStatus: 400 },
   USER_NOT_FOUND:     { code: 31001, message: "존재하지 않는 유저입니다.",   httpStatus: 404 },
   INSUFFICIENT_BALANCE: { code: 31002, message: "재화 잔액이 부족합니다.",   httpStatus: 400 },

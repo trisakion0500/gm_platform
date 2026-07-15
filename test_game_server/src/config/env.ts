@@ -19,4 +19,6 @@ export const env = {
     password: process.env.DB_PASSWORD!,
     name: process.env.DB_NAME!,
   },
+  // GM Platform이 발급한 X-API-Key. 미설정 시 apiKeyAuth 미들웨어가 검증을 건너뛴다(하위호환, 로컬 개발용).
+  apiKey: process.env.API_KEY || null,
 };
