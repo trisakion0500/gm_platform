@@ -207,13 +207,18 @@ AI는 문서 초안 작성과 반복적인 코드 작업의 속도를 높이는 
 
 ## 해야할 일
 
-- ⬜ GM Platform → 외부 API(게임서버) 호출 인증 — 현재 `callExternalApi`(server/src/services/apiExecution.service.ts)가 인증 헤더 없이 순수 POST만 보내, 외부 서비스가 무방비로 요청을 받는 상태. 외부 서버가 `X-API-Key`를 발급 → GM Platform에 등록 → 실행 시 헤더에 실어 호출 → 외부 서버가 헤더 검증하는 구조로 개선 예정.
+- ⬜ GM Platform → 외부 API(게임서버) 호출 인증 — 현재 `callExternalApi`(server/src/services/apiExecution.service.ts)가 인증 헤더 없이 순수 POST만 보내, 외부 서비스가 무방비로 요청을 받는 상태. 외부 서버가 아닌 **GM Platform이 `X-API-Key`를 발급**(`POST /projects/:project_id/api-key`, SUPER_ADMIN 전용, 재발급 시 기존 키 덮어씀) → 관리자가 응답에 1회만 노출되는 평문을 복사해 외부 서버(test_game_server 등)에 직접 설정 → 실행 시 GM Platform이 헤더에 실어 호출 → 외부 서버가 헤더 검증하는 구조로 개선 예정.
   - `api_base_url`이 API 단위가 아닌 프로젝트 단위 컬럼이라 `api_key`도 프로젝트 단위로 저장 (1프로젝트=1대상서버=1키)
-  - `phone_number`와 같은 AES-256-CBC 암호화 패턴을 재사용하되, 비밀번호처럼 완전 write-only(GET 응답에 절대 미노출)로 설계
+  - `phone_number`와 같은 AES-256-CBC 암호화 패턴을 재사용. 발급 직후 응답에만 평문 1회 노출(GitHub PAT 등과 동일한 패턴), 이후 `GET /projects/:id`는 평문 대신 `has_api_key: true/false`만 반환 — 관리자가 직접 타이핑/복붙하는 값이 아니라 시스템이 생성하므로 완전 write-only라도 "입력값 확인 불가" 문제가 없음
   - 감사로그(`log_audit`)는 row 스냅샷을 암호화 이후 시점에 찍는 기존 순서를 지켜 평문 유출 방지
   - `api_execution`의 실행 시점 스냅샷 컬럼(`api_name`/`endpoint` 등)에는 포함시키지 않음 — 호출 직전에만 복호화해 헤더 구성 후 버림
-  - nullable — 키 미설정 프로젝트는 헤더 없이 기존 동작 유지(하위호환)
+  - nullable — 키 미발급 프로젝트는 헤더 없이 기존 동작 유지(하위호환)
   - 즉시실행/승인 후 실행 두 경로 모두 `callExternalApi` 한 곳을 거치므로 한 번의 수정으로 커버
+  - `callExternalApi`의 axios 에러를 서버 로그에 남길 때 `err.stack`만 사용하고 `err` 객체 전체·`JSON.stringify(err)`는 절대 로깅하지 않음 — axios 에러의 `config.headers`에 `X-API-Key` 평문이 담겨있어 통째로 찍으면 노출됨 (반영 완료, `apiExecution.service.ts`)
+  - 키 생성 포맷은 `ENCRYPTION_KEY`와 동일하게 `crypto.randomBytes(32).toString('hex')`(64자 hex), 암호화 저장 컬럼은 `VARCHAR(255)`
+  - `PATCH /projects/:project_id`로 `api_base_url`이 변경되면 `SP_UPDATE_PROJECT`가 저장된 `api_key`를 자동으로 NULL 폐기(`api_stage` 롤백 트리거와 동일한 발상) — 대상 서버가 바뀌었는데 옛날 키를 그대로 보내는 조용한 실수 방지. 폐기 후엔 `has_api_key=false`로 돌아가 nullable 설계대로 헤더 없이 호출되므로, 프로젝트 상세 화면에 "API 키가 폐기되었습니다 — 재발급 필요" 배너로 눈에 띄게 표시
+  - `GET /projects/:id`는 전 역할 접근이라 `has_api_key`(존재 여부만) 도 전 역할에 노출되지만, 발급/재발급(`POST /projects/:project_id/api-key`, 평문이 노출되는 유일한 순간)은 SUPER_ADMIN 전용 라우트. 프론트는 Company 상세의 "수정" 버튼과 동일한 패턴으로 `PermissionGuard`가 발급/재발급 버튼만 SUPER_ADMIN에게 렌더링, 나머지 역할은 `has_api_key` 배지만 읽기 전용으로 봄
+  - test_game_server 쪽: `.env`에 `API_KEY` 추가(optional — 미설정 시 검증 스킵 + 시작 시 경고 로그, GM Platform의 nullable 설계와 대칭), 새 미들웨어 `apiKeyAuth.ts`가 `crypto.timingSafeEqual`로 `X-API-Key` 헤더 비교(타이밍 공격 방지, 길이 다르면 즉시 실패), 누락·불일치 모두 동일한 401(`UNAUTHORIZED`, 신규 `ERROR_MAP` 코드 10001)로 통일해 원인 비노출. `health` 라우트는 검증 제외, `user`/`currency`/`card` 라우터에만 적용
 
 ---
 

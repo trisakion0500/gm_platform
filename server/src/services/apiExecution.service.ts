@@ -3,6 +3,7 @@ import { APIExecutionRow } from '../types';
 import { toAppError, ERROR_MAP } from '../constants/errors';
 import { env } from '../config/env';
 import * as db from '../db/apiExecution.db';
+import logger from '../utils/logger';
 
 /**
  * 외부 API를 HTTP POST로 호출하고 결과를 api_execution에 반영한다.
@@ -26,8 +27,10 @@ async function callExternalApi(executionId: number, url: string, body: unknown):
     }
     await db.updateApiExecutionResult(executionId, 40, JSON.stringify(response.data), null);
   } catch (err: any) {
+    // err 객체 자체·JSON.stringify(err)는 절대 로깅하지 않는다 — axios 에러는 config.headers(인증 헤더 평문)를 담고 있다. err.stack만 사용.
     const isTimeout = axios.isAxiosError(err) && (err.code === 'ECONNABORTED' || err.code === 'ERR_CANCELED');
     const msg = isTimeout ? 'Timeout Response' : String(err.message ?? 'Unknown error');
+    logger.error(`외부 API 호출 실패 (execution ${executionId}): ${msg}`, err.stack);
     await db.updateApiExecutionResult(executionId, 50, null, msg);
   }
 }

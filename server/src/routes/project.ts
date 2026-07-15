@@ -99,11 +99,11 @@ router.get('/lookup',        ctrl.getProjectByCode);
  *     tags: [Project]
  *     summary: 프로젝트 목록 조회
  *     description: |
- *       DEVELOPER·APPROVER·OPERATOR는 본인이 역할을 가진 프로젝트만 반환된다.
+ *       DEVELOPER는 본인이 역할을 가진 프로젝트만 반환된다.
  *       `page`와 `page_size`는 모두 필수이며, `page_size`는 20·30·50·100만 허용한다.
  *     security:
  *       - bearerAuth: []
- *     x-required-roles: SUPER_ADMIN, DEVELOPER, APPROVER, OPERATOR
+ *     x-required-roles: SUPER_ADMIN, DEVELOPER
  *     parameters:
  *       - in: query
  *         name: page
@@ -147,7 +147,7 @@ router.get('/lookup',        ctrl.getProjectByCode);
  *       403:
  *         $ref: '#/components/responses/Forbidden'
  */
-router.get('/',              authenticate, requireRole(ROLE.SUPER_ADMIN, ROLE.DEVELOPER, ROLE.APPROVER, ROLE.OPERATOR), ctrl.getProjectList);
+router.get('/',              authenticate, requireRole(ROLE.SUPER_ADMIN, ROLE.DEVELOPER),                               ctrl.getProjectList);
 
 /**
  * @swagger
@@ -158,7 +158,7 @@ router.get('/',              authenticate, requireRole(ROLE.SUPER_ADMIN, ROLE.DE
  *     description: SUPER_ADMIN 외에는 본인이 활성 user_role을 가진 프로젝트만 조회 가능하다. 미보유 시 404(31002).
  *     security:
  *       - bearerAuth: []
- *     x-required-roles: SUPER_ADMIN, DEVELOPER, APPROVER, OPERATOR
+ *     x-required-roles: SUPER_ADMIN, DEVELOPER
  *     parameters:
  *       - in: path
  *         name: project_id
@@ -190,7 +190,7 @@ router.get('/',              authenticate, requireRole(ROLE.SUPER_ADMIN, ROLE.DE
  *       404:
  *         $ref: '#/components/responses/NotFound'
  */
-router.get('/:project_id',   authenticate, requireRole(ROLE.SUPER_ADMIN, ROLE.DEVELOPER, ROLE.APPROVER, ROLE.OPERATOR), ctrl.getProject);
+router.get('/:project_id',   authenticate, requireRole(ROLE.SUPER_ADMIN, ROLE.DEVELOPER),                               ctrl.getProject);
 
 /**
  * @swagger

@@ -299,8 +299,6 @@ GET /projects
 
 - SUPER_ADMIN
 - DEVELOPER
-- APPROVER
-- OPERATOR
 
 ### Query Parameters
 
@@ -321,7 +319,7 @@ ORDER BY status DESC,
 ### Business Rules
 
 - SUPER_ADMIN : 전체 프로젝트 목록 반환
-- 그 외 : 본인이 활성 user_role을 가진 프로젝트만 반환 (같은 회사 소속이어도 role 미배정 프로젝트는 제외)
+- DEVELOPER : 본인이 활성 user_role을 가진 프로젝트만 반환 (같은 회사 소속이어도 role 미배정 프로젝트는 제외)
 
 ### Response
 
