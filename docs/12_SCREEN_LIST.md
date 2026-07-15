@@ -146,8 +146,8 @@ GM-Tool 프론트엔드 화면 목록 및 역할별 접근 권한 정의.
 ### SCR-022. 프로젝트 상세·수정
 
 - **Route:** `/admin/projects/:project_id`
-- **접근:** SUPER_ADMIN (전체 수정), DEVELOPER (조회 + API Base URL만 수정, 본인이 역할보유한 프로젝트에 한함)
-- **주요 기능:** 프로젝트 정보 조회, 코드 / 이름 / 설명 / 상태 수정 (SUPER_ADMIN), API Base URL 수정 (SUPER_ADMIN, DEVELOPER)
+- **접근:** SUPER_ADMIN (전체 수정), DEVELOPER (조회 + API Base URL/API 키만 수정, 본인이 역할보유한 프로젝트에 한함)
+- **주요 기능:** 프로젝트 정보 조회, 코드 / 이름 / 설명 / 상태 수정 (SUPER_ADMIN), API Base URL 수정 (SUPER_ADMIN, DEVELOPER), X-API-Key 발급/재발급 (SUPER_ADMIN, DEVELOPER — 발급 응답에만 평문이 1회 노출되는 모달, 이후 조회는 발급 여부(Tag)만 표시). API Base URL 변경 시 발급된 키가 자동 폐기되면 "재발급 필요" 경고 배너 노출
 - **연관 API:**
 
   | Method | Endpoint                          | 설명                        |
@@ -155,6 +155,7 @@ GM-Tool 프론트엔드 화면 목록 및 역할별 접근 권한 정의.
   | GET    | /projects/{project_id}            | 프로젝트 상세               |
   | PATCH  | /projects/{project_id}            | 프로젝트 수정 (SUPER_ADMIN) |
   | PATCH  | /projects/{project_id}/connection | API Base URL 수정 (SUPER_ADMIN, DEVELOPER) |
+  | POST   | /projects/{project_id}/api-key    | X-API-Key 발급/재발급 (SUPER_ADMIN, DEVELOPER) |
 
 ---
 

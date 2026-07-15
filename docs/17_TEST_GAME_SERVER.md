@@ -42,6 +42,7 @@ test_game_server/
 │   │   ├── currency.db.ts
 │   │   └── card.db.ts
 │   ├── middleware/
+│   │   ├── apiKeyAuth.ts       # X-API-Key 검증 (GM Platform이 발급한 키, env.API_KEY 미설정 시 스킵)
 │   │   ├── errorHandler.ts
 │   │   └── requestLogger.ts
 │   ├── routes/
@@ -144,7 +145,18 @@ GM Platform은 등록된 API를 항상 `POST {api_base_url}{endpoint}`로 호출
 
 ---
 
-# 6. GM Platform 연동
+# 6. 인증 (X-API-Key)
+
+GM Platform이 `project.api_base_url`로 이 서버를 호출할 때 실어 보내는 `X-API-Key` 헤더를 검증한다 (`middleware/apiKeyAuth.ts`, `user`/`currency`/`card` 라우터에만 적용, `health`는 제외).
+
+- `.env`의 `API_KEY`와 `crypto.timingSafeEqual`로 상수 시간 비교한다(타이밍 공격 방지).
+- 헤더 누락 · 길이 불일치 · 값 불일치 모두 동일하게 401(`UNAUTHORIZED`, `result: 10001`)로 응답해 실패 원인을 노출하지 않는다.
+- `API_KEY`를 설정하지 않으면(로컬 개발용) 검증 자체를 건너뛰고, 서버 시작 시 경고 로그를 남긴다.
+- 값은 GM Platform 프로젝트 상세 화면(`/admin/projects/{project_id}`)의 "API 키 발급" 버튼으로 생성한다 — 발급 응답에만 평문이 1회 노출되므로 그 즉시 이 `.env`에 붙여넣어야 한다. `api_base_url`을 바꾸면 GM Platform 쪽 키가 자동 폐기되므로 재발급 후 이 값도 함께 갱신해야 한다.
+
+---
+
+# 7. GM Platform 연동
 
 - 대상 프로젝트: `project_id=2`(company_id=2, DEV_PROJECT). `api_base_url`을 `http://127.0.0.1:3100`으로 지정.
 - 위 7개 API를 `project_id=2`에 등록(`api_id` 1~7). `update-user-status`/`grant-currency`/`grant-card`(상태·재화·카드를 실제로 바꾸는 액션) 3개는 `is_required_approval=1`, 나머지 조회 4개는 `0`.
@@ -155,7 +167,7 @@ GM Platform은 등록된 API를 항상 `POST {api_base_url}{endpoint}`로 호출
 
 ---
 
-# 7. 실행 방법
+# 8. 실행 방법
 
 ```powershell
 cd test_game_server
@@ -164,3 +176,4 @@ npm run dev     # tsx watch, 기본 포트 3100
 ```
 
 DB는 별도로 준비해야 한다 — `database/tables/*.sql` → `database/procedures/*.sql` 순서로 실행.
+`.env`에 `API_KEY`를 설정하면 GM Platform이 발급한 X-API-Key 검증이 활성화된다(§6 참고, 미설정 시 검증 스킵).

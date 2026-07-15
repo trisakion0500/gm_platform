@@ -345,6 +345,7 @@ ORDER BY status DESC,
         "api_base_url": "https://gcprpg.com/gm-api",
         "description": "MMORPG 운영 프로젝트",
         "status": 1,
+        "has_api_key": 0,
         "created_at": "2026-06-22 10:00:00",
         "updated_at": "2026-06-22 10:00:00"
       }
@@ -352,6 +353,8 @@ ORDER BY status DESC,
   }
 }
 ```
+
+`has_api_key`(0=미발급, 1=발급됨)만 반환하며, 발급된 X-API-Key 평문/암호문은 목록·단건 조회 어디서도 노출되지 않는다 (`3.4C Issue Project API Key` 응답에만 1회 예외적으로 포함).
 
 ---
 
@@ -392,6 +395,7 @@ status
 project_id
 company_id
 api_base_url  (PATCH /projects/{project_id}/connection 전용)
+api_key       (POST /projects/{project_id}/api-key 전용)
 ```
 
 ### Validation
@@ -433,6 +437,60 @@ api_base_url  (필수)
 
 - project_code/project_name/description/status(정체성·거버넌스 필드)는 이 API의 대상이 아니다 — `3.4 Update Project`(SUPER_ADMIN 전용) 참고
 - DEVELOPER 호출 시 JWT의 role_code(여러 프로젝트 중 최고 권한)가 아니라 해당 project_id의 실제 user_role을 재검증한다
+- api_base_url이 변경되면 발급되어 있던 api_key는 같은 트랜잭션에서 자동으로 폐기(NULL)된다 — 대상 서버가 바뀌었는데 옛 키를 그대로 보내는 실수 방지. 폐기 후 응답의 `has_api_key`는 0이 되며, 대상 서버 호출 시 X-API-Key 헤더 없이 호출된다(재발급 전까지)
+
+---
+
+## 3.4C Issue Project API Key
+
+### Endpoint
+
+```http
+POST /projects/{project_id}/api-key
+```
+
+### Permission
+
+- SUPER_ADMIN
+- DEVELOPER (해당 project_id에 실제 활성 DEVELOPER 배정이 있어야 함 — 없으면 20001)
+
+### Description
+
+GM Platform이 이 프로젝트의 대상 서버(`api_base_url`) 호출에 사용할 X-API-Key를 생성해 암호화 저장한다. 이미 발급된 키가 있으면 재발급 시 덮어쓴다(기존 키는 즉시 무효화).
+
+### Request
+
+Body 없음 (project_id는 path parameter로만 전달).
+
+### Response
+
+```json
+{
+  "result": 0,
+  "data": {
+    "project_id": 10,
+    "company_id": 1,
+    "company_code": "GCP",
+    "company_name": "Game Company",
+    "project_code": "GCP_RPG",
+    "project_name": "RPG Project",
+    "api_base_url": "https://gcprpg.com/gm-api",
+    "description": "MMORPG 운영 프로젝트",
+    "status": 1,
+    "has_api_key": 1,
+    "created_at": "2026-06-22 10:00:00",
+    "updated_at": "2026-07-15 10:00:00",
+    "api_key": "a1b2c3...(64자 hex, 이 응답에만 1회 노출)"
+  }
+}
+```
+
+### Business Rules
+
+- 평문 `api_key`는 이 응답에만 실린다 — 이후 `GET /projects/{project_id}`를 포함한 어떤 조회 API도 평문/암호문을 반환하지 않고 `has_api_key`만 반환한다(GitHub PAT류 one-time-reveal 패턴)
+- 발급 즉시 관리자/개발자가 평문을 복사해 대상 서버(test_game_server 등)의 `X-API-Key` 설정에 직접 입력해야 한다 — 재확인 불가
+- DEVELOPER 호출 시 JWT의 role_code가 아니라 해당 project_id의 실제 user_role을 재검증한다 (`3.4B`와 동일 패턴)
+- 키 형식: `crypto.randomBytes(32).toString('hex')` (64자 hex), DB에는 AES-256-CBC로 암호화 저장
 
 ---
 
