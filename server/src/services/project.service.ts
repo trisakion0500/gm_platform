@@ -1,3 +1,4 @@
+import { randomBytes } from 'crypto';
 import { ProjectRow, ProjectLookupRow } from '../types';
 import { toAppError, ERROR_MAP } from '../constants/errors';
 import { ROLE } from '../constants/roles';
@@ -5,6 +6,7 @@ import * as db from '../db/project.db';
 import * as audit from './logAudit.service';
 import { assertCompanyScope } from './companyScope.service';
 import { assertProjectRole } from './projectRole.service';
+import { encrypt } from '../utils/crypto';
 
 /**
  * 프로젝트코드로 활성 프로젝트를 조회한다 (회원가입 화면 전용, 인증 불필요).
@@ -154,4 +156,33 @@ export async function updateProjectConnection(
     after  as unknown as Record<string, unknown>,
     callerUserId);
   return after;
+}
+
+/**
+ * 프로젝트의 X-API-Key를 발급/재발급한다 (재발급 시 기존 키 덮어씀).
+ * 권한 범위는 updateProjectConnection과 동일 — SUPER_ADMIN + 해당 project_id에 실제 활성 DEVELOPER 배정을 가진 사용자.
+ * 평문은 이 함수 호출 시점에만 생성되어 반환값에 1회 실리고, DB에는 암호문만 저장된다(GitHub PAT류 one-time-reveal 패턴).
+ * @author trisakion
+ * @param projectId 대상 프로젝트 ID
+ * @param callerRoleCode 호출자 역할 코드
+ * @param callerUserId 호출자 user_id (프로젝트별 역할 재검증용)
+ * @returns 수정된 프로젝트 정보 + 발급된 평문 api_key(이 응답에만 노출)
+ */
+export async function issueApiKey(
+  projectId: number,
+  callerRoleCode: number,
+  callerUserId: number,
+): Promise<ProjectRow & { api_key: string }> {
+  const before = await db.getProject(projectId, 10, 0);
+  if (!before)
+    throw toAppError(ERROR_MAP.PROJECT_NOT_FOUND);
+  await assertProjectRole(callerUserId, callerRoleCode, projectId, [ROLE.DEVELOPER]);
+  const plainKey = randomBytes(32).toString('hex');
+  const after = await db.issueProjectApiKey(projectId, encrypt(plainKey));
+  audit.logUpdate('project', String(after.project_id), after.project_name,
+    after.company_id, after.project_id,
+    before as unknown as Record<string, unknown>,
+    after  as unknown as Record<string, unknown>,
+    callerUserId);
+  return { ...after, api_key: plainKey };
 }

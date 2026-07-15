@@ -229,3 +229,31 @@ export async function updateProjectConnection(req: Request, res: Response, next:
     next(err);
   }
 }
+
+/**
+ * POST /projects/:project_id/api-key — 프로젝트 X-API-Key 발급/재발급 (SUPER_ADMIN, DEVELOPER)
+ * DEVELOPER는 해당 project_id에 실제 활성 DEVELOPER 배정이 있어야 통과한다(assertProjectRole).
+ * 응답에 평문 api_key가 이 호출 1회에만 포함된다 — 이후 GET /projects/:id는 has_api_key만 반환.
+ * @author trisakion
+ * @param req params: { project_id }
+ * @param res 200 — 수정된 프로젝트 정보 + 평문 api_key
+ * @param next 오류 전달
+ * @returns void
+ */
+export async function issueProjectApiKey(req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    const projectId = parsePositiveInt(req.params.project_id);
+    if (projectId === null) {
+      fail(res, ERROR_MAP.INVALID_FORMAT);
+      return;
+    }
+    const project = await projectService.issueApiKey(
+      projectId,
+      req.user!.role_code,
+      req.user!.user_id,
+    );
+    success(res, formatProject(project));
+  } catch (err) {
+    next(err);
+  }
+}

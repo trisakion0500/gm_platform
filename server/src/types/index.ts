@@ -124,6 +124,8 @@ export interface ProjectRow {
   description: string | null;
   /** 상태 (1=사용, 0=중지) */
   status: number;
+  /** X-API-Key 발급 여부 (0=미발급, 1=발급됨) — 평문/암호문 모두 API 응답에 노출하지 않음, 발급 직후 응답에서만 예외적으로 평문 노출 */
+  has_api_key: number;
   /** 생성 일시 */
   created_at: Date;
   /** 수정 일시 */

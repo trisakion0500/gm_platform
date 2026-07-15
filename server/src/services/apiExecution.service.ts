@@ -4,6 +4,7 @@ import { toAppError, ERROR_MAP } from '../constants/errors';
 import { env } from '../config/env';
 import * as db from '../db/apiExecution.db';
 import logger from '../utils/logger';
+import { decrypt } from '../utils/crypto';
 
 /**
  * 외부 API를 HTTP POST로 호출하고 결과를 api_execution에 반영한다.
@@ -15,10 +16,12 @@ import logger from '../utils/logger';
  * @param executionId 실행 이력 ID
  * @param url 호출 URL (api_base_url + endpoint)
  * @param body 요청 본문 (parsed object)
+ * @param encryptedApiKey project.api_key 암호문 (미발급 시 null — 이 경우 헤더 없이 기존 동작 그대로 호출)
  */
-async function callExternalApi(executionId: number, url: string, body: unknown): Promise<void> {
+async function callExternalApi(executionId: number, url: string, body: unknown, encryptedApiKey: string | null): Promise<void> {
   try {
-    const response = await axios.post(url, body, { timeout: env.apiExecutionTimeoutMs });
+    const headers = encryptedApiKey ? { 'X-API-Key': decrypt(encryptedApiKey) } : undefined;
+    const response = await axios.post(url, body, { timeout: env.apiExecutionTimeoutMs, headers });
     const resultCode = response.data?.result;
     if (resultCode !== undefined && resultCode !== 0) {
       const msg = typeof response.data?.message === 'string' ? response.data.message : `외부 API 오류 (result=${resultCode})`;
@@ -29,7 +32,10 @@ async function callExternalApi(executionId: number, url: string, body: unknown):
   } catch (err: any) {
     // err 객체 자체·JSON.stringify(err)는 절대 로깅하지 않는다 — axios 에러는 config.headers(인증 헤더 평문)를 담고 있다. err.stack만 사용.
     const isTimeout = axios.isAxiosError(err) && (err.code === 'ECONNABORTED' || err.code === 'ERR_CANCELED');
-    const msg = isTimeout ? 'Timeout Response' : String(err.message ?? 'Unknown error');
+    // 4xx/5xx 등 HTTP 에러 상태코드로 떨어진 경우, 외부 API가 응답 규약({ result, message, data })대로 body에 실어보낸 message를
+    // 우선 사용한다 — 없으면(네트워크 오류 등 응답 자체가 없는 경우) axios의 범용 메시지로 폴백.
+    const responseMessage = axios.isAxiosError(err) && typeof err.response?.data?.message === 'string' ? err.response.data.message : null;
+    const msg = isTimeout ? 'Timeout Response' : responseMessage ?? String(err.message ?? 'Unknown error');
     logger.error(`외부 API 호출 실패 (execution ${executionId}): ${msg}`, err.stack);
     await db.updateApiExecutionResult(executionId, 50, null, msg);
   }
@@ -55,10 +61,10 @@ export async function executeApi(
   companyId: number,
 ): Promise<APIExecutionRow> {
   const row = await db.createApiExecution(apiId, requestUserId, JSON.stringify(requestJson), roleCode, companyId);
-  const { api_base_url, is_immediate, ...execution } = row;
+  const { api_base_url, api_key, is_immediate, ...execution } = row;
 
   if (is_immediate === 1) {
-    await callExternalApi(row.api_execution_id, api_base_url + row.endpoint, requestJson);
+    await callExternalApi(row.api_execution_id, api_base_url + row.endpoint, requestJson, api_key);
     return (await db.getApiExecution(row.api_execution_id, roleCode, requestUserId, companyId))!;
   }
 
@@ -155,8 +161,8 @@ export async function approveApiExecution(
   if (!row)
     throw toAppError(ERROR_MAP.API_EXECUTION_NOT_FOUND);
 
-  const { api_base_url, ...execution } = row;
-  await callExternalApi(executionId, api_base_url + execution.endpoint, JSON.parse(execution.request_json!));
+  const { api_base_url, api_key, ...execution } = row;
+  await callExternalApi(executionId, api_base_url + execution.endpoint, JSON.parse(execution.request_json!), api_key);
 
   return (await db.getApiExecution(executionId, callerRoleCode, approveUserId, callerCompanyId))!;
 }

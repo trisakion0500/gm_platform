@@ -45,6 +45,7 @@ const router = Router();
  *                 api_base_url: 'https://api.project-a.com'
  *                 description: 2D 횡스크롤 MMORPG
  *                 status: 1
+ *                 has_api_key: 0
  *                 created_at: '2025-01-01 00:00:00'
  *                 updated_at: '2025-01-01 00:00:00'
  *       400:
@@ -138,6 +139,7 @@ router.get('/lookup',        ctrl.getProjectByCode);
  *                     api_base_url: 'https://api.project-a.com'
  *                     description: null
  *                     status: 1
+ *                     has_api_key: 0
  *                     created_at: '2025-01-01 00:00:00'
  *                     updated_at: '2025-01-01 00:00:00'
  *       400:
@@ -181,6 +183,7 @@ router.get('/',              authenticate, requireRole(ROLE.SUPER_ADMIN, ROLE.DE
  *                 api_base_url: 'https://api.project-a.com'
  *                 description: null
  *                 status: 1
+ *                 has_api_key: 0
  *                 created_at: '2025-01-01 00:00:00'
  *                 updated_at: '2025-01-01 00:00:00'
  *       401:
@@ -237,6 +240,7 @@ router.get('/:project_id',   authenticate, requireRole(ROLE.SUPER_ADMIN, ROLE.DE
  *                 api_base_url: 'https://api.project-a.com'
  *                 description: null
  *                 status: 1
+ *                 has_api_key: 0
  *                 created_at: '2025-01-01 00:00:00'
  *                 updated_at: '2025-01-02 00:00:00'
  *       401:
@@ -292,6 +296,7 @@ router.patch('/:project_id', authenticate, requireRole(ROLE.SUPER_ADMIN),       
  *                 api_base_url: 'https://api.project-a.com'
  *                 description: null
  *                 status: 1
+ *                 has_api_key: 0
  *                 created_at: '2025-01-01 00:00:00'
  *                 updated_at: '2025-01-02 00:00:00'
  *       400:
@@ -304,5 +309,55 @@ router.patch('/:project_id', authenticate, requireRole(ROLE.SUPER_ADMIN),       
  *         $ref: '#/components/responses/NotFound'
  */
 router.patch('/:project_id/connection', authenticate, requireRole(ROLE.SUPER_ADMIN, ROLE.DEVELOPER),                    ctrl.updateProjectConnection);
+
+/**
+ * @swagger
+ * /projects/{project_id}/api-key:
+ *   post:
+ *     tags: [Project]
+ *     summary: 프로젝트 X-API-Key 발급/재발급
+ *     description: |
+ *       GM Platform이 대상 서버 호출용 X-API-Key를 생성해 project.api_key에 암호화 저장한다(재발급 시 기존 키 덮어씀).
+ *       평문은 이 응답에만 1회 노출된다 — 발급 즉시 복사해 외부 서버(test_game_server 등)에 직접 설정해야 하며,
+ *       이후 `GET /projects/{project_id}`는 평문 대신 `has_api_key`만 반환한다.
+ *       DEVELOPER는 해당 project_id에 실제 활성 DEVELOPER 배정이 있어야 통과한다(다른 프로젝트에서만 DEVELOPER인 경우 20001).
+ *       `PATCH /projects/{project_id}/connection`으로 api_base_url이 바뀌면 발급된 키는 자동 폐기된다(재발급 필요).
+ *     security:
+ *       - bearerAuth: []
+ *     x-required-roles: SUPER_ADMIN, DEVELOPER
+ *     parameters:
+ *       - in: path
+ *         name: project_id
+ *         required: true
+ *         schema: { type: integer, example: 1 }
+ *     responses:
+ *       200:
+ *         description: 발급 성공
+ *         content:
+ *           application/json:
+ *             example:
+ *               result: 0
+ *               data:
+ *                 project_id: 1
+ *                 company_id: 1
+ *                 company_code: COMPANY_A
+ *                 company_name: 회사A
+ *                 project_code: PROJECT_A
+ *                 project_name: 프로젝트A
+ *                 api_base_url: 'https://api.project-a.com'
+ *                 description: null
+ *                 status: 1
+ *                 has_api_key: 1
+ *                 created_at: '2025-01-01 00:00:00'
+ *                 updated_at: '2025-01-02 00:00:00'
+ *                 api_key: 'a1b2c3...(64자 hex, 이 응답에만 노출)'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       403:
+ *         $ref: '#/components/responses/Forbidden'
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
+ */
+router.post('/:project_id/api-key',     authenticate, requireRole(ROLE.SUPER_ADMIN, ROLE.DEVELOPER),                    ctrl.issueProjectApiKey);
 
 export default router;

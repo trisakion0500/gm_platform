@@ -12,7 +12,7 @@ import { toDBError, ERROR_MAP } from '../constants/errors';
  * @param requestJson 요청 파라미터 JSON 문자열
  * @param roleCode 요청자 역할 코드
  * @param companyId 요청자 company_id
- * @returns 생성된 실행 이력 + api_base_url + is_immediate (1=즉시실행, 0=승인대기)
+ * @returns 생성된 실행 이력 + api_base_url + api_key(암호문, 미발급 시 null) + is_immediate (1=즉시실행, 0=승인대기)
  */
 export async function createApiExecution(
   apiId: number,
@@ -20,7 +20,7 @@ export async function createApiExecution(
   requestJson: string,
   roleCode: number,
   companyId: number,
-): Promise<APIExecutionRow & { api_base_url: string; is_immediate: number }> {
+): Promise<APIExecutionRow & { api_base_url: string; api_key: string | null; is_immediate: number }> {
   const [status, [data]] = await callSP('SP_CREATE_API_EXECUTION', [
     apiId, requestUserId, requestJson, roleCode, companyId,
   ]);
@@ -29,7 +29,7 @@ export async function createApiExecution(
     case 30003: throw toDBError(ERROR_MAP.INVALID_VALUE);
     case 20001: throw toDBError(ERROR_MAP.FORBIDDEN);
   }
-  return data[0] as unknown as APIExecutionRow & { api_base_url: string; is_immediate: number };
+  return data[0] as unknown as APIExecutionRow & { api_base_url: string; api_key: string | null; is_immediate: number };
 }
 
 /**
@@ -148,13 +148,13 @@ export async function getApiExecution(
  * @param apiExecutionId 승인할 실행 이력 ID
  * @param approveUserId 승인자 user_id
  * @param callerRoleCode 승인자 역할 코드 (대상 프로젝트 재검증용)
- * @returns 승인된 실행 이력 + api_base_url, 없으면 null
+ * @returns 승인된 실행 이력 + api_base_url + api_key(암호문, 미발급 시 null), 없으면 null
  */
 export async function approveApiExecution(
   apiExecutionId: number,
   approveUserId: number,
   callerRoleCode: number,
-): Promise<APIExecutionRow & { api_base_url: string } | null> {
+): Promise<APIExecutionRow & { api_base_url: string; api_key: string | null } | null> {
   const [status, [data]] = await callSP('SP_APPROVE_API_EXECUTION', [
     apiExecutionId, approveUserId, callerRoleCode,
   ]);
@@ -162,7 +162,7 @@ export async function approveApiExecution(
     case 31009: return null;
     case 30003: throw toDBError(ERROR_MAP.INVALID_VALUE);
   }
-  return data[0] as unknown as APIExecutionRow & { api_base_url: string };
+  return data[0] as unknown as APIExecutionRow & { api_base_url: string; api_key: string | null };
 }
 
 /**
