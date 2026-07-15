@@ -55,3 +55,12 @@ export function updateProject(projectId: number, payload: UpdateProjectPayload):
 export function updateProjectConnection(projectId: number, apiBaseUrl: string): Promise<ProjectRow> {
   return axiosInstance.patch(`/projects/${projectId}/connection`, { api_base_url: apiBaseUrl }).then(unwrap<ProjectRow>);
 }
+
+export interface ProjectWithApiKey extends ProjectRow {
+  api_key: string;
+}
+
+// X-API-Key 발급/재발급 — SUPER_ADMIN, DEVELOPER(해당 프로젝트에 실제 역할 보유 시). 평문 api_key는 이 응답에만 실린다(1회성 노출)
+export function issueProjectApiKey(projectId: number): Promise<ProjectWithApiKey> {
+  return axiosInstance.post(`/projects/${projectId}/api-key`, {}).then(unwrap<ProjectWithApiKey>);
+}

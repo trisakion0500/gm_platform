@@ -51,6 +51,7 @@ export interface ProjectRow {
   api_base_url: string;
   description: string | null;
   status: number;
+  has_api_key: number;
   created_at: string;
   updated_at: string;
 }

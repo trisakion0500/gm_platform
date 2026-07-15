@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
-import { Alert, Button, Descriptions, Form, Input, Select, Space, Spin } from 'antd';
+import { Alert, Button, Descriptions, Form, Input, Modal, Select, Space, Spin, Tag, Typography } from 'antd';
 import { useNavigate, useParams } from 'react-router-dom';
+import ConfirmModal from '../../../components/common/ConfirmModal';
 import PageHeader from '../../../components/common/PageHeader';
 import PermissionGuard from '../../../components/common/PermissionGuard';
 import StatusBadge from '../../../components/common/StatusBadge';
@@ -34,6 +35,9 @@ function ProjectDetailPage() {
   const [editing, setEditing] = useState(false);
   const [editingConnection, setEditingConnection] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [apiKeyConfirmOpen, setApiKeyConfirmOpen] = useState(false);
+  const [issuedApiKey, setIssuedApiKey] = useState<string | null>(null);
+  const [keyRevokedNotice, setKeyRevokedNotice] = useState(false);
 
   useEffect(() => {
     setLoading(true);
@@ -72,10 +76,29 @@ function ProjectDetailPage() {
     setSubmitting(true);
     try {
       const updated = await projectApi.updateProjectConnection(Number(project_id), values.api_base_url);
+      if (project?.has_api_key === 1 && updated.has_api_key === 0)
+        setKeyRevokedNotice(true);
       setProject(updated);
       setEditingConnection(false);
     } catch (err) {
       setErrorMessage(getErrorMessage(err, '연결 정보 수정에 실패했습니다.'));
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  async function handleIssueApiKey(): Promise<void> {
+    setErrorMessage(null);
+    setSubmitting(true);
+    try {
+      const updated = await projectApi.issueProjectApiKey(Number(project_id));
+      setProject(updated);
+      setIssuedApiKey(updated.api_key);
+      setKeyRevokedNotice(false);
+      setApiKeyConfirmOpen(false);
+    } catch (err) {
+      setErrorMessage(getErrorMessage(err, 'API 키 발급에 실패했습니다.'));
+      setApiKeyConfirmOpen(false);
     } finally {
       setSubmitting(false);
     }
@@ -208,16 +231,31 @@ function ProjectDetailPage() {
             </PermissionGuard>
             <PermissionGuard allow={[ROLE.SUPER_ADMIN, ROLE.DEVELOPER]}>
               <Button onClick={() => setEditingConnection(true)}>연결정보 수정</Button>
+              <Button onClick={() => setApiKeyConfirmOpen(true)}>
+                {project.has_api_key === 1 ? 'API 키 재발급' : 'API 키 발급'}
+              </Button>
             </PermissionGuard>
             <Button onClick={() => navigate('/admin/projects')}>목록으로</Button>
           </Space>
         }
       />
+      {keyRevokedNotice && (
+        <Alert
+          type="warning"
+          showIcon
+          message="API 키가 폐기되었습니다 — 재발급 필요"
+          description="API Base URL이 변경되어 기존에 발급된 API 키가 자동으로 폐기되었습니다. 대상 서버가 이 키를 사용 중이라면 재발급 후 다시 설정해야 합니다."
+          style={{ marginBottom: 16 }}
+        />
+      )}
       <Descriptions bordered column={1} labelStyle={{ width: 160 }}>
         <Descriptions.Item label="회사">{project.company_name}</Descriptions.Item>
         <Descriptions.Item label="프로젝트코드">{project.project_code}</Descriptions.Item>
         <Descriptions.Item label="프로젝트명">{project.project_name}</Descriptions.Item>
         <Descriptions.Item label="API Base URL">{project.api_base_url}</Descriptions.Item>
+        <Descriptions.Item label="API 키">
+          {project.has_api_key === 1 ? <Tag color="green">발급됨</Tag> : <Tag>미발급</Tag>}
+        </Descriptions.Item>
         <Descriptions.Item label="설명">{project.description ?? '-'}</Descriptions.Item>
         <Descriptions.Item label="상태">
           <StatusBadge status={project.status} map={ACTIVE_STATUS_MAP} />
@@ -225,6 +263,40 @@ function ProjectDetailPage() {
         <Descriptions.Item label="등록일">{project.created_at}</Descriptions.Item>
         <Descriptions.Item label="수정일">{project.updated_at}</Descriptions.Item>
       </Descriptions>
+
+      <ConfirmModal
+        open={apiKeyConfirmOpen}
+        title={project.has_api_key === 1 ? 'API 키 재발급' : 'API 키 발급'}
+        content={
+          project.has_api_key === 1
+            ? '재발급하면 기존 API 키는 즉시 무효화됩니다. 대상 서버에 설정된 키도 함께 갱신해야 합니다. 계속하시겠습니까?'
+            : 'GM Platform이 이 프로젝트의 대상 서버 호출에 사용할 X-API-Key를 발급합니다. 발급된 키는 이번 한 번만 화면에 표시됩니다. 계속하시겠습니까?'
+        }
+        danger={project.has_api_key === 1}
+        confirmLoading={submitting}
+        onOk={handleIssueApiKey}
+        onCancel={() => setApiKeyConfirmOpen(false)}
+      />
+
+      <Modal
+        open={issuedApiKey !== null}
+        title="API 키 발급 완료"
+        onCancel={() => setIssuedApiKey(null)}
+        footer={<Button type="primary" onClick={() => setIssuedApiKey(null)}>확인</Button>}
+        closable={false}
+        maskClosable={false}
+      >
+        <Alert
+          type="warning"
+          showIcon
+          message="이 키는 지금만 확인할 수 있습니다"
+          description="창을 닫으면 평문을 다시 조회할 수 없습니다. 지금 복사해 대상 서버(test_game_server 등)의 X-API-Key 설정에 붙여넣으세요."
+          style={{ marginBottom: 16 }}
+        />
+        <Typography.Paragraph copyable={{ text: issuedApiKey ?? '' }} code style={{ wordBreak: 'break-all' }}>
+          {issuedApiKey}
+        </Typography.Paragraph>
+      </Modal>
     </>
   );
 }
