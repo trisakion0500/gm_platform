@@ -113,6 +113,17 @@ npm run keygen
 
 출력된 64자리 hex 문자열을 그대로 `ENCRYPTION_KEY`에 붙여넣는다. 이 키가 없거나 바뀌면 기존에 암호화된 `phone_number` 값을 복호화할 수 없으므로, 팀원 간 공유 시 안전한 채널로 전달한다.
 
+### 4.2.1 시드 계정 phone_number 정합성
+
+`all_tables.sql`의 시드 데이터(`sa`/`dev`/`apv`/`op`)는 원 저장소의 `ENCRYPTION_KEY`로 암호화된 `phone_number` 값을 포함한다.
+위에서 새 키를 생성했다면 이 값들은 복호화되지 않으므로, DB 초기화 직후 아래 명령으로 정리한다.
+
+```bash
+npm run fix-seed-phone
+```
+
+복호화 실패한 시드 계정만 골라 `000-0000-0000`으로 재암호화한다(실제 사용자 데이터는 대상 아님).
+
 ## 4.3 실행
 
 ```bash
