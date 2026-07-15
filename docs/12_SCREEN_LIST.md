@@ -21,7 +21,7 @@ GM-Tool 프론트엔드 화면 목록 및 역할별 접근 권한 정의.
 | SCR-012 | 회사 상세·수정      | `/admin/companies/:company_id`        | O           | O         | -        | -        | 수정: SUPER_ADMIN만                                     |
 | SCR-020 | 프로젝트 목록       | `/admin/projects`                     | O           | O         | -        | -        | DEVELOPER: 역할보유 프로젝트만                          |
 | SCR-021 | 프로젝트 등록       | `/admin/projects/new`                 | O           | -         | -        | -        |                                                         |
-| SCR-022 | 프로젝트 상세·수정  | `/admin/projects/:project_id`         | O           | O         | -        | -        | 수정: SUPER_ADMIN만                                     |
+| SCR-022 | 프로젝트 상세·수정  | `/admin/projects/:project_id`         | O           | O         | -        | -        | 수정: SUPER_ADMIN(전체), DEVELOPER(API Base URL/API 키만, 역할보유 프로젝트만) |
 | SCR-030 | 사용자 목록         | `/admin/users`                        | O           | O         | -        | -        | 상태 콤보박스(전체/승인대기/정상/반려/사용중지) 필터; DEVELOPER: 본인 소속 회사 전체 status |
 | SCR-031 | 사용자 상세·수정    | `/admin/users/:user_id`               | O           | O         | -        | -        | 수정·승인·반려·사용중지/재개·비밀번호초기화·권한관리: SUPER_ADMIN만                  |
 | SCR-040 | 감사 로그 목록      | `/admin/audit-logs`                   | O           | O         | O        | -        | SUPER_ADMIN 외: 자사만                                  |

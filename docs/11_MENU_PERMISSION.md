@@ -123,16 +123,16 @@ api_stage 별 실행 가능 역할
 
 ## 3.3 코드 관리
 
-`/admin/code-groups` 화면(SCR-130) 자체가 SUPER_ADMIN/DEVELOPER 전용 `RoleGuard`로 막혀 있어, APPROVER/OPERATOR는 아래 메뉴에 전혀 접근할 수 없다. 두 역할의 코드값 참조는 이 메뉴가 아니라 `GET /code-groups/active-with-items`(전 역할 허용)를 통해 API 실행 화면(SCR-100)에서 별도로 이뤄진다.
+아래 표는 API 레벨 허용 범위다(`GET /code-groups`, `GET /code-groups/:id`, `GET /code-items`, `GET /code-items/:id` 모두 전 역할 허용). 다만 이를 사용하는 **관리 화면**(`/admin/code-groups`, SCR-130) 자체는 SUPER_ADMIN/DEVELOPER 전용 `RoleGuard`로 막혀 있어, APPROVER/OPERATOR는 이 화면에는 전혀 접근할 수 없다. 두 역할의 실제 코드값 참조는 이 화면이 아니라 `GET /code-groups/active-with-items`(전 역할 허용, 프로젝트 단위 일괄 조회 전용 엔드포인트)를 통해 API 실행 화면(SCR-100)에서 별도로 이뤄진다.
 
 | 메뉴                    | SUPER_ADMIN | DEVELOPER | APPROVER | OPERATOR |
 | ----------------------- | :---------: | :-------: | :------: | :------: |
-| 코드 그룹 목록 조회     | O           | O         | -        | -        |
-| 코드 그룹 상세 조회     | O           | O         | -        | -        |
+| 코드 그룹 목록 조회     | O           | O         | O        | O        |
+| 코드 그룹 상세 조회     | O           | O         | O        | O        |
 | 코드 그룹 등록          | O           | O         | -        | -        |
 | 코드 그룹 수정          | O           | O         | -        | -        |
-| 코드 아이템 목록 조회   | O           | O         | -        | -        |
-| 코드 아이템 상세 조회   | O           | O         | -        | -        |
+| 코드 아이템 목록 조회   | O           | O         | O        | O        |
+| 코드 아이템 상세 조회   | O           | O         | O        | O        |
 | 코드 아이템 등록        | O           | O         | -        | -        |
 | 코드 아이템 수정        | O           | O         | -        | -        |
 

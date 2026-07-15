@@ -97,6 +97,10 @@ SWAGGER_ENABLED=true
 # API 실행(S2S) 호출 타임아웃(ms) — 생략 시 기본값 10000
 API_EXECUTION_TIMEOUT_MS=10000
 
+# 로그인/회원가입 브루트포스 방지 리미터 — 생략 시 기본값 15분(900000)/10회
+LOGIN_RATE_LIMIT_WINDOW_MS=900000
+LOGIN_RATE_LIMIT_MAX=10
+
 # 만료된 user_session 정리 크론 표현식 — 생략 시 기본값 매일 새벽 4시(0 4 * * *)
 SESSION_CLEANUP_CRON=0 4 * * *
 ```

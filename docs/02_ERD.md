@@ -23,6 +23,7 @@ erDiagram
         VARCHAR20   project_code
         VARCHAR100  project_name
         VARCHAR255  api_base_url
+        VARCHAR255  api_key         "AES-256-CBC 암호화(Base64), NULL허용"
         VARCHAR1000 description
         TINYINT     status
         DATETIME    created_at

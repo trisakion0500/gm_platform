@@ -34,6 +34,7 @@ GM-Tool 데이터베이스 스키마 정의 문서
 - `created_by` / `updated_by` 컬럼 없음 (의도적 설계)
   - 시드 데이터는 특정 사용자가 없는 상태에서 생성됨
   - 이후 생성/수정 주체는 항상 SUPER_ADMIN 이며 `log_audit` 로 추적
+- `api_key` — GM Platform이 발급하는 X-API-Key. `user.phone_number`와 동일한 AES-256-CBC 암호화 저장(nullable, 미발급 시 NULL). 평문은 발급 응답에만 1회 노출되고 이후 조회는 `has_api_key`(0/1) 파생값만 반환 — 암호문 자체는 어떤 API 응답에도 노출하지 않는다. `api_base_url` 변경 시(`SP_UPDATE_PROJECT_CONNECTION`) 같은 트랜잭션에서 자동 NULL 폐기된다.
 
 ---
 
