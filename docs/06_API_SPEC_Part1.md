@@ -382,7 +382,6 @@ PATCH /projects/{project_id}
 ```text
 project_code
 project_name
-api_base_url
 description
 status
 ```
@@ -392,18 +391,48 @@ status
 ```text
 project_id
 company_id
+api_base_url  (PATCH /projects/{project_id}/connection 전용)
 ```
 
 ### Validation
 
 - project_code 중복체크 (동일 company 내), 영문/숫자/`_`/`.`/`-` 만 허용, 최대 20자
 - project_name 최대 100자
-- api_base_url 최대 255자
 - description 최대 1000자
 
 ### Business Rules
 
 - project.company_id 수정 불가
+
+---
+
+## 3.4B Update Project Connection
+
+### Endpoint
+
+```http
+PATCH /projects/{project_id}/connection
+```
+
+### Permission
+
+- SUPER_ADMIN
+- DEVELOPER (해당 project_id에 실제 활성 DEVELOPER 배정이 있어야 함 — 없으면 20001)
+
+### Updatable Fields
+
+```text
+api_base_url  (필수)
+```
+
+### Validation
+
+- api_base_url 최대 255자
+
+### Business Rules
+
+- project_code/project_name/description/status(정체성·거버넌스 필드)는 이 API의 대상이 아니다 — `3.4 Update Project`(SUPER_ADMIN 전용) 참고
+- DEVELOPER 호출 시 JWT의 role_code(여러 프로젝트 중 최고 권한)가 아니라 해당 project_id의 실제 user_role을 재검증한다
 
 ---
 

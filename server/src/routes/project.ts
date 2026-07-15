@@ -198,7 +198,9 @@ router.get('/:project_id',   authenticate, requireRole(ROLE.SUPER_ADMIN, ROLE.DE
  *   patch:
  *     tags: [Project]
  *     summary: 프로젝트 수정
- *     description: 전달한 필드만 업데이트된다. 생략하면 기존 값 유지.
+ *     description: |
+ *       전달한 필드만 업데이트된다. 생략하면 기존 값 유지.
+ *       api_base_url은 이 API가 아닌 `PATCH /projects/{project_id}/connection`으로 수정한다(SUPER_ADMIN 전용인 이 API와 달리 DEVELOPER도 호출 가능).
  *     security:
  *       - bearerAuth: []
  *     x-required-roles: SUPER_ADMIN
@@ -216,7 +218,6 @@ router.get('/:project_id',   authenticate, requireRole(ROLE.SUPER_ADMIN, ROLE.DE
  *             properties:
  *               project_code: { type: string, pattern: '^[a-zA-Z0-9_.-]+$', maxLength: 20, description: '영문, 숫자, _, ., - 만 허용, 최대 20자', example: PROJECT_A }
  *               project_name: { type: string, maxLength: 100, example: 프로젝트A }
- *               api_base_url: { type: string, maxLength: 255, example: 'https://api.project-a.com' }
  *               description:  { type: string, nullable: true, maxLength: 1000, example: null }
  *               status:       { type: integer, description: '1=사용, 0=중지', example: 1 }
  *     responses:
@@ -246,5 +247,62 @@ router.get('/:project_id',   authenticate, requireRole(ROLE.SUPER_ADMIN, ROLE.DE
  *         $ref: '#/components/responses/NotFound'
  */
 router.patch('/:project_id', authenticate, requireRole(ROLE.SUPER_ADMIN),                                               ctrl.updateProject);
+
+/**
+ * @swagger
+ * /projects/{project_id}/connection:
+ *   patch:
+ *     tags: [Project]
+ *     summary: 프로젝트 연결 정보(api_base_url) 수정
+ *     description: |
+ *       프로젝트의 대상 게임서버 주소(api_base_url)만 수정한다.
+ *       project_code/project_name/description/status(정체성·거버넌스 필드)는 `PATCH /projects/{project_id}`(SUPER_ADMIN 전용)로 별도 관리한다.
+ *       DEVELOPER는 해당 project_id에 실제 활성 DEVELOPER 배정이 있어야 통과한다(다른 프로젝트에서만 DEVELOPER인 경우 20001).
+ *     security:
+ *       - bearerAuth: []
+ *     x-required-roles: SUPER_ADMIN, DEVELOPER
+ *     parameters:
+ *       - in: path
+ *         name: project_id
+ *         required: true
+ *         schema: { type: integer, example: 1 }
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [api_base_url]
+ *             properties:
+ *               api_base_url: { type: string, maxLength: 255, example: 'https://api.project-a.com' }
+ *     responses:
+ *       200:
+ *         description: 수정 성공
+ *         content:
+ *           application/json:
+ *             example:
+ *               result: 0
+ *               data:
+ *                 project_id: 1
+ *                 company_id: 1
+ *                 company_code: COMPANY_A
+ *                 company_name: 회사A
+ *                 project_code: PROJECT_A
+ *                 project_name: 프로젝트A
+ *                 api_base_url: 'https://api.project-a.com'
+ *                 description: null
+ *                 status: 1
+ *                 created_at: '2025-01-01 00:00:00'
+ *                 updated_at: '2025-01-02 00:00:00'
+ *       400:
+ *         $ref: '#/components/responses/BadRequest'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       403:
+ *         $ref: '#/components/responses/Forbidden'
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
+ */
+router.patch('/:project_id/connection', authenticate, requireRole(ROLE.SUPER_ADMIN, ROLE.DEVELOPER),                    ctrl.updateProjectConnection);
 
 export default router;

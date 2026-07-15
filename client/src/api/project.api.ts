@@ -43,11 +43,15 @@ export function createProject(payload: CreateProjectPayload): Promise<ProjectRow
 export interface UpdateProjectPayload {
   project_code?: string;
   project_name?: string;
-  api_base_url?: string;
   description?: string;
   status?: number;
 }
 
 export function updateProject(projectId: number, payload: UpdateProjectPayload): Promise<ProjectRow> {
   return axiosInstance.patch(`/projects/${projectId}`, payload).then(unwrap<ProjectRow>);
+}
+
+// api_base_url(연결 정보)만 수정 — SUPER_ADMIN, DEVELOPER(해당 프로젝트에 실제 역할 보유 시)
+export function updateProjectConnection(projectId: number, apiBaseUrl: string): Promise<ProjectRow> {
+  return axiosInstance.patch(`/projects/${projectId}/connection`, { api_base_url: apiBaseUrl }).then(unwrap<ProjectRow>);
 }

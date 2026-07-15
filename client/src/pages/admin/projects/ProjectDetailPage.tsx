@@ -15,9 +15,12 @@ import { ROLE } from '../../../types';
 interface ProjectEditFormValues {
   project_code: string;
   project_name: string;
-  api_base_url: string;
   description?: string;
   status: number;
+}
+
+interface ProjectConnectionFormValues {
+  api_base_url: string;
 }
 
 function ProjectDetailPage() {
@@ -29,6 +32,7 @@ function ProjectDetailPage() {
   const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [editing, setEditing] = useState(false);
+  const [editingConnection, setEditingConnection] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
@@ -63,6 +67,20 @@ function ProjectDetailPage() {
     }
   }
 
+  async function handleSaveConnection(values: ProjectConnectionFormValues): Promise<void> {
+    setErrorMessage(null);
+    setSubmitting(true);
+    try {
+      const updated = await projectApi.updateProjectConnection(Number(project_id), values.api_base_url);
+      setProject(updated);
+      setEditingConnection(false);
+    } catch (err) {
+      setErrorMessage(getErrorMessage(err, '연결 정보 수정에 실패했습니다.'));
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
   if (loading)
     return <Spin />;
 
@@ -90,7 +108,6 @@ function ProjectDetailPage() {
           initialValues={{
             project_code: project.project_code,
             project_name: project.project_name,
-            api_base_url: project.api_base_url,
             description: project.description ?? undefined,
             status: project.status,
           }}
@@ -121,16 +138,6 @@ function ProjectDetailPage() {
           >
             <Input />
           </Form.Item>
-          <Form.Item
-            name="api_base_url"
-            label="API Base URL"
-            rules={[
-              { required: true, message: 'API Base URL을 입력하세요.' },
-              { max: 255, message: 'API Base URL은 최대 255자입니다.' },
-            ]}
-          >
-            <Input />
-          </Form.Item>
           <Form.Item name="description" label="설명" rules={[{ max: 1000, message: '설명은 최대 1000자입니다.' }]}>
             <Input.TextArea rows={3} />
           </Form.Item>
@@ -155,6 +162,41 @@ function ProjectDetailPage() {
     );
   }
 
+  if (editingConnection) {
+    return (
+      <>
+        <PageHeader title="프로젝트 연결정보 수정" />
+        {errorMessage && <Alert type="error" message={errorMessage} showIcon style={{ marginBottom: 16 }} />}
+        <Form<ProjectConnectionFormValues>
+          layout="vertical"
+          style={{ maxWidth: 480 }}
+          initialValues={{ api_base_url: project.api_base_url }}
+          onFinish={handleSaveConnection}
+          disabled={submitting}
+        >
+          <Form.Item
+            name="api_base_url"
+            label="API Base URL"
+            rules={[
+              { required: true, message: 'API Base URL을 입력하세요.' },
+              { max: 255, message: 'API Base URL은 최대 255자입니다.' },
+            ]}
+          >
+            <Input />
+          </Form.Item>
+          <Form.Item>
+            <Space>
+              <Button type="primary" htmlType="submit" loading={submitting}>
+                저장
+              </Button>
+              <Button onClick={() => setEditingConnection(false)}>취소</Button>
+            </Space>
+          </Form.Item>
+        </Form>
+      </>
+    );
+  }
+
   return (
     <>
       <PageHeader
@@ -163,6 +205,9 @@ function ProjectDetailPage() {
           <Space>
             <PermissionGuard allow={[ROLE.SUPER_ADMIN]}>
               <Button onClick={() => setEditing(true)}>수정</Button>
+            </PermissionGuard>
+            <PermissionGuard allow={[ROLE.SUPER_ADMIN, ROLE.DEVELOPER]}>
+              <Button onClick={() => setEditingConnection(true)}>연결정보 수정</Button>
             </PermissionGuard>
             <Button onClick={() => navigate('/admin/projects')}>목록으로</Button>
           </Space>

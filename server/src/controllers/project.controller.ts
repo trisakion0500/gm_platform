@@ -153,7 +153,7 @@ export async function getProject(req: Request, res: Response, next: NextFunction
 /**
  * PATCH /projects/:project_id — 프로젝트 수정 (SUPER_ADMIN)
  * @author trisakion
- * @param req params: { project_id }, body: { project_code?, project_name?, api_base_url?, description?, status? }
+ * @param req params: { project_id }, body: { project_code?, project_name?, description?, status? }
  * @param res 200 — 수정된 프로젝트 정보
  * @param next 오류 전달
  * @returns void
@@ -165,14 +165,13 @@ export async function updateProject(req: Request, res: Response, next: NextFunct
       fail(res, ERROR_MAP.INVALID_FORMAT);
       return;
     }
-    const { project_code, project_name, api_base_url, description, status } = req.body;
+    const { project_code, project_name, description, status } = req.body;
     if (project_code && !PROJECT_CODE_PATTERN.test(project_code)) {
       fail(res, ERROR_MAP.INVALID_FORMAT);
       return;
     }
     if (
       (project_name && project_name.length > PROJECT_NAME_MAX_LENGTH) ||
-      (api_base_url && api_base_url.length > API_BASE_URL_MAX_LENGTH) ||
       (description && description.length > DESCRIPTION_MAX_LENGTH)
     ) {
       fail(res, ERROR_MAP.INVALID_FORMAT);
@@ -182,11 +181,47 @@ export async function updateProject(req: Request, res: Response, next: NextFunct
       projectId,
       project_code ?? null,
       project_name ?? null,
-      api_base_url ?? null,
       description ?? null,
       status ?? null,
       req.user!.role_code,
       req.user!.company_id,
+      req.user!.user_id,
+    );
+    success(res, formatProject(project));
+  } catch (err) {
+    next(err);
+  }
+}
+
+/**
+ * PATCH /projects/:project_id/connection — 프로젝트 연결 정보(api_base_url) 수정 (SUPER_ADMIN, DEVELOPER)
+ * DEVELOPER는 해당 project_id에 실제 활성 DEVELOPER 배정이 있어야 통과한다(assertProjectRole).
+ * @author trisakion
+ * @param req params: { project_id }, body: { api_base_url }
+ * @param res 200 — 수정된 프로젝트 정보
+ * @param next 오류 전달
+ * @returns void
+ */
+export async function updateProjectConnection(req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    const projectId = parsePositiveInt(req.params.project_id);
+    if (projectId === null) {
+      fail(res, ERROR_MAP.INVALID_FORMAT);
+      return;
+    }
+    const { api_base_url } = req.body;
+    if (!api_base_url) {
+      fail(res, ERROR_MAP.REQUIRED_MISSING);
+      return;
+    }
+    if (api_base_url.length > API_BASE_URL_MAX_LENGTH) {
+      fail(res, ERROR_MAP.INVALID_FORMAT);
+      return;
+    }
+    const project = await projectService.updateProjectConnection(
+      projectId,
+      api_base_url,
+      req.user!.role_code,
       req.user!.user_id,
     );
     success(res, formatProject(project));

@@ -99,7 +99,6 @@ export async function getProject(
  * @param projectId 수정할 프로젝트 ID
  * @param projectCode 프로젝트 코드 (null=변경 없음)
  * @param projectName 프로젝트명 (null=변경 없음)
- * @param apiBaseUrl API Base URL (null=변경 없음)
  * @param description 설명 (null=변경 없음)
  * @param status 상태 (null=변경 없음)
  * @returns 수정된 프로젝트 정보 (company 정보 포함)
@@ -108,14 +107,32 @@ export async function updateProject(
   projectId: number,
   projectCode: string | null,
   projectName: string | null,
-  apiBaseUrl: string | null,
   description: string | null,
   status: number | null,
 ): Promise<ProjectRow> {
-  const [spStatus, [data]] = await callSP('SP_UPDATE_PROJECT', [projectId, projectCode, projectName, apiBaseUrl, description, status]);
+  const [spStatus, [data]] = await callSP('SP_UPDATE_PROJECT', [projectId, projectCode, projectName, description, status]);
   switch (spStatus[0].RESULT) {
     case 31002: throw toDBError(ERROR_MAP.PROJECT_NOT_FOUND);
     case 32001: throw toDBError(ERROR_MAP.DUPLICATE_VALUE);
+  }
+  return data[0] as unknown as ProjectRow;
+}
+
+/**
+ * 프로젝트의 api_base_url만 수정하고 수정된 프로젝트 정보를 반환한다.
+ * 프로젝트 미존재 시 DBError(31002)를 던진다.
+ * @author trisakion
+ * @param projectId 수정할 프로젝트 ID
+ * @param apiBaseUrl 변경할 API Base URL
+ * @returns 수정된 프로젝트 정보 (company 정보 포함)
+ */
+export async function updateProjectConnection(
+  projectId: number,
+  apiBaseUrl: string,
+): Promise<ProjectRow> {
+  const [spStatus, [data]] = await callSP('SP_UPDATE_PROJECT_CONNECTION', [projectId, apiBaseUrl]);
+  switch (spStatus[0].RESULT) {
+    case 31002: throw toDBError(ERROR_MAP.PROJECT_NOT_FOUND);
   }
   return data[0] as unknown as ProjectRow;
 }

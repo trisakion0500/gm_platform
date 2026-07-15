@@ -4,7 +4,6 @@ CREATE PROCEDURE SP_UPDATE_PROJECT(
     IN  i_project_id    BIGINT,        -- 수정할 프로젝트 ID
     IN  i_project_code  VARCHAR(20),   -- 프로젝트 코드 (NULL=변경 없음)
     IN  i_project_name  VARCHAR(100),  -- 프로젝트명 (NULL=변경 없음)
-    IN  i_api_base_url  VARCHAR(255),  -- API Base URL (NULL=변경 없음)
     IN  i_description   VARCHAR(1000), -- 설명 (NULL=변경 없음)
     IN  i_status        TINYINT        -- 상태 (NULL=변경 없음)
 ) COMMENT '프로젝트 수정 - project 테이블 UPDATE'
@@ -12,7 +11,8 @@ BEGIN
 -- --------------------------------- --
 -- 명칭 : SP_UPDATE_PROJECT
 -- 작성 : 2026-06-29 trisakion
--- 내용 : 프로젝트 정보 수정
+-- 수정 : 2026-07-15 trisakion - api_base_url을 SP_UPDATE_PROJECT_CONNECTION으로 분리(DEVELOPER도 수정 가능하게 열 예정이라 프로젝트 정체성 필드와 쓰기 권한을 나눔)
+-- 내용 : 프로젝트 정보 수정 (project_code/project_name/description/status만, api_base_url은 SP_UPDATE_PROJECT_CONNECTION 전용)
 --        project 존재 검사 후 UPDATE
 --        project_code 변경 시 동일 company 내 중복 검사 (본인 제외)
 --        NULL 입력 시 기존 값 유지 (COALESCE)
@@ -56,7 +56,6 @@ BEGIN
             UPDATE `project`
             SET `project_code` = COALESCE(i_project_code, `project_code`),
                 `project_name` = COALESCE(i_project_name, `project_name`),
-                `api_base_url` = COALESCE(i_api_base_url, `api_base_url`),
                 `description`  = COALESCE(i_description,  `description`),
                 `status`       = COALESCE(i_status,       `status`)
             WHERE `project_id` = i_project_id;

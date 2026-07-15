@@ -207,18 +207,27 @@ AI는 문서 초안 작성과 반복적인 코드 작업의 속도를 높이는 
 
 ## 해야할 일
 
-- ⬜ GM Platform → 외부 API(게임서버) 호출 인증 — 현재 `callExternalApi`(server/src/services/apiExecution.service.ts)가 인증 헤더 없이 순수 POST만 보내, 외부 서비스가 무방비로 요청을 받는 상태. 외부 서버가 아닌 **GM Platform이 `X-API-Key`를 발급**(`POST /projects/:project_id/api-key`, SUPER_ADMIN 전용, 재발급 시 기존 키 덮어씀) → 관리자가 응답에 1회만 노출되는 평문을 복사해 외부 서버(test_game_server 등)에 직접 설정 → 실행 시 GM Platform이 헤더에 실어 호출 → 외부 서버가 헤더 검증하는 구조로 개선 예정.
-  - `api_base_url`이 API 단위가 아닌 프로젝트 단위 컬럼이라 `api_key`도 프로젝트 단위로 저장 (1프로젝트=1대상서버=1키)
-  - `phone_number`와 같은 AES-256-CBC 암호화 패턴을 재사용. 발급 직후 응답에만 평문 1회 노출(GitHub PAT 등과 동일한 패턴), 이후 `GET /projects/:id`는 평문 대신 `has_api_key: true/false`만 반환 — 관리자가 직접 타이핑/복붙하는 값이 아니라 시스템이 생성하므로 완전 write-only라도 "입력값 확인 불가" 문제가 없음
+- ⬜ GM Platform → 외부 API(게임서버) 호출 인증 — 현재 `callExternalApi`(server/src/services/apiExecution.service.ts)가 인증 헤더 없이 순수 POST만 보내, 외부 서비스가 무방비로 요청을 받는 상태. 외부 서버가 아닌 **GM Platform이 `X-API-Key`를 발급**(재발급 시 기존 키 덮어씀) → 관리자/개발자가 응답에 1회만 노출되는 평문을 복사해 외부 서버(test_game_server 등)에 직접 설정 → 실행 시 GM Platform이 헤더에 실어 호출 → 외부 서버가 헤더 검증하는 구조로 개선 예정.
+
+  **GM Platform 측 (DB/API)**
+  - `api_key`도 `api_base_url`과 동일하게 "대상 서버 연결 정보"로 묶어 `PATCH /projects/:project_id/connection`(SUPER_ADMIN + DEVELOPER, 아래 "이미 반영 완료된 선행 작업" 참고)에서 함께 다룬다 — 발급/재발급 자체는 `POST /projects/:project_id/api-key`로 별도 엔드포인트를 두되, 권한 범위(SUPER_ADMIN+DEVELOPER, `assertProjectRole` 재검증)는 connection 엔드포인트와 동일하게 맞춘다
+  - `api_base_url`이 API 단위가 아닌 프로젝트 단위 컬럼이라 `api_key`도 프로젝트 단위로 저장 (1프로젝트=1대상서버=1키). 키 생성 포맷은 `ENCRYPTION_KEY`와 동일하게 `crypto.randomBytes(32).toString('hex')`(64자 hex), 암호화 저장 컬럼은 `VARCHAR(255)`
+  - `phone_number`와 같은 AES-256-CBC 암호화 패턴을 재사용. 발급 직후 응답에만 평문 1회 노출(GitHub PAT 등과 동일한 패턴), 이후 `GET /projects/:id`는 평문 대신 `has_api_key: true/false`만 반환 — 관리자가 직접 타이핑/복붙하는 값이 아니라 시스템이 생성하므로 완전 write-only라도 "입력값 확인 불가" 문제가 없음. `has_api_key`가 실리는 `GET /projects/:id`도 이미 SUPER_ADMIN/DEVELOPER 전용으로 축소돼 있어 APPROVER/OPERATOR는 조회 자체가 불가 — 읽기·쓰기 권한 범위가 자연히 일치
+  - 프론트는 Company 상세의 "수정" 버튼과 동일한 패턴으로 `PermissionGuard`가 발급 버튼을 SUPER_ADMIN·DEVELOPER 둘 다에게 렌더링(다른 필드 수정 버튼은 SUPER_ADMIN 전용 그대로), APPROVER/OPERATOR는 애초에 화면 진입 불가
+  - `PATCH /projects/:project_id/connection`으로 `api_base_url`이 변경되면 같은 트랜잭션에서 저장된 `api_key`를 자동으로 NULL 폐기(`api_stage` 롤백 트리거와 동일한 발상, `SP_UPDATE_PROJECT_CONNECTION`에 추가 예정) — 대상 서버가 바뀌었는데 옛날 키를 그대로 보내는 조용한 실수 방지. 폐기 후엔 `has_api_key=false`로 돌아가 nullable 설계대로 헤더 없이 호출되므로, 프로젝트 상세 화면에 "API 키가 폐기되었습니다 — 재발급 필요" 배너로 눈에 띄게 표시
   - 감사로그(`log_audit`)는 row 스냅샷을 암호화 이후 시점에 찍는 기존 순서를 지켜 평문 유출 방지
   - `api_execution`의 실행 시점 스냅샷 컬럼(`api_name`/`endpoint` 등)에는 포함시키지 않음 — 호출 직전에만 복호화해 헤더 구성 후 버림
-  - nullable — 키 미발급 프로젝트는 헤더 없이 기존 동작 유지(하위호환)
-  - 즉시실행/승인 후 실행 두 경로 모두 `callExternalApi` 한 곳을 거치므로 한 번의 수정으로 커버
-  - `callExternalApi`의 axios 에러를 서버 로그에 남길 때 `err.stack`만 사용하고 `err` 객체 전체·`JSON.stringify(err)`는 절대 로깅하지 않음 — axios 에러의 `config.headers`에 `X-API-Key` 평문이 담겨있어 통째로 찍으면 노출됨 (반영 완료, `apiExecution.service.ts`)
-  - 키 생성 포맷은 `ENCRYPTION_KEY`와 동일하게 `crypto.randomBytes(32).toString('hex')`(64자 hex), 암호화 저장 컬럼은 `VARCHAR(255)`
-  - `PATCH /projects/:project_id`로 `api_base_url`이 변경되면 `SP_UPDATE_PROJECT`가 저장된 `api_key`를 자동으로 NULL 폐기(`api_stage` 롤백 트리거와 동일한 발상) — 대상 서버가 바뀌었는데 옛날 키를 그대로 보내는 조용한 실수 방지. 폐기 후엔 `has_api_key=false`로 돌아가 nullable 설계대로 헤더 없이 호출되므로, 프로젝트 상세 화면에 "API 키가 폐기되었습니다 — 재발급 필요" 배너로 눈에 띄게 표시
-  - `GET /projects/:id`는 전 역할 접근이라 `has_api_key`(존재 여부만) 도 전 역할에 노출되지만, 발급/재발급(`POST /projects/:project_id/api-key`, 평문이 노출되는 유일한 순간)은 SUPER_ADMIN 전용 라우트. 프론트는 Company 상세의 "수정" 버튼과 동일한 패턴으로 `PermissionGuard`가 발급/재발급 버튼만 SUPER_ADMIN에게 렌더링, 나머지 역할은 `has_api_key` 배지만 읽기 전용으로 봄
-  - test_game_server 쪽: `.env`에 `API_KEY` 추가(optional — 미설정 시 검증 스킵 + 시작 시 경고 로그, GM Platform의 nullable 설계와 대칭), 새 미들웨어 `apiKeyAuth.ts`가 `crypto.timingSafeEqual`로 `X-API-Key` 헤더 비교(타이밍 공격 방지, 길이 다르면 즉시 실패), 누락·불일치 모두 동일한 401(`UNAUTHORIZED`, 신규 `ERROR_MAP` 코드 10001)로 통일해 원인 비노출. `health` 라우트는 검증 제외, `user`/`currency`/`card` 라우터에만 적용
+  - nullable — 키 미발급 프로젝트는 헤더 없이 기존 동작 유지(하위호환). 즉시실행/승인 후 실행 두 경로 모두 `callExternalApi` 한 곳을 거치므로 한 번의 수정으로 커버
+
+  **test_game_server 측**
+  - `.env`에 `API_KEY` 추가(optional — 미설정 시 검증 스킵 + 시작 시 경고 로그, GM Platform의 nullable 설계와 대칭)
+  - 새 미들웨어 `apiKeyAuth.ts`가 `crypto.timingSafeEqual`로 `X-API-Key` 헤더 비교(타이밍 공격 방지, 길이 다르면 즉시 실패), 누락·불일치 모두 동일한 401(`UNAUTHORIZED`, 신규 `ERROR_MAP` 코드 10001)로 통일해 원인 비노출
+  - `health` 라우트는 검증 제외, `user`/`currency`/`card` 라우터에만 적용
+
+  **이미 반영 완료된 선행 작업**
+  - `callExternalApi`의 axios 에러를 서버 로그에 남길 때 `err.stack`만 사용하고 `err` 객체 전체·`JSON.stringify(err)`는 절대 로깅하지 않음 — axios 에러의 `config.headers`에 `X-API-Key` 평문이 담겨있어 통째로 찍으면 노출됨 (`apiExecution.service.ts`)
+  - `GET /projects`, `GET /projects/:project_id`를 SUPER_ADMIN/DEVELOPER 전용으로 축소 — 원래 전 역할(APPROVER/OPERATOR 포함) 접근 가능했으나 프론트가 애초에 `RoleGuard allow={[SUPER_ADMIN, DEVELOPER]}`로 이 화면을 막고 있어 실사용 경로가 없었고, `api_base_url`과 향후 `has_api_key`가 같은 응답에 실리므로 API 키 작업을 계기로 라우트 자체를 프론트 실사용 범위와 일치시킴 (`server/src/routes/project.ts`, `CLAUDE.md`, `docs/06_API_SPEC_Part1.md`, `docs/12_SCREEN_LIST.md`, `tests/api_test.ps1` 회귀 확인 완료)
+  - `PATCH /projects/:project_id/connection` 신설 — `api_base_url`을 `project_code`/`project_name`/`description`/`status`(정체성·거버넌스 필드, 기존 `PATCH /projects/:project_id`가 그대로 전담)와 분리해 **SUPER_ADMIN + DEVELOPER**에게 개방. `SP_UPDATE_PROJECT`에서 `i_api_base_url` 파라미터를 제거하고 신설 `SP_UPDATE_PROJECT_CONNECTION`이 전담(다음 단계 `api_key` 자동 폐기 트리거를 한 곳에만 두기 위함). DEVELOPER 호출은 `assertProjectRole(callerUserId, callerRoleCode, projectId, [DEVELOPER])`로 해당 project_id의 실제 활성 배정을 재검증(SUPER_ADMIN은 통과) — `api.service.ts` 등과 동일 패턴. `server/src/{routes,controllers,services,db}/project.ts` 전 계층, SP 2개(`SP_UPDATE_PROJECT`, `SP_UPDATE_PROJECT_CONNECTION`), `CLAUDE.md`, `docs/06_API_SPEC_Part1.md`, `docs/12_SCREEN_LIST.md`, `tests/api_test.ps1`("7B2. 프로젝트 연결정보 수정" 섹션 신설: SUPER_ADMIN 성공/DEVELOPER 본인프로젝트 성공/DEVELOPER 무관프로젝트 20001 차단/검증 실패 케이스) 전부 반영, 3회 반복 575/575 PASS 확인 완료. 프론트(`ProjectDetailPage.tsx`: 기존 "수정" 버튼은 정체성 필드만 남기고, SUPER_ADMIN+DEVELOPER에게 노출되는 "연결정보 수정" 버튼 신설 · `project.api.ts`에 `updateProjectConnection` 추가)도 함께 반영, Playwright로 SUPER_ADMIN·DEVELOPER 양쪽 실제 클릭·저장까지 확인(콘솔 에러 없음)
 
 ---
 

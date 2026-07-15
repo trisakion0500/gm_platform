@@ -1,8 +1,10 @@
 import { ProjectRow, ProjectLookupRow } from '../types';
 import { toAppError, ERROR_MAP } from '../constants/errors';
+import { ROLE } from '../constants/roles';
 import * as db from '../db/project.db';
 import * as audit from './logAudit.service';
 import { assertCompanyScope } from './companyScope.service';
+import { assertProjectRole } from './projectRole.service';
 
 /**
  * 프로젝트코드로 활성 프로젝트를 조회한다 (회원가입 화면 전용, 인증 불필요).
@@ -88,12 +90,11 @@ export async function getProject(
 }
 
 /**
- * 프로젝트 정보를 수정한다.
+ * 프로젝트 정보를 수정한다 (project_code/project_name/description/status — api_base_url은 updateProjectConnection 전용).
  * @author trisakion
  * @param projectId 수정할 프로젝트 ID
  * @param projectCode 프로젝트 코드 (null=변경 없음)
  * @param projectName 프로젝트명 (null=변경 없음)
- * @param apiBaseUrl API Base URL (null=변경 없음)
  * @param description 설명 (null=변경 없음)
  * @param status 상태 (null=변경 없음)
  * @param callerRoleCode 호출자 역할 코드 (회사 스코핑용, SUPER_ADMIN 외에는 소속 회사 프로젝트만 수정 가능)
@@ -105,7 +106,6 @@ export async function updateProject(
   projectId: number,
   projectCode: string | null,
   projectName: string | null,
-  apiBaseUrl: string | null,
   description: string | null,
   status: number | null,
   callerRoleCode: number,
@@ -115,11 +115,43 @@ export async function updateProject(
   const before = await db.getProject(projectId, 10, 0);
   if (before)
     assertCompanyScope(callerRoleCode, callerCompanyId, before.company_id);
-  const after  = await db.updateProject(projectId, projectCode, projectName, apiBaseUrl, description, status);
+  const after  = await db.updateProject(projectId, projectCode, projectName, description, status);
   audit.logUpdate('project', String(after.project_id), after.project_name,
     after.company_id, after.project_id,
     before! as unknown as Record<string, unknown>,
     after   as unknown as Record<string, unknown>,
+    callerUserId);
+  return after;
+}
+
+/**
+ * 프로젝트의 api_base_url(연결 정보)만 수정한다.
+ * project_code 등 정체성 필드와 달리 SUPER_ADMIN 외에 DEVELOPER도 호출 가능 —
+ * 실제로 그 프로젝트의 대상 게임서버를 만드는 개발자가 서버 주소를 자체 관리할 수 있어야 하기 때문.
+ * JWT role_code는 여러 프로젝트 중 최고 권한이라 세션값만으로는 부족해, assertProjectRole로
+ * 이 project_id에 대한 실제 활성 DEVELOPER 배정을 재검증한다 (SUPER_ADMIN은 배정과 무관하게 통과).
+ * @author trisakion
+ * @param projectId 수정할 프로젝트 ID
+ * @param apiBaseUrl 변경할 API Base URL
+ * @param callerRoleCode 호출자 역할 코드
+ * @param callerUserId 호출자 user_id (프로젝트별 역할 재검증용)
+ * @returns 수정된 프로젝트 정보
+ */
+export async function updateProjectConnection(
+  projectId: number,
+  apiBaseUrl: string,
+  callerRoleCode: number,
+  callerUserId: number,
+): Promise<ProjectRow> {
+  const before = await db.getProject(projectId, 10, 0);
+  if (!before)
+    throw toAppError(ERROR_MAP.PROJECT_NOT_FOUND);
+  await assertProjectRole(callerUserId, callerRoleCode, projectId, [ROLE.DEVELOPER]);
+  const after = await db.updateProjectConnection(projectId, apiBaseUrl);
+  audit.logUpdate('project', String(after.project_id), after.project_name,
+    after.company_id, after.project_id,
+    before as unknown as Record<string, unknown>,
+    after  as unknown as Record<string, unknown>,
     callerUserId);
   return after;
 }

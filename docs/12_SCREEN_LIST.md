@@ -146,14 +146,15 @@ GM-Tool 프론트엔드 화면 목록 및 역할별 접근 권한 정의.
 ### SCR-022. 프로젝트 상세·수정
 
 - **Route:** `/admin/projects/:project_id`
-- **접근:** SUPER_ADMIN (수정), DEVELOPER (조회)
-- **주요 기능:** 프로젝트 정보 조회, 코드 / 이름 / API Base URL / 설명 / 상태 수정 (SUPER_ADMIN)
+- **접근:** SUPER_ADMIN (전체 수정), DEVELOPER (조회 + API Base URL만 수정, 본인이 역할보유한 프로젝트에 한함)
+- **주요 기능:** 프로젝트 정보 조회, 코드 / 이름 / 설명 / 상태 수정 (SUPER_ADMIN), API Base URL 수정 (SUPER_ADMIN, DEVELOPER)
 - **연관 API:**
 
-  | Method | Endpoint               | 설명          |
-  | ------ | ---------------------- | ------------- |
-  | GET    | /projects/{project_id} | 프로젝트 상세 |
-  | PATCH  | /projects/{project_id} | 프로젝트 수정 |
+  | Method | Endpoint                          | 설명                        |
+  | ------ | ---------------------------------- | --------------------------- |
+  | GET    | /projects/{project_id}            | 프로젝트 상세               |
+  | PATCH  | /projects/{project_id}            | 프로젝트 수정 (SUPER_ADMIN) |
+  | PATCH  | /projects/{project_id}/connection | API Base URL 수정 (SUPER_ADMIN, DEVELOPER) |
 
 ---
 
