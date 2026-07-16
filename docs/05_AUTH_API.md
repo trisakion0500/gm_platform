@@ -97,6 +97,21 @@ role_code = MIN(user_role.role_code) WHERE user_id = ? AND status = 1
 
 사용자가 프로젝트마다 다른 역할을 가질 수 있으므로(A 프로젝트 DEVELOPER, B 프로젝트 OPERATOR 등), JWT의 `role_code`는 그중 최고 권한 하나일 뿐이다. 그래서 `project_id`를 특정하는 쓰기 API(API/Request/Response, Code Group/Item 등)는 라우트 단의 역할 검사와 별도로, 요청마다 대상 project_id에 대한 실제 `user_role`을 다시 조회해 검증한다 (미보유 시 20001). 자세한 내용은 [07_API_SPEC_Part2.md](./07_API_SPEC_Part2.md) §7, [09_API_SPEC_Part4.md](./09_API_SPEC_Part4.md) §1 참고.
 
+#### 기본값이 40(OPERATOR)인 이유
+
+역할 코드는 `10 < 20 < 30 < 40` 순으로 숫자가 클수록 권한이 낮다. 배정된 `user_role`이 없을 때 10/20/30 중 하나를 기본값으로 삼으면 어떤 프로젝트에도 배정되지 않은 사용자가 관리자·개발자·승인자 권한을 자동으로 갖게 되는 권한 상승 결함이 생긴다. 40은 코드 체계상 가장 낮은 권한이므로, 미배정 사용자를 가장 안전한 최소 권한으로 취급하는 fail-safe 기본값이다.
+
+#### 미배정이 실제로 발생하는 경우
+
+`company_id`는 가입 시 필수 입력이라 항상 값이 있지만, 프로젝트별 역할(`user_role`)은 완전히 별도 절차다. `POST /auth/signup`은 `user` 테이블에만 INSERT하고, `POST /users/{user_id}/approve`도 `user.status`만 변경할 뿐 `user_role`은 건드리지 않는다 — SUPER_ADMIN이 `POST /user-roles`로 프로젝트별 역할을 별도로 배정해야 한다. 따라서 다음 두 경우 실제로 `role_code`가 40으로 계산된다.
+
+```text
+1. 가입 승인 직후 ~ 역할 배정 전 : 로그인은 가능하나 user_role 행이 0개
+2. 배정된 user_role이 PATCH /user-roles/{user_id}/{project_id} 로 status=0 처리된 경우
+```
+
+이 상태에서는 회사는 있지만 연결된 프로젝트가 없어, `GET /projects`(user_role 기준 스코핑)처럼 프로젝트 단위로 스코핑되는 화면에 아무것도 표시되지 않는다.
+
 ### company_id 스코핑 규칙
 
 `company_id` 는 사용자의 소속 회사를 나타낸다.
