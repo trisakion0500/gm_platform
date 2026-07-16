@@ -34,6 +34,8 @@ MainLayout, AdminLayout에서 동일하게 사용한다.
 | [관리] 버튼 | OPERATOR 제외 노출. 클릭 시 `/admin` 이동 |
 | 사용자명 드롭다운 | 내 계정(`/my-account`) / 로그아웃 |
 
+> **관리 화면 잠금**: `/admin/companies`, `/admin/projects`, `/admin/users`, `/admin/apis`, `/admin/audit-logs`(목록 화면)를 제외한 나머지 관리 화면(등록/상세·수정, 코드그룹 편집 그리드 등)에서는 회사·프로젝트 선택 모두 비활성화된다 — 작업 도중 헤더 선택이 바뀌면 상세 내용과 어긋나 보여 혼란을 주기 때문. 관리 메뉴가 아닌 화면(`/apis`, `/executions` 등)은 대상 아님.
+
 ## 2.2 역할별 Header 노출
 
 | 요소 | SUPER_ADMIN | DEVELOPER | APPROVER | OPERATOR |
@@ -218,8 +220,8 @@ MainLayout, AdminLayout 하단 공통.
 | ----------------- | -------------- | ------------------------------ |
 | selectedCompanyId | number \| null | 헤더에서 선택된 회사 (null=SUPER_ADMIN의 "전체 회사") |
 | selectedProjectId | number \| null | 헤더에서 선택된 프로젝트 (null=SUPER_ADMIN의 "전체 프로젝트") |
-| companyList | CompanyRow[] | 회사 목록 캐시 (로그인 시 1회 로드, 등록/수정 시 직접 동기화) |
-| projectList | ProjectRow[] | 프로젝트 목록 캐시 (로그인 시 1회 로드, 등록/수정 시 직접 동기화) |
+| companyList | ActiveCompany[] | 회사 목록 캐시 (`{id, name}` 최소 필드, 로그인 시 1회 로드, 등록/수정 시 직접 동기화) |
+| projectList | ActiveProject[] | 프로젝트 목록 캐시 (`{id, name}` 최소 필드, 로그인 시 1회 로드, 등록/수정 시 직접 동기화) |
 | projectRoleCode | RoleCode \| null | 선택된 프로젝트에서 호출자의 실제 role_code (`GET /user-roles/me`) |
 
 ---

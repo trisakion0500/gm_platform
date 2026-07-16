@@ -36,6 +36,7 @@ server/
 │   ├── middleware/
 │   │   ├── auth.ts          # JWT 검증, req.user에 사용자 정보 주입
 │   │   ├── role.ts          # requireRole() — 라우트 단위 역할 권한 검사
+│   │   ├── rateLimiter.ts   # loginLimiter — 로그인/회원가입 브루트포스 방지 (IP당 윈도우 요청 수 제한)
 │   │   ├── errorHandler.ts  # 전역 에러 처리 (Express 에러 미들웨어)
 │   │   └── requestLogger.ts # HTTP 요청/응답 로깅 (log4js)
 │   │
@@ -91,7 +92,8 @@ server/
 │   │   ├── apiExecution.db.ts  # 실행 이력 조회 / 등록 / 상태 변경 SP·FN 호출
 │   │   ├── codeGroup.db.ts     # 코드 그룹 조회 / 등록 / 수정 SP·FN 호출
 │   │   ├── codeItem.db.ts      # 코드 아이템 조회 / 등록 / 수정 SP·FN 호출
-│   │   └── logAudit.db.ts      # 감사 로그 조회 / 등록 SP·FN 호출
+│   │   ├── logAudit.db.ts      # 감사 로그 조회 / 등록 SP·FN 호출
+│   │   └── cleanup.db.ts       # 만료 세션 정리 SP 호출 (도메인별이 아닌 "정리 작업" 성격으로 분리)
 │   │
 │   ├── types/
 │   │   ├── express.d.ts     # req.user 등 Express Request 타입 확장
@@ -106,7 +108,11 @@ server/
 │   │   └── logger.ts        # log4js 인스턴스 (콘솔 + 파일 출력)
 │   │
 │   ├── scripts/
-│   │   └── encrypt.ts       # `npm run encrypt -- "평문"` — ENCRYPTION_KEY로 값을 암호화해 출력 (시드 데이터 생성용)
+│   │   ├── encrypt.ts       # `npm run encrypt -- "평문"` — ENCRYPTION_KEY로 값을 암호화해 출력 (시드 데이터 생성용)
+│   │   └── fixSeedPhone.ts  # `npm run fix-seed-phone` — ENCRYPTION_KEY 교체 시 시드 계정(user_id 1~4) phone_number 재암호화
+│   │
+│   ├── jobs/
+│   │   └── sessionCleanup.job.ts # node-cron 기반 만료 세션 정리 잡 (SESSION_CLEANUP_CRON 주기, app.ts에서 서버 기동 시 등록)
 │   │
 │   └── app.ts               # Express 앱 초기화, DB 연결 확인, 서버 기동
 │

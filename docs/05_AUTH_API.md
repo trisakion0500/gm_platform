@@ -113,7 +113,7 @@ role_code = 10 (SUPER_ADMIN) : company_id 무시, 모든 회사 접근 가능
 Refresh Token 은 UUID v4 형식의 opaque token 으로 발급하며 페이로드를 포함하지 않는다.
 
 ```text
-저장 위치 : user_session.refresh_token
+저장 위치 : user_session.refresh_token_hash (SHA-256 해시, 원문 미저장)
 ```
 
 ---
