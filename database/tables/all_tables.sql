@@ -601,7 +601,7 @@ CREATE TABLE `user` (
   `password_hash`			VARCHAR(255)			NOT NULL															COMMENT '비밀번호 해시',
   `user_name`				VARCHAR(100)			NOT NULL															COMMENT '사용자명',
   `email`					VARCHAR(200)			NOT NULL															COMMENT '이메일 (알림/연락용)',
-  `phone_number`			VARCHAR(255)			NOT NULL															COMMENT '휴대폰 번호(AES-256 암호화(Base64))',
+  `phone_number`			VARCHAR(255)			NOT NULL															COMMENT '휴대폰 번호(AES-256-CBC 암호화(Base64))',
   `department`				VARCHAR(100)																				COMMENT '부서',
   `position`				VARCHAR(100)																				COMMENT '직급',
   `status`					TINYINT		UNSIGNED	NOT NULL	DEFAULT 0												COMMENT '상태 (0:가입승인대기, 1:가입승인, 2: 가입반려, 3: 사용중지)',
