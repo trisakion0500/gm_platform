@@ -247,6 +247,40 @@ GET /companies/lookup?company_code={code}
 
 ---
 
+## 2.6 Get Active Header Data
+
+### Endpoint
+
+```http
+GET /companies/active-header-data
+```
+
+### Permission
+
+- 전 역할 (SUPER_ADMIN, DEVELOPER, APPROVER, OPERATOR)
+
+### Description
+
+로그인 직후 헤더 콤보박스가 1회 로드하는 활성 회사·프로젝트 목록을 한 호출로 반환한다. 기존엔 헤더가 `GET /companies`·`GET /projects`를 `page_size=100` 고정으로 두 번 호출했는데, 목록 화면용 페이지네이션 API를 "선택용 전체 목록" 용도로 쓰다 보니 100건을 넘으면 조용히 누락되는 문제가 있어 신설했다(`page_size` 상한도 100이라 값을 더 키우는 것도 불가능했음). 페이지네이션이 없고, SUPER_ADMIN 외에는 본인 소속 회사 + 본인이 활성 `user_role`을 가진 프로젝트만 반환된다. `/companies/{company_id}`보다 먼저 등록해야 하는 정적 경로다.
+
+### Response
+
+```json
+{
+  "result": 0,
+  "data": {
+    "companies": [
+      { "company_id": 1, "company_name": "Game Company" }
+    ],
+    "projects": [
+      { "project_id": 1, "company_id": 1, "project_name": "Project A" }
+    ]
+  }
+}
+```
+
+---
+
 # 3. Project APIs
 
 ## 3.1 Create Project

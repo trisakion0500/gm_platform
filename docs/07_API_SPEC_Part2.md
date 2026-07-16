@@ -94,6 +94,37 @@ ORDER BY status DESC,
 
 ---
 
+## 1.2B Get Active API List
+
+### Endpoint
+
+```http
+GET /apis/active?project_id={id}
+```
+
+### Permission
+
+- 전 역할 (SUPER_ADMIN, DEVELOPER, APPROVER, OPERATOR)
+
+### Description
+
+사이드바 API 메뉴 전용. 프로젝트의 활성(status=1) API 전체를 페이지네이션 없이 반환한다. 기존엔 사이드바가 `GET /apis`를 `page_size=100` 고정으로 호출해 100건을 넘으면 조용히 누락되는 문제가 있어(헤더 콤보박스와 동일한 원인, `2.6 Get Active Header Data` 참고) 신설했다. `/apis/{api_id}`보다 먼저 등록해야 하는 정적 경로다.
+
+### Response
+
+```json
+{
+  "result": 0,
+  "data": [
+    { "api_id": 1, "api_name": "메일 발송", "api_stage": 30 }
+  ]
+}
+```
+
+`api_id`/`api_name`/`api_stage`만 반환한다.
+
+---
+
 ## 1.3 Get API
 
 ### Endpoint
