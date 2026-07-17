@@ -10,6 +10,7 @@ BEGIN
 -- --------------------------------- --
 -- 명칭 : SP_REJECT_API_EXECUTION
 -- 작성 : 2026-06-30 trisakion
+-- 수정 : 2026-07-17 trisakion - role_code IN(20,30) 조회를 FN_GET_PROJECT_ROLE_CODE() 호출로 공용화
 -- 내용 : PENDING(10) → REJECTED(30)
 --        실행 이력 없음 → 31009
 --        status != 10  → 31009
@@ -17,9 +18,10 @@ BEGIN
 -- 테이블 적용 순서 : api_execution
 -- --------------------------------- --
 
-    DECLARE v_now         DATETIME  DEFAULT NOW();
-    DECLARE v_status      TINYINT;
-    DECLARE v_project_id  BIGINT;
+    DECLARE v_now               DATETIME  DEFAULT NOW();
+    DECLARE v_status            TINYINT;
+    DECLARE v_project_id        BIGINT;
+    DECLARE v_actual_role_code  INT;
 
     DECLARE sql_state      CHAR(5)       DEFAULT '00000';
     DECLARE error_no       INT           DEFAULT 0;
@@ -54,13 +56,8 @@ BEGIN
         END IF;
 
         IF i_caller_role_code != 10 THEN
-            IF NOT EXISTS (
-                SELECT 1 FROM `user_role` ur
-                WHERE ur.`user_id`    = i_approve_user_id
-                  AND ur.`project_id` = v_project_id
-                  AND ur.`status`     = 1
-                  AND ur.`role_code`  IN (20, 30)
-            ) THEN
+            SET v_actual_role_code = FN_GET_PROJECT_ROLE_CODE(i_approve_user_id, v_project_id);
+            IF v_actual_role_code IS NULL OR v_actual_role_code NOT IN (20, 30) THEN
                 SELECT 31009 AS RESULT;
                 LEAVE transaction_block;
             END IF;

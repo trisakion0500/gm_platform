@@ -12,6 +12,7 @@ BEGIN
 -- 명칭 : SP_CREATE_API_EXECUTION
 -- 작성 : 2026-06-30 trisakion
 -- 수정 : 2026-07-15 trisakion - project.api_key(암호문) 반환 추가, callExternalApi가 복호화해 X-API-Key 헤더로 사용
+-- 수정 : 2026-07-17 trisakion - role_code 조회를 FN_GET_PROJECT_ROLE_CODE() 호출로 공용화
 -- 내용 : API 실행 이력 생성
 --        api 존재·활성 검사 (31006, 30003)
 --        대상 프로젝트 실제 권한 재검증 (20001, SUPER_ADMIN 제외 — i_role_code는 세션 전역값이라
@@ -75,13 +76,7 @@ BEGIN
         IF i_role_code = 10 THEN
             SET v_actual_role_code = 10;
         ELSE
-            SELECT ur.`role_code`
-            INTO   v_actual_role_code
-            FROM `user_role` ur
-            WHERE ur.`user_id`    = i_request_user_id
-              AND ur.`project_id` = v_project_id
-              AND ur.`status`     = 1
-            LIMIT 1;
+            SET v_actual_role_code = FN_GET_PROJECT_ROLE_CODE(i_request_user_id, v_project_id);
         END IF;
 
         IF v_actual_role_code IS NULL THEN
