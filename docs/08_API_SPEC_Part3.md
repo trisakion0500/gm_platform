@@ -211,6 +211,8 @@ GET /api-executions
 | DEVELOPER (20) / APPROVER (30) | 실제 활성 user_role이 있는 project만 가능 | 모든 파라미터 사용 가능 |
 | OPERATOR (40) | 실제 활성 user_role이 있는 project만 가능 | 서버가 본인 ID 자동 강제 적용 |
 
+SUPER_ADMIN 외에는 project_id에 대한 실제 활성 user_role이 없으면 20001을 반환한다(project_id는 호출자가 이미 아는 값이라 존재 자체를 숨기지 않음).
+
 ---
 
 ### Sorting
@@ -232,6 +234,11 @@ GET /api-executions/{api_execution_id}
 ### Description
 
 실행번호 조회
+
+### Business Rules
+
+- OPERATOR(40) : 본인 요청 건이 아니면 31009(이력 존재 자체를 숨김)
+- 그 외(SUPER_ADMIN 제외) : 대상 project_id에 실제 활성 user_role이 없으면 20001
 
 ---
 
@@ -287,7 +294,7 @@ GET /api-executions/pending
 
 | Name       | Required | Description        |
 | ---------- | -------- | ------------------ |
-| project_id | Y        |                    |
+| project_id | Y        | SUPER_ADMIN 외에는 실제 활성 user_role이 없으면 20001 |
 | page       | Y        |                    |
 | page_size  | Y        | 20/30/50/100 중 선택. 기본 20 |
 

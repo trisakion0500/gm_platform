@@ -90,7 +90,7 @@ ORDER BY status DESC,
 ### Business Rules
 
 - SUPER_ADMIN : 전체 조회 가능
-- 일반 사용자 : 권한 있는 프로젝트만 조회 가능
+- 일반 사용자 : 대상 project_id에 활성 user_role이 없으면 20001 반환
 
 ---
 
@@ -123,6 +123,11 @@ GET /apis/active?project_id={id}
 
 `api_id`/`api_name`/`api_stage`만 반환한다.
 
+### Business Rules
+
+- SUPER_ADMIN : 전체 조회 가능
+- 일반 사용자 : 대상 project_id에 활성 user_role이 없으면 20001 반환
+
 ---
 
 ## 1.3 Get API
@@ -132,6 +137,13 @@ GET /apis/active?project_id={id}
 ```http
 GET /apis/{api_id}
 ```
+
+### Permission
+
+- SUPER_ADMIN
+- DEVELOPER
+- APPROVER
+- OPERATOR
 
 ### Response
 
@@ -157,6 +169,8 @@ API 상세 조회 시
 - api_response
 
 전체 반환
+
+SUPER_ADMIN 외에는 대상 project_id에 활성 user_role이 없으면 미존재로 처리되어 31006을 반환한다(존재 여부 자체를 숨기는 정보 은닉).
 
 ---
 
@@ -328,6 +342,8 @@ GET /api-requests/{api_request_id}
 
 > APPROVER / OPERATOR는 `GET /apis/{api_id}` 응답에 requests 목록이 포함되므로 개별 조회 불필요.
 
+SUPER_ADMIN 외에는 대상 api가 속한 project_id에 활성 user_role이 없으면 미존재로 처리되어 31007을 반환한다(정보 은닉).
+
 ---
 
 ## 2.3 Update API Request
@@ -446,6 +462,8 @@ GET /api-responses/{api_response_id}
 
 > APPROVER / OPERATOR는 `GET /apis/{api_id}` 응답에 responses 목록이 포함되므로 개별 조회 불필요.
 
+SUPER_ADMIN 외에는 대상 api가 속한 project_id에 활성 user_role이 없으면 미존재로 처리되어 31008을 반환한다(정보 은닉).
+
 ---
 
 ## 3.3 Update API Response
@@ -562,3 +580,5 @@ status
 ## 프로젝트 권한 재검증
 
 API/API Request/API Response 등록·수정(1.1, 1.4, 2.1, 2.3, 3.1, 3.3)의 Permission에 있는 DEVELOPER는, 대상 API가 속한 `project_id`에 대해 실제로 활성 `user_role`(role_code=20)을 보유한 경우만 허용된다. 로그인 세션의 `role_code`(여러 프로젝트 중 최고 권한, [05_AUTH_API.md](./05_AUTH_API.md) §2.4.1 참고)와 무관하게 요청마다 재검증하며, 미보유 시 20001을 반환한다. SUPER_ADMIN은 `user_role` 배정과 무관하게 항상 허용된다.
+
+조회(1.2, 1.2B, 1.3, 2.2, 3.2)도 SUPER_ADMIN 외에는 동일하게 대상 `project_id`에 대한 실제 활성 `user_role` 보유 여부를 재검증한다. 목록류(1.2, 1.2B)는 project_id를 호출자가 이미 알고 있어 숨길 필요가 없으므로 20001을 반환하고, 단건 조회(1.3, 2.2, 3.2)는 존재 여부 자체를 숨기기 위해 기존 미존재 오류코드(31006/31007/31008)를 그대로 재사용한다.
