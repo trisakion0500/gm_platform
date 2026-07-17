@@ -40,56 +40,73 @@ function hasGeneralChange(
 }
 
 /**
- * project_id로 company_id를 조회한다. audit 내부에서만 사용한다.
- * project 엔티티는 서비스 시그니처에 company_id가 없으므로 audit 기록 시 직접 조회가 필요하다.
+ * project_id로 company_id/project_name을 조회한다. audit 내부에서만 사용한다.
+ * project_name은 조회 시점 JOIN 대신 log_audit에 스냅샷으로 저장하기 위해 여기서 함께 가져온다
+ * (log_audit를 별도 DB로 분리해도 project 테이블 조인 없이 조회 가능하도록).
  * @param projectId 조회할 프로젝트 ID
- * @returns company_id, 실패 시 null
+ * @returns { companyId, projectName }, 실패 시 null
  */
-async function resolveCompanyId(projectId: number): Promise<number | null> {
+async function resolveProjectInfo(projectId: number): Promise<{ companyId: number; projectName: string } | null> {
   const [status, [data]] = await callSP('SP_GET_PROJECT', [projectId, 10, 0]);
   if (status[0].RESULT !== 0)
     return null;
-  return (data[0] as any)?.company_id ?? null;
+  const row = data[0] as any;
+  if (!row)
+    return null;
+  return { companyId: row.company_id, projectName: row.project_name };
 }
 
 /**
- * api_id로 project_id와 company_id를 조회한다. audit 내부에서만 사용한다.
+ * user_id로 user_name을 조회한다. audit 내부에서만 사용한다.
+ * created_by_name은 조회 시점 JOIN 대신 log_audit에 스냅샷으로 저장하기 위해 사용한다.
+ * @param userId 조회할 사용자 ID
+ * @returns user_name, 실패(탈퇴 등) 시 null
+ */
+async function resolveUserName(userId: number): Promise<string | null> {
+  const [status, [data]] = await callSP('SP_GET_USER_BY_ID', [userId]);
+  if (status[0].RESULT !== 0)
+    return null;
+  return (data[0] as any)?.user_name ?? null;
+}
+
+/**
+ * api_id로 project_id/project_name/company_id를 조회한다. audit 내부에서만 사용한다.
  * api/api_request/api_response 엔티티는 서비스 시그니처에 company_id가 없으므로
  * api → project → company 순으로 2단계 체인 조회가 필요하다.
  * @param apiId 조회할 API ID
- * @returns { projectId, companyId }, 실패 시 null
+ * @returns { projectId, projectName, companyId }, 실패 시 null
  */
-export async function resolveApiScope(apiId: number): Promise<{ projectId: number; companyId: number } | null> {
+export async function resolveApiScope(apiId: number): Promise<{ projectId: number; projectName: string; companyId: number } | null> {
   const [status, [apiRows]] = await callSP('SP_GET_API', [apiId]);
   if (status[0].RESULT !== 0)
     return null;
   const projectId = (apiRows[0] as any)?.project_id;
   if (!projectId)
     return null;
-  const companyId = await resolveCompanyId(projectId);
-  if (!companyId)
+  const projectInfo = await resolveProjectInfo(projectId);
+  if (!projectInfo)
     return null;
-  return { projectId, companyId };
+  return { projectId, projectName: projectInfo.projectName, companyId: projectInfo.companyId };
 }
 
 /**
- * code_group_id로 project_id와 company_id를 조회한다. audit 내부에서만 사용한다.
+ * code_group_id로 project_id/project_name/company_id를 조회한다. audit 내부에서만 사용한다.
  * code_group/code_item 엔티티는 서비스 시그니처에 company_id가 없으므로
  * code_group → project → company 순으로 2단계 체인 조회가 필요하다.
  * @param codeGroupId 조회할 코드 그룹 ID
- * @returns { projectId, companyId }, 실패 시 null
+ * @returns { projectId, projectName, companyId }, 실패 시 null
  */
-export async function resolveCodeGroupScope(codeGroupId: number): Promise<{ projectId: number; companyId: number } | null> {
+export async function resolveCodeGroupScope(codeGroupId: number): Promise<{ projectId: number; projectName: string; companyId: number } | null> {
   const [status, [data]] = await callSP('SP_GET_CODE_GROUP', [codeGroupId]);
   if (status[0].RESULT !== 0)
     return null;
   const projectId = (data[0] as any)?.project_id;
   if (!projectId)
     return null;
-  const companyId = await resolveCompanyId(projectId);
-  if (!companyId)
+  const projectInfo = await resolveProjectInfo(projectId);
+  if (!projectInfo)
     return null;
-  return { projectId, companyId };
+  return { projectId, projectName: projectInfo.projectName, companyId: projectInfo.companyId };
 }
 
 /**
@@ -101,6 +118,7 @@ export async function resolveCodeGroupScope(codeGroupId: number): Promise<{ proj
  * @param targetName 대상 표시명
  * @param companyId 감사 로그 company_id
  * @param projectId 감사 로그 project_id (null 허용)
+ * @param projectName 감사 로그 project_name 스냅샷 (projectId가 null이면 null)
  * @param after 생성된 행
  * @param callerUserId 작업 수행 사용자 ID
  */
@@ -110,13 +128,17 @@ export function logCreate(
   targetName: string,
   companyId: number,
   projectId: number | null,
+  projectName: string | null,
   after: Record<string, unknown>,
   callerUserId: number,
 ): void {
-  db.insertLogAudit(
-    companyId, projectId, tableName, targetId, targetName,
-    10, null, toAuditJson(after), callerUserId,
-  ).catch(err => logger.warn({ err }, `audit log failed [CREATE ${tableName}]`));
+  (async () => {
+    const createdByName = await resolveUserName(callerUserId);
+    await db.insertLogAudit(
+      companyId, projectId, projectName, tableName, targetId, targetName,
+      10, null, toAuditJson(after), callerUserId, createdByName,
+    );
+  })().catch(err => logger.warn({ err }, `audit log failed [CREATE ${tableName}]`));
 }
 
 /**
@@ -129,6 +151,7 @@ export function logCreate(
  * @param targetName 대상 표시명
  * @param companyId 감사 로그 company_id
  * @param projectId 감사 로그 project_id (null 허용)
+ * @param projectName 감사 로그 project_name 스냅샷 (projectId가 null이면 null)
  * @param before 변경 전 행
  * @param after 변경 후 행
  * @param callerUserId 작업 수행 사용자 ID
@@ -139,11 +162,13 @@ export function logUpdate(
   targetName: string,
   companyId: number,
   projectId: number | null,
+  projectName: string | null,
   before: Record<string, unknown>,
   after: Record<string, unknown>,
   callerUserId: number,
 ): void {
   (async () => {
+    const createdByName = await resolveUserName(callerUserId);
     const beforeJson = toAuditJson(before);
     const afterJson  = toAuditJson(after);
     const statusChanged  = (before as any).status !== (after as any).status;
@@ -152,18 +177,18 @@ export function logUpdate(
     if (statusChanged && generalChanged) {
       const intermediate     = { ...after, status: (before as any).status };
       const intermediateJson = toAuditJson(intermediate as Record<string, unknown>);
-      await db.insertLogAudit(companyId, projectId, tableName, targetId, targetName, 20, beforeJson,      intermediateJson, callerUserId);
-      await db.insertLogAudit(companyId, projectId, tableName, targetId, targetName, 30, intermediateJson, afterJson,       callerUserId);
+      await db.insertLogAudit(companyId, projectId, projectName, tableName, targetId, targetName, 20, beforeJson,      intermediateJson, callerUserId, createdByName);
+      await db.insertLogAudit(companyId, projectId, projectName, tableName, targetId, targetName, 30, intermediateJson, afterJson,       callerUserId, createdByName);
     } else if (statusChanged) {
-      await db.insertLogAudit(companyId, projectId, tableName, targetId, targetName, 30, beforeJson, afterJson, callerUserId);
+      await db.insertLogAudit(companyId, projectId, projectName, tableName, targetId, targetName, 30, beforeJson, afterJson, callerUserId, createdByName);
     } else {
-      await db.insertLogAudit(companyId, projectId, tableName, targetId, targetName, 20, beforeJson, afterJson, callerUserId);
+      await db.insertLogAudit(companyId, projectId, projectName, tableName, targetId, targetName, 20, beforeJson, afterJson, callerUserId, createdByName);
     }
   })().catch(err => logger.warn({ err }, `audit log failed [UPDATE ${tableName}]`));
 }
 
 /**
- * user_role CREATE 감사 로그를 기록한다. project → company_id 를 내부에서 조회한다.
+ * user_role CREATE 감사 로그를 기록한다. project → company_id/project_name 을 내부에서 조회한다.
  * @author trisakion
  * @param userId 사용자 ID
  * @param projectId 프로젝트 ID
@@ -179,19 +204,20 @@ export function logCreateUserRole(
   callerUserId: number,
 ): void {
   (async () => {
-    const companyId = await resolveCompanyId(projectId);
-    if (!companyId)
+    const projectInfo = await resolveProjectInfo(projectId);
+    if (!projectInfo)
       return;
+    const createdByName = await resolveUserName(callerUserId);
     await db.insertLogAudit(
-      companyId, projectId, 'user_role',
+      projectInfo.companyId, projectId, projectInfo.projectName, 'user_role',
       JSON.stringify({ user_id: userId, project_id: projectId }),
-      loginId, 10, null, toAuditJson(after), callerUserId,
+      loginId, 10, null, toAuditJson(after), callerUserId, createdByName,
     );
   })().catch(err => logger.warn({ err }, 'audit log failed [CREATE user_role]'));
 }
 
 /**
- * user_role UPDATE 감사 로그를 기록한다. project → company_id 를 내부에서 조회한다.
+ * user_role UPDATE 감사 로그를 기록한다. project → company_id/project_name 을 내부에서 조회한다.
  * @author trisakion
  * @param userId 사용자 ID
  * @param projectId 프로젝트 ID
@@ -209,9 +235,10 @@ export function logUpdateUserRole(
   callerUserId: number,
 ): void {
   (async () => {
-    const companyId = await resolveCompanyId(projectId);
-    if (!companyId)
+    const projectInfo = await resolveProjectInfo(projectId);
+    if (!projectInfo)
       return;
+    const createdByName = await resolveUserName(callerUserId);
     const targetId   = JSON.stringify({ user_id: userId, project_id: projectId });
     const beforeJson = toAuditJson(before);
     const afterJson  = toAuditJson(after);
@@ -221,18 +248,18 @@ export function logUpdateUserRole(
     if (statusChanged && generalChanged) {
       const intermediate     = { ...after, status: (before as any).status };
       const intermediateJson = toAuditJson(intermediate as Record<string, unknown>);
-      await db.insertLogAudit(companyId, projectId, 'user_role', targetId, loginId, 20, beforeJson,      intermediateJson, callerUserId);
-      await db.insertLogAudit(companyId, projectId, 'user_role', targetId, loginId, 30, intermediateJson, afterJson,       callerUserId);
+      await db.insertLogAudit(projectInfo.companyId, projectId, projectInfo.projectName, 'user_role', targetId, loginId, 20, beforeJson,      intermediateJson, callerUserId, createdByName);
+      await db.insertLogAudit(projectInfo.companyId, projectId, projectInfo.projectName, 'user_role', targetId, loginId, 30, intermediateJson, afterJson,       callerUserId, createdByName);
     } else if (statusChanged) {
-      await db.insertLogAudit(companyId, projectId, 'user_role', targetId, loginId, 30, beforeJson, afterJson, callerUserId);
+      await db.insertLogAudit(projectInfo.companyId, projectId, projectInfo.projectName, 'user_role', targetId, loginId, 30, beforeJson, afterJson, callerUserId, createdByName);
     } else {
-      await db.insertLogAudit(companyId, projectId, 'user_role', targetId, loginId, 20, beforeJson, afterJson, callerUserId);
+      await db.insertLogAudit(projectInfo.companyId, projectId, projectInfo.projectName, 'user_role', targetId, loginId, 20, beforeJson, afterJson, callerUserId, createdByName);
     }
   })().catch(err => logger.warn({ err }, 'audit log failed [UPDATE user_role]'));
 }
 
 /**
- * api CREATE 감사 로그를 기록한다. project → company_id 를 내부에서 조회한다.
+ * api CREATE 감사 로그를 기록한다. project → company_id/project_name 을 내부에서 조회한다.
  * @author trisakion
  * @param projectId 프로젝트 ID
  * @param after 생성된 API 행
@@ -244,19 +271,20 @@ export function logCreateApi(
   callerUserId: number,
 ): void {
   (async () => {
-    const companyId = await resolveCompanyId(projectId);
-    if (!companyId)
+    const projectInfo = await resolveProjectInfo(projectId);
+    if (!projectInfo)
       return;
+    const createdByName = await resolveUserName(callerUserId);
     await db.insertLogAudit(
-      companyId, projectId, 'api',
+      projectInfo.companyId, projectId, projectInfo.projectName, 'api',
       String((after as any).api_id), (after as any).api_name as string,
-      10, null, toAuditJson(after), callerUserId,
+      10, null, toAuditJson(after), callerUserId, createdByName,
     );
   })().catch(err => logger.warn({ err }, 'audit log failed [CREATE api]'));
 }
 
 /**
- * api UPDATE 감사 로그를 기록한다. project → company_id 를 내부에서 조회한다.
+ * api UPDATE 감사 로그를 기록한다. project → company_id/project_name 을 내부에서 조회한다.
  * @author trisakion
  * @param projectId 프로젝트 ID
  * @param before 변경 전 API 행
@@ -270,9 +298,10 @@ export function logUpdateApi(
   callerUserId: number,
 ): void {
   (async () => {
-    const companyId = await resolveCompanyId(projectId);
-    if (!companyId)
+    const projectInfo = await resolveProjectInfo(projectId);
+    if (!projectInfo)
       return;
+    const createdByName = await resolveUserName(callerUserId);
     const targetId   = String((after as any).api_id);
     const targetName = (after as any).api_name as string;
     const beforeJson = toAuditJson(before);
@@ -283,18 +312,18 @@ export function logUpdateApi(
     if (statusChanged && generalChanged) {
       const intermediate     = { ...after, status: (before as any).status };
       const intermediateJson = toAuditJson(intermediate as Record<string, unknown>);
-      await db.insertLogAudit(companyId, projectId, 'api', targetId, targetName, 20, beforeJson,      intermediateJson, callerUserId);
-      await db.insertLogAudit(companyId, projectId, 'api', targetId, targetName, 30, intermediateJson, afterJson,       callerUserId);
+      await db.insertLogAudit(projectInfo.companyId, projectId, projectInfo.projectName, 'api', targetId, targetName, 20, beforeJson,      intermediateJson, callerUserId, createdByName);
+      await db.insertLogAudit(projectInfo.companyId, projectId, projectInfo.projectName, 'api', targetId, targetName, 30, intermediateJson, afterJson,       callerUserId, createdByName);
     } else if (statusChanged) {
-      await db.insertLogAudit(companyId, projectId, 'api', targetId, targetName, 30, beforeJson, afterJson, callerUserId);
+      await db.insertLogAudit(projectInfo.companyId, projectId, projectInfo.projectName, 'api', targetId, targetName, 30, beforeJson, afterJson, callerUserId, createdByName);
     } else {
-      await db.insertLogAudit(companyId, projectId, 'api', targetId, targetName, 20, beforeJson, afterJson, callerUserId);
+      await db.insertLogAudit(projectInfo.companyId, projectId, projectInfo.projectName, 'api', targetId, targetName, 20, beforeJson, afterJson, callerUserId, createdByName);
     }
   })().catch(err => logger.warn({ err }, 'audit log failed [UPDATE api]'));
 }
 
 /**
- * api_request CREATE 감사 로그를 기록한다. api → project → company_id 를 내부에서 조회한다.
+ * api_request CREATE 감사 로그를 기록한다. api → project → company_id/project_name 을 내부에서 조회한다.
  * @author trisakion
  * @param apiId 소속 API ID
  * @param after 생성된 API Request 행
@@ -309,16 +338,17 @@ export function logCreateApiRequest(
     const scope = await resolveApiScope(apiId);
     if (!scope)
       return;
+    const createdByName = await resolveUserName(callerUserId);
     await db.insertLogAudit(
-      scope.companyId, scope.projectId, 'api_request',
+      scope.companyId, scope.projectId, scope.projectName, 'api_request',
       String((after as any).api_request_id), (after as any).parameter_name as string,
-      10, null, toAuditJson(after), callerUserId,
+      10, null, toAuditJson(after), callerUserId, createdByName,
     );
   })().catch(err => logger.warn({ err }, 'audit log failed [CREATE api_request]'));
 }
 
 /**
- * api_request UPDATE 감사 로그를 기록한다. api → project → company_id 를 내부에서 조회한다.
+ * api_request UPDATE 감사 로그를 기록한다. api → project → company_id/project_name 을 내부에서 조회한다.
  * @author trisakion
  * @param apiId 소속 API ID
  * @param before 변경 전 행
@@ -335,6 +365,7 @@ export function logUpdateApiRequest(
     const scope = await resolveApiScope(apiId);
     if (!scope)
       return;
+    const createdByName = await resolveUserName(callerUserId);
     const targetId   = String((after as any).api_request_id);
     const targetName = (after as any).parameter_name as string;
     const beforeJson = toAuditJson(before);
@@ -345,12 +376,12 @@ export function logUpdateApiRequest(
     if (statusChanged && generalChanged) {
       const intermediate     = { ...after, status: (before as any).status };
       const intermediateJson = toAuditJson(intermediate as Record<string, unknown>);
-      await db.insertLogAudit(scope.companyId, scope.projectId, 'api_request', targetId, targetName, 20, beforeJson,      intermediateJson, callerUserId);
-      await db.insertLogAudit(scope.companyId, scope.projectId, 'api_request', targetId, targetName, 30, intermediateJson, afterJson,       callerUserId);
+      await db.insertLogAudit(scope.companyId, scope.projectId, scope.projectName, 'api_request', targetId, targetName, 20, beforeJson,      intermediateJson, callerUserId, createdByName);
+      await db.insertLogAudit(scope.companyId, scope.projectId, scope.projectName, 'api_request', targetId, targetName, 30, intermediateJson, afterJson,       callerUserId, createdByName);
     } else if (statusChanged) {
-      await db.insertLogAudit(scope.companyId, scope.projectId, 'api_request', targetId, targetName, 30, beforeJson, afterJson, callerUserId);
+      await db.insertLogAudit(scope.companyId, scope.projectId, scope.projectName, 'api_request', targetId, targetName, 30, beforeJson, afterJson, callerUserId, createdByName);
     } else {
-      await db.insertLogAudit(scope.companyId, scope.projectId, 'api_request', targetId, targetName, 20, beforeJson, afterJson, callerUserId);
+      await db.insertLogAudit(scope.companyId, scope.projectId, scope.projectName, 'api_request', targetId, targetName, 20, beforeJson, afterJson, callerUserId, createdByName);
     }
   })().catch(err => logger.warn({ err }, 'audit log failed [UPDATE api_request]'));
 }
@@ -368,10 +399,11 @@ export function logCreateApiResponse(
     const scope = await resolveApiScope(apiId);
     if (!scope)
       return;
+    const createdByName = await resolveUserName(callerUserId);
     await db.insertLogAudit(
-      scope.companyId, scope.projectId, 'api_response',
+      scope.companyId, scope.projectId, scope.projectName, 'api_response',
       String((after as any).api_response_id), (after as any).parameter_name as string,
-      10, null, toAuditJson(after), callerUserId,
+      10, null, toAuditJson(after), callerUserId, createdByName,
     );
   })().catch(err => logger.warn({ err }, 'audit log failed [CREATE api_response]'));
 }
@@ -390,6 +422,7 @@ export function logUpdateApiResponse(
     const scope = await resolveApiScope(apiId);
     if (!scope)
       return;
+    const createdByName = await resolveUserName(callerUserId);
     const targetId   = String((after as any).api_response_id);
     const targetName = (after as any).parameter_name as string;
     const beforeJson = toAuditJson(before);
@@ -400,12 +433,12 @@ export function logUpdateApiResponse(
     if (statusChanged && generalChanged) {
       const intermediate     = { ...after, status: (before as any).status };
       const intermediateJson = toAuditJson(intermediate as Record<string, unknown>);
-      await db.insertLogAudit(scope.companyId, scope.projectId, 'api_response', targetId, targetName, 20, beforeJson,      intermediateJson, callerUserId);
-      await db.insertLogAudit(scope.companyId, scope.projectId, 'api_response', targetId, targetName, 30, intermediateJson, afterJson,       callerUserId);
+      await db.insertLogAudit(scope.companyId, scope.projectId, scope.projectName, 'api_response', targetId, targetName, 20, beforeJson,      intermediateJson, callerUserId, createdByName);
+      await db.insertLogAudit(scope.companyId, scope.projectId, scope.projectName, 'api_response', targetId, targetName, 30, intermediateJson, afterJson,       callerUserId, createdByName);
     } else if (statusChanged) {
-      await db.insertLogAudit(scope.companyId, scope.projectId, 'api_response', targetId, targetName, 30, beforeJson, afterJson, callerUserId);
+      await db.insertLogAudit(scope.companyId, scope.projectId, scope.projectName, 'api_response', targetId, targetName, 30, beforeJson, afterJson, callerUserId, createdByName);
     } else {
-      await db.insertLogAudit(scope.companyId, scope.projectId, 'api_response', targetId, targetName, 20, beforeJson, afterJson, callerUserId);
+      await db.insertLogAudit(scope.companyId, scope.projectId, scope.projectName, 'api_response', targetId, targetName, 20, beforeJson, afterJson, callerUserId, createdByName);
     }
   })().catch(err => logger.warn({ err }, 'audit log failed [UPDATE api_response]'));
 }
@@ -420,13 +453,14 @@ export function logCreateCodeGroup(
   callerUserId: number,
 ): void {
   (async () => {
-    const companyId = await resolveCompanyId(projectId);
-    if (!companyId)
+    const projectInfo = await resolveProjectInfo(projectId);
+    if (!projectInfo)
       return;
+    const createdByName = await resolveUserName(callerUserId);
     await db.insertLogAudit(
-      companyId, projectId, 'code_group',
+      projectInfo.companyId, projectId, projectInfo.projectName, 'code_group',
       String((after as any).code_group_id), (after as any).code_group_name as string,
-      10, null, toAuditJson(after), callerUserId,
+      10, null, toAuditJson(after), callerUserId, createdByName,
     );
   })().catch(err => logger.warn({ err }, 'audit log failed [CREATE code_group]'));
 }
@@ -442,9 +476,10 @@ export function logUpdateCodeGroup(
   callerUserId: number,
 ): void {
   (async () => {
-    const companyId = await resolveCompanyId(projectId);
-    if (!companyId)
+    const projectInfo = await resolveProjectInfo(projectId);
+    if (!projectInfo)
       return;
+    const createdByName = await resolveUserName(callerUserId);
     const targetId   = String((after as any).code_group_id);
     const targetName = (after as any).code_group_name as string;
     const beforeJson = toAuditJson(before);
@@ -455,12 +490,12 @@ export function logUpdateCodeGroup(
     if (statusChanged && generalChanged) {
       const intermediate     = { ...after, status: (before as any).status };
       const intermediateJson = toAuditJson(intermediate as Record<string, unknown>);
-      await db.insertLogAudit(companyId, projectId, 'code_group', targetId, targetName, 20, beforeJson,      intermediateJson, callerUserId);
-      await db.insertLogAudit(companyId, projectId, 'code_group', targetId, targetName, 30, intermediateJson, afterJson,       callerUserId);
+      await db.insertLogAudit(projectInfo.companyId, projectId, projectInfo.projectName, 'code_group', targetId, targetName, 20, beforeJson,      intermediateJson, callerUserId, createdByName);
+      await db.insertLogAudit(projectInfo.companyId, projectId, projectInfo.projectName, 'code_group', targetId, targetName, 30, intermediateJson, afterJson,       callerUserId, createdByName);
     } else if (statusChanged) {
-      await db.insertLogAudit(companyId, projectId, 'code_group', targetId, targetName, 30, beforeJson, afterJson, callerUserId);
+      await db.insertLogAudit(projectInfo.companyId, projectId, projectInfo.projectName, 'code_group', targetId, targetName, 30, beforeJson, afterJson, callerUserId, createdByName);
     } else {
-      await db.insertLogAudit(companyId, projectId, 'code_group', targetId, targetName, 20, beforeJson, afterJson, callerUserId);
+      await db.insertLogAudit(projectInfo.companyId, projectId, projectInfo.projectName, 'code_group', targetId, targetName, 20, beforeJson, afterJson, callerUserId, createdByName);
     }
   })().catch(err => logger.warn({ err }, 'audit log failed [UPDATE code_group]'));
 }
@@ -478,10 +513,11 @@ export function logCreateCodeItem(
     const scope = await resolveCodeGroupScope(codeGroupId);
     if (!scope)
       return;
+    const createdByName = await resolveUserName(callerUserId);
     await db.insertLogAudit(
-      scope.companyId, scope.projectId, 'code_item',
+      scope.companyId, scope.projectId, scope.projectName, 'code_item',
       String((after as any).code_item_id), (after as any).code_name as string,
-      10, null, toAuditJson(after), callerUserId,
+      10, null, toAuditJson(after), callerUserId, createdByName,
     );
   })().catch(err => logger.warn({ err }, 'audit log failed [CREATE code_item]'));
 }
@@ -500,6 +536,7 @@ export function logUpdateCodeItem(
     const scope = await resolveCodeGroupScope(codeGroupId);
     if (!scope)
       return;
+    const createdByName = await resolveUserName(callerUserId);
     const targetId   = String((after as any).code_item_id);
     const targetName = (after as any).code_name as string;
     const beforeJson = toAuditJson(before);
@@ -510,12 +547,12 @@ export function logUpdateCodeItem(
     if (statusChanged && generalChanged) {
       const intermediate     = { ...after, status: (before as any).status };
       const intermediateJson = toAuditJson(intermediate as Record<string, unknown>);
-      await db.insertLogAudit(scope.companyId, scope.projectId, 'code_item', targetId, targetName, 20, beforeJson,      intermediateJson, callerUserId);
-      await db.insertLogAudit(scope.companyId, scope.projectId, 'code_item', targetId, targetName, 30, intermediateJson, afterJson,       callerUserId);
+      await db.insertLogAudit(scope.companyId, scope.projectId, scope.projectName, 'code_item', targetId, targetName, 20, beforeJson,      intermediateJson, callerUserId, createdByName);
+      await db.insertLogAudit(scope.companyId, scope.projectId, scope.projectName, 'code_item', targetId, targetName, 30, intermediateJson, afterJson,       callerUserId, createdByName);
     } else if (statusChanged) {
-      await db.insertLogAudit(scope.companyId, scope.projectId, 'code_item', targetId, targetName, 30, beforeJson, afterJson, callerUserId);
+      await db.insertLogAudit(scope.companyId, scope.projectId, scope.projectName, 'code_item', targetId, targetName, 30, beforeJson, afterJson, callerUserId, createdByName);
     } else {
-      await db.insertLogAudit(scope.companyId, scope.projectId, 'code_item', targetId, targetName, 20, beforeJson, afterJson, callerUserId);
+      await db.insertLogAudit(scope.companyId, scope.projectId, scope.projectName, 'code_item', targetId, targetName, 20, beforeJson, afterJson, callerUserId, createdByName);
     }
   })().catch(err => logger.warn({ err }, 'audit log failed [UPDATE code_item]'));
 }

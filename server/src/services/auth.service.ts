@@ -79,7 +79,7 @@ export async function signup(
     position,
   );
   audit.logCreate('user', String(after.user_id), after.user_name,
-    after.company_id, null, after as unknown as Record<string, unknown>, after.user_id);
+    after.company_id, null, null, after as unknown as Record<string, unknown>, after.user_id);
   return { ...after, phone_number: decrypt(after.phone_number) };
 }
 
@@ -230,7 +230,7 @@ export async function changePassword(
   const after = await db.getUserById(userId);
   if (before && after)
     audit.logUpdate('user', String(userId), before.user_name,
-      callerCompanyId, null,
+      callerCompanyId, null, null,
       before as unknown as Record<string, unknown>,
       after  as unknown as Record<string, unknown>,
       userId);

@@ -4,9 +4,12 @@ import { toDBError, ERROR_MAP } from '../constants/errors';
 
 /**
  * 감사 로그를 INSERT한다.
+ * project_name/created_by_name은 조회 시점 JOIN 대신 적재 시점 스냅샷으로 저장한다
+ * (log_audit를 별도 DB로 분리해도 project/user 테이블 조인 없이 조회 가능하도록).
  * @author trisakion
  * @param companyId 회사 ID
  * @param projectId 프로젝트 ID (없으면 null)
+ * @param projectName 프로젝트명 스냅샷 (projectId가 null이면 null)
  * @param tableName 대상 테이블명
  * @param targetId 대상 PK (복합키는 JSON 문자열)
  * @param targetName 대상 표시명
@@ -14,11 +17,13 @@ import { toDBError, ERROR_MAP } from '../constants/errors';
  * @param beforeJson 변경 전 데이터 JSON (CREATE 시 null)
  * @param afterJson 변경 후 데이터 JSON
  * @param createdBy 작업 수행 사용자 ID
+ * @param createdByName 작업 수행 사용자명 스냅샷 (조회 실패 시 null)
  * @returns void
  */
 export async function insertLogAudit(
   companyId: number,
   projectId: number | null,
+  projectName: string | null,
   tableName: string,
   targetId: string,
   targetName: string,
@@ -26,10 +31,11 @@ export async function insertLogAudit(
   beforeJson: string | null,
   afterJson: string,
   createdBy: number,
+  createdByName: string | null,
 ): Promise<void> {
   await callSP('SP_INSERT_LOG_AUDIT', [
-    companyId, projectId, tableName, targetId, targetName,
-    actionType, beforeJson, afterJson, createdBy,
+    companyId, projectId, projectName, tableName, targetId, targetName,
+    actionType, beforeJson, afterJson, createdBy, createdByName,
   ]);
 }
 

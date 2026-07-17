@@ -45,7 +45,7 @@ export async function createProject(
   assertCompanyScope(callerRoleCode, callerCompanyId, companyId);
   const after = await db.createProject(companyId, projectCode, projectName, apiBaseUrl, description);
   audit.logCreate('project', String(after.project_id), after.project_name,
-    after.company_id, after.project_id, after as unknown as Record<string, unknown>, callerUserId);
+    after.company_id, after.project_id, after.project_name, after as unknown as Record<string, unknown>, callerUserId);
   return after;
 }
 
@@ -119,7 +119,7 @@ export async function updateProject(
     assertCompanyScope(callerRoleCode, callerCompanyId, before.company_id);
   const after  = await db.updateProject(projectId, projectCode, projectName, description, status);
   audit.logUpdate('project', String(after.project_id), after.project_name,
-    after.company_id, after.project_id,
+    after.company_id, after.project_id, after.project_name,
     before! as unknown as Record<string, unknown>,
     after   as unknown as Record<string, unknown>,
     callerUserId);
@@ -151,7 +151,7 @@ export async function updateProjectConnection(
   await assertProjectRole(callerUserId, callerRoleCode, projectId, [ROLE.DEVELOPER]);
   const after = await db.updateProjectConnection(projectId, apiBaseUrl);
   audit.logUpdate('project', String(after.project_id), after.project_name,
-    after.company_id, after.project_id,
+    after.company_id, after.project_id, after.project_name,
     before as unknown as Record<string, unknown>,
     after  as unknown as Record<string, unknown>,
     callerUserId);
@@ -180,7 +180,7 @@ export async function issueApiKey(
   const plainKey = randomBytes(32).toString('hex');
   const after = await db.issueProjectApiKey(projectId, encrypt(plainKey));
   audit.logUpdate('project', String(after.project_id), after.project_name,
-    after.company_id, after.project_id,
+    after.company_id, after.project_id, after.project_name,
     before as unknown as Record<string, unknown>,
     after  as unknown as Record<string, unknown>,
     callerUserId);

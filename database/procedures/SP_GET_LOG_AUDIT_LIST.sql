@@ -29,12 +29,10 @@ BEGIN
       AND (i_from_created_at   IS NULL OR `created_at`  >= i_from_created_at)
       AND (i_to_created_at     IS NULL OR `created_at`  <= i_to_created_at);
 
-    SELECT la.`log_audit_id`, la.`company_id`, la.`project_id`, p.`project_name`,
+    SELECT la.`log_audit_id`, la.`company_id`, la.`project_id`, la.`project_name`,
            la.`table_name`, la.`target_id`, la.`target_name`, la.`action_type`,
-           u.`user_name` AS `created_by_name`, la.`created_at`
+           la.`created_by_name`, la.`created_at`
     FROM `log_audit` la
-    LEFT JOIN `project` p ON p.`project_id` = la.`project_id`
-    LEFT JOIN `user`    u ON u.`user_id`    = la.`created_by`
     WHERE (i_caller_role_code = 10 OR la.`company_id` = i_caller_company_id)
       AND (i_company_id        IS NULL OR la.`company_id`   = i_company_id)
       AND (i_project_id        IS NULL OR la.`project_id`   = i_project_id)

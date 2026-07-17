@@ -83,7 +83,7 @@ export async function updateUser(
     assertCompanyScope(callerRoleCode, callerCompanyId, before.company_id);
   const after  = await db.updateUser(userId, userName, email, phoneNumber ? encrypt(phoneNumber) : null, department, position, status);
   audit.logUpdate('user', String(after.user_id), after.user_name,
-    after.company_id, null,
+    after.company_id, null, null,
     before! as unknown as Record<string, unknown>,
     after   as unknown as Record<string, unknown>,
     callerUserId);
@@ -109,7 +109,7 @@ export async function approveUser(
     assertCompanyScope(callerRoleCode, callerCompanyId, before.company_id);
   const after  = await db.approveUser(userId);
   audit.logUpdate('user', String(after.user_id), after.user_name,
-    after.company_id, null,
+    after.company_id, null, null,
     before! as unknown as Record<string, unknown>,
     after   as unknown as Record<string, unknown>,
     callerUserId);
@@ -134,7 +134,7 @@ export async function rejectUser(
     assertCompanyScope(callerRoleCode, callerCompanyId, before.company_id);
   const after  = await db.rejectUser(userId);
   audit.logUpdate('user', String(after.user_id), after.user_name,
-    after.company_id, null,
+    after.company_id, null, null,
     before! as unknown as Record<string, unknown>,
     after   as unknown as Record<string, unknown>,
     callerUserId);
@@ -164,7 +164,7 @@ export async function resetPassword(
   await db.resetPassword(userId, passwordHash);
   const after = await db.getUser(userId);
   audit.logUpdate('user', String(userId), before.user_name,
-    before.company_id, null,
+    before.company_id, null, null,
     before  as unknown as Record<string, unknown>,
     after!  as unknown as Record<string, unknown>,
     callerUserId);
