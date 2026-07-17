@@ -32,7 +32,7 @@ export async function createCodeItem(
 
 /**
  * 코드 그룹의 코드 아이템 목록을 반환한다.
- * SUPER_ADMIN은 전체, 일반 사용자는 소속 프로젝트에 권한이 있는 경우만 조회 가능하다.
+ * SUPER_ADMIN은 전체, 일반 사용자는 소속 프로젝트에 권한이 있는 경우만 조회 가능하다. 미권한 시 DBError(20001)를 던진다.
  * @author trisakion
  * @param codeGroupId 소속 코드 그룹 ID
  * @param status 상태 필터 (null=전체)
@@ -46,7 +46,9 @@ export async function getCodeItemList(
   callerRoleCode: number,
   callerUserId: number,
 ): Promise<CodeItemRow[]> {
-  const [, [data]] = await callSP('SP_GET_CODE_ITEM_LIST', [codeGroupId, status, callerRoleCode, callerUserId]);
+  const [spStatus, [data]] = await callSP('SP_GET_CODE_ITEM_LIST', [codeGroupId, status, callerRoleCode, callerUserId]);
+  if (spStatus[0].RESULT === 20001)
+    throw toDBError(ERROR_MAP.FORBIDDEN);
   return data as unknown as CodeItemRow[];
 }
 

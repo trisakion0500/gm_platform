@@ -11,6 +11,7 @@ BEGIN
 -- 작성 : 2026-06-29 trisakion
 -- 수정 : 2026-07-02 trisakion - 스코핑 기준을 company 소속에서 user_role 배정으로 변경
 -- 수정 : 2026-07-15 trisakion - api_key 원문 대신 has_api_key(발급 여부)만 반환
+-- 수정 : 2026-07-17 trisakion - EXISTS 인라인 체크를 FN_HAS_PROJECT_ROLE() 호출로 공용화
 -- 내용 : 프로젝트 단건 조회
 --        SUPER_ADMIN(10) : 모든 프로젝트 조회 가능
 --        그 외           : 본인이 활성 user_role을 가진 프로젝트만 조회 가능
@@ -22,12 +23,7 @@ BEGIN
         IF NOT EXISTS (
             SELECT 1 FROM `project`
             WHERE `project_id` = i_project_id
-              AND (i_role_code = 10 OR EXISTS (
-                    SELECT 1 FROM `user_role` ur
-                    WHERE ur.`project_id` = i_project_id
-                      AND ur.`user_id` = i_user_id
-                      AND ur.`status` = 1
-                  ))
+              AND FN_HAS_PROJECT_ROLE(i_role_code, i_user_id, i_project_id)
         ) THEN
             SELECT 31002 AS RESULT;
             LEAVE transaction_block;

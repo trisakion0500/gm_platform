@@ -41,7 +41,7 @@ export async function createApi(
 
 /**
  * API 목록을 페이지네이션으로 조회한다.
- * SUPER_ADMIN은 전체, 일반 사용자는 권한 있는 프로젝트만 조회 가능하다.
+ * SUPER_ADMIN은 전체, 일반 사용자는 권한 있는 프로젝트만 조회 가능하다. 미권한 시 DBError(20001)를 던진다.
  * @author trisakion
  * @param projectId 프로젝트 ID
  * @param status 상태 필터 (null=전체)
@@ -61,9 +61,11 @@ export async function getApiList(
   callerRoleCode: number,
   callerUserId: number,
 ): Promise<{ total_count: number; items: APIRow[] }> {
-  const [, [countRows, itemRows]] = await callSP('SP_GET_API_LIST', [
+  const [spStatus, [countRows, itemRows]] = await callSP('SP_GET_API_LIST', [
     projectId, status, apiStage, page, pageSize, callerRoleCode, callerUserId,
   ]);
+  if (spStatus[0].RESULT === 20001)
+    throw toDBError(ERROR_MAP.FORBIDDEN);
   return {
     total_count: (countRows[0] as unknown as { total_count: number }).total_count,
     items: itemRows as unknown as APIRow[],
@@ -72,7 +74,7 @@ export async function getApiList(
 
 /**
  * 사이드바 API 메뉴용 활성 API 전체를 조회한다 (페이지네이션 없음).
- * SUPER_ADMIN은 전체, 일반 사용자는 권한 있는 프로젝트만 조회 가능하다.
+ * SUPER_ADMIN은 전체, 일반 사용자는 권한 있는 프로젝트만 조회 가능하다. 미권한 시 DBError(20001)를 던진다.
  * @author trisakion
  * @param projectId 프로젝트 ID
  * @param callerRoleCode 요청자 역할 코드
@@ -84,7 +86,9 @@ export async function getActiveApis(
   callerRoleCode: number,
   callerUserId: number,
 ): Promise<ActiveApiRow[]> {
-  const [, [items]] = await callSP('SP_GET_ACTIVE_APIS', [projectId, callerRoleCode, callerUserId]);
+  const [status, [items]] = await callSP('SP_GET_ACTIVE_APIS', [projectId, callerRoleCode, callerUserId]);
+  if (status[0].RESULT === 20001)
+    throw toDBError(ERROR_MAP.FORBIDDEN);
   return items as unknown as ActiveApiRow[];
 }
 

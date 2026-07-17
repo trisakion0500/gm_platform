@@ -10,6 +10,7 @@ BEGIN
 -- 명칭 : SP_GET_API
 -- 작성 : 2026-06-30 trisakion
 -- 수정 : 2026-07-17 trisakion - 프로젝트 스코핑 추가 (i_caller_role_code, i_caller_user_id)
+-- 수정 : 2026-07-17 trisakion - EXISTS 인라인 체크를 FN_HAS_PROJECT_ROLE() 호출로 공용화
 -- 내용 : API 상세 조회
 --        SUPER_ADMIN(10) : 모든 API 조회 가능
 --        그 외           : 본인이 활성 user_role을 가진 프로젝트 소속 API만 조회 가능
@@ -22,12 +23,7 @@ BEGIN
         IF NOT EXISTS (
             SELECT 1 FROM `api` a
             WHERE a.`api_id` = i_api_id
-              AND (i_caller_role_code = 10 OR EXISTS (
-                    SELECT 1 FROM `user_role` ur
-                    WHERE ur.`project_id` = a.`project_id`
-                      AND ur.`user_id` = i_caller_user_id
-                      AND ur.`status` = 1
-                  ))
+              AND FN_HAS_PROJECT_ROLE(i_caller_role_code, i_caller_user_id, a.`project_id`)
         ) THEN
             SELECT 31006 AS RESULT;
             LEAVE proc_block;

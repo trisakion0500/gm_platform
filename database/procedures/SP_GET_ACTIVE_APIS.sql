@@ -9,24 +9,29 @@ BEGIN
 -- --------------------------------- --
 -- 명칭 : SP_GET_ACTIVE_APIS
 -- 작성 : 2026-07-05 trisakion
+-- 수정 : 2026-07-17 trisakion - EXISTS 인라인 체크를 FN_HAS_PROJECT_ROLE() 호출로 공용화
+-- 수정 : 2026-07-17 trisakion - 미권한 시 빈 목록 대신 20001 반환, 가드절을 최상단으로 이동
 -- 내용 : 활성(status=1) API 전체 조회 (페이지네이션 없음)
 --        SUPER_ADMIN(10) : 해당 프로젝트 전체 조회
---        일반 사용자     : user_role 에 등록된 프로젝트만 조회
+--        일반 사용자     : user_role 에 등록된 프로젝트가 아니면 20001
 -- --------------------------------- --
 
-    SELECT 0 AS RESULT;
+    proc_block: BEGIN
 
-    SELECT a.`api_id`, a.`api_name`, a.`api_stage`
-    FROM `api` a
-    WHERE a.`project_id` = i_project_id
-      AND a.`status` = 1
-      AND (i_caller_role_code = 10 OR EXISTS (
-              SELECT 1 FROM `user_role` ur
-              WHERE ur.`user_id`    = i_caller_user_id
-                AND ur.`project_id` = a.`project_id`
-                AND ur.`status`     = 1
-          ))
-    ORDER BY a.`display_order` ASC;
+        IF NOT FN_HAS_PROJECT_ROLE(i_caller_role_code, i_caller_user_id, i_project_id) THEN
+            SELECT 20001 AS RESULT;
+            LEAVE proc_block;
+        END IF;
+
+        SELECT 0 AS RESULT;
+
+        SELECT a.`api_id`, a.`api_name`, a.`api_stage`
+        FROM `api` a
+        WHERE a.`project_id` = i_project_id
+          AND a.`status` = 1
+        ORDER BY a.`display_order` ASC;
+
+    END;
 
 END$
 

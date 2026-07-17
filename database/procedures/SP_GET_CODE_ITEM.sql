@@ -10,6 +10,7 @@ BEGIN
 -- 명칭 : SP_GET_CODE_ITEM
 -- 작성 : 2026-06-29 trisakion
 -- 수정 : 2026-07-17 trisakion - 프로젝트 스코핑 추가 (i_caller_role_code, i_caller_user_id)
+-- 수정 : 2026-07-17 trisakion - EXISTS 인라인 체크를 FN_HAS_PROJECT_ROLE() 호출로 공용화
 -- 내용 : code_item_id로 단건 조회
 --        SUPER_ADMIN(10) : 모든 코드 아이템 조회 가능
 --        그 외           : 본인이 활성 user_role을 가진 프로젝트 소속 코드 아이템만 조회 가능
@@ -41,12 +42,7 @@ BEGIN
         FROM   `code_item` ci
         JOIN   `code_group` g ON g.`code_group_id` = ci.`code_group_id`
         WHERE  ci.`code_item_id` = i_code_item_id
-          AND  (i_caller_role_code = 10 OR EXISTS (
-                SELECT 1 FROM `user_role` ur
-                WHERE ur.`project_id` = g.`project_id`
-                  AND ur.`user_id` = i_caller_user_id
-                  AND ur.`status` = 1
-              ));
+          AND  FN_HAS_PROJECT_ROLE(i_caller_role_code, i_caller_user_id, g.`project_id`);
 
         IF v_not_found = 1 THEN
             SELECT 31005 AS RESULT;

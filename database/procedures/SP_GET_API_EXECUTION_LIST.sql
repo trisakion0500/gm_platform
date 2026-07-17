@@ -16,53 +16,52 @@ BEGIN
 -- 명칭 : SP_GET_API_EXECUTION_LIST
 -- 작성 : 2026-06-30 trisakion
 -- 수정 : 2026-07-17 trisakion - company 단위 스코핑(i_caller_company_id)을 project 단위(user_role)로 좁힘
+-- 수정 : 2026-07-17 trisakion - EXISTS 인라인 체크를 FN_HAS_PROJECT_ROLE() 호출로 공용화
+-- 수정 : 2026-07-17 trisakion - 미권한 시 빈 목록 대신 20001 반환, 가드절을 최상단으로 이동
 -- 내용 : API 실행 이력 목록 조회
 --        SUPER_ADMIN(10) : 모든 project 가능
---        그 외           : 본인이 활성 user_role을 가진 프로젝트만 가능
+--        그 외           : 본인이 활성 user_role을 가진 프로젝트가 아니면 20001
 --        OPERATOR의 request_user_id 강제는 서비스 레이어에서 처리
 --        정렬 : requested_at DESC
 -- --------------------------------- --
 
     DECLARE v_offset  INT DEFAULT (i_page - 1) * i_page_size;
 
-    SELECT 0 AS RESULT;
+    proc_block: BEGIN
 
-    SELECT COUNT(ae.`api_execution_id`) AS total_count
-    FROM `api_execution` ae
-    JOIN `api` a ON a.`api_id` = ae.`api_id`
-    WHERE a.`project_id` = i_project_id
-      AND (i_caller_role_code = 10 OR EXISTS (
-              SELECT 1 FROM `user_role` ur
-              WHERE ur.`user_id`    = i_caller_user_id
-                AND ur.`project_id` = a.`project_id`
-                AND ur.`status`     = 1
-          ))
-      AND (i_api_id          IS NULL OR ae.`api_id`         = i_api_id)
-      AND (i_request_user_id IS NULL OR ae.`request_user_id` = i_request_user_id)
-      AND (i_status          IS NULL OR ae.`status`          = i_status)
-      AND (i_required_approval_only IS NULL OR ae.`is_required_approval` = i_required_approval_only);
+        IF NOT FN_HAS_PROJECT_ROLE(i_caller_role_code, i_caller_user_id, i_project_id) THEN
+            SELECT 20001 AS RESULT;
+            LEAVE proc_block;
+        END IF;
 
-    SELECT ae.`api_execution_id`, ae.`api_id`, ae.`api_name`, ae.`endpoint`, ae.`is_required_approval`,
-           ae.`request_user_id`, u1.`user_name` AS `request_user_name`, u2.`user_name` AS `approve_user_name`, ae.`status`,
-           ae.`reject_reason`, ae.`error_message`,
-           ae.`requested_at`, ae.`approved_at`, ae.`executed_at`, ae.`updated_at`
-    FROM `api_execution` ae
-    JOIN `api` a ON a.`api_id` = ae.`api_id`
-    LEFT JOIN `user` u1 ON u1.`user_id` = ae.`request_user_id`
-    LEFT JOIN `user` u2 ON u2.`user_id` = ae.`approve_user_id`
-    WHERE a.`project_id` = i_project_id
-      AND (i_caller_role_code = 10 OR EXISTS (
-              SELECT 1 FROM `user_role` ur
-              WHERE ur.`user_id`    = i_caller_user_id
-                AND ur.`project_id` = a.`project_id`
-                AND ur.`status`     = 1
-          ))
-      AND (i_api_id          IS NULL OR ae.`api_id`         = i_api_id)
-      AND (i_request_user_id IS NULL OR ae.`request_user_id` = i_request_user_id)
-      AND (i_status          IS NULL OR ae.`status`          = i_status)
-      AND (i_required_approval_only IS NULL OR ae.`is_required_approval` = i_required_approval_only)
-    ORDER BY ae.`requested_at` DESC
-    LIMIT i_page_size OFFSET v_offset;
+        SELECT 0 AS RESULT;
+
+        SELECT COUNT(ae.`api_execution_id`) AS total_count
+        FROM `api_execution` ae
+        JOIN `api` a ON a.`api_id` = ae.`api_id`
+        WHERE a.`project_id` = i_project_id
+          AND (i_api_id          IS NULL OR ae.`api_id`         = i_api_id)
+          AND (i_request_user_id IS NULL OR ae.`request_user_id` = i_request_user_id)
+          AND (i_status          IS NULL OR ae.`status`          = i_status)
+          AND (i_required_approval_only IS NULL OR ae.`is_required_approval` = i_required_approval_only);
+
+        SELECT ae.`api_execution_id`, ae.`api_id`, ae.`api_name`, ae.`endpoint`, ae.`is_required_approval`,
+               ae.`request_user_id`, u1.`user_name` AS `request_user_name`, u2.`user_name` AS `approve_user_name`, ae.`status`,
+               ae.`reject_reason`, ae.`error_message`,
+               ae.`requested_at`, ae.`approved_at`, ae.`executed_at`, ae.`updated_at`
+        FROM `api_execution` ae
+        JOIN `api` a ON a.`api_id` = ae.`api_id`
+        LEFT JOIN `user` u1 ON u1.`user_id` = ae.`request_user_id`
+        LEFT JOIN `user` u2 ON u2.`user_id` = ae.`approve_user_id`
+        WHERE a.`project_id` = i_project_id
+          AND (i_api_id          IS NULL OR ae.`api_id`         = i_api_id)
+          AND (i_request_user_id IS NULL OR ae.`request_user_id` = i_request_user_id)
+          AND (i_status          IS NULL OR ae.`status`          = i_status)
+          AND (i_required_approval_only IS NULL OR ae.`is_required_approval` = i_required_approval_only)
+        ORDER BY ae.`requested_at` DESC
+        LIMIT i_page_size OFFSET v_offset;
+
+    END;
 
 END$
 

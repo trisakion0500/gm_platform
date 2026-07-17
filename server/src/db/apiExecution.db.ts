@@ -79,9 +79,11 @@ export async function getApiExecutionList(
   callerRoleCode: number,
   callerUserId: number,
 ): Promise<{ total_count: number; items: APIExecutionRow[] }> {
-  const [, [countRows, itemRows]] = await callSP('SP_GET_API_EXECUTION_LIST', [
+  const [spStatus, [countRows, itemRows]] = await callSP('SP_GET_API_EXECUTION_LIST', [
     projectId, apiId, requestUserId, status, requiredApprovalOnly, page, pageSize, callerRoleCode, callerUserId,
   ]);
+  if (spStatus[0].RESULT === 20001)
+    throw toDBError(ERROR_MAP.FORBIDDEN);
   return {
     total_count: (countRows[0] as unknown as { total_count: number }).total_count,
     items: itemRows as unknown as APIExecutionRow[],
@@ -106,9 +108,11 @@ export async function getApiExecutionPending(
   callerRoleCode: number,
   callerUserId: number,
 ): Promise<{ total_count: number; items: APIExecutionRow[] }> {
-  const [, [countRows, itemRows]] = await callSP('SP_GET_API_EXECUTION_PENDING', [
+  const [spStatus, [countRows, itemRows]] = await callSP('SP_GET_API_EXECUTION_PENDING', [
     projectId, page, pageSize, callerRoleCode, callerUserId,
   ]);
+  if (spStatus[0].RESULT === 20001)
+    throw toDBError(ERROR_MAP.FORBIDDEN);
   return {
     total_count: (countRows[0] as unknown as { total_count: number }).total_count,
     items: itemRows as unknown as APIExecutionRow[],

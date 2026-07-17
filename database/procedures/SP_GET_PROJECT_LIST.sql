@@ -14,6 +14,7 @@ BEGIN
 -- 작성 : 2026-06-29 trisakion
 -- 수정 : 2026-07-02 trisakion - 스코핑 기준을 company 소속에서 user_role 배정으로 변경
 -- 수정 : 2026-07-15 trisakion - api_key 원문 대신 has_api_key(발급 여부)만 반환
+-- 수정 : 2026-07-17 trisakion - EXISTS 인라인 체크를 FN_HAS_PROJECT_ROLE() 호출로 공용화
 -- 내용 : 프로젝트 목록 조회
 --        SUPER_ADMIN(10) : 전체 프로젝트 반환
 --        그 외           : 본인이 활성 user_role을 가진 프로젝트만 반환
@@ -29,12 +30,7 @@ BEGIN
     FROM `project` p
     WHERE (i_status IS NULL OR p.`status` = i_status)
       AND (i_company_id IS NULL OR p.`company_id` = i_company_id)
-      AND (i_role_code = 10 OR EXISTS (
-            SELECT 1 FROM `user_role` ur
-            WHERE ur.`project_id` = p.`project_id`
-              AND ur.`user_id` = i_user_id
-              AND ur.`status` = 1
-          ));
+      AND FN_HAS_PROJECT_ROLE(i_role_code, i_user_id, p.`project_id`);
 
     SELECT p.`project_id`, p.`company_id`, c.`company_code`, c.`company_name`,
            p.`project_code`, p.`project_name`, p.`api_base_url`, p.`description`,
@@ -44,12 +40,7 @@ BEGIN
     JOIN `company` c ON c.`company_id` = p.`company_id`
     WHERE (i_status IS NULL OR p.`status` = i_status)
       AND (i_company_id IS NULL OR p.`company_id` = i_company_id)
-      AND (i_role_code = 10 OR EXISTS (
-            SELECT 1 FROM `user_role` ur
-            WHERE ur.`project_id` = p.`project_id`
-              AND ur.`user_id` = i_user_id
-              AND ur.`status` = 1
-          ))
+      AND FN_HAS_PROJECT_ROLE(i_role_code, i_user_id, p.`project_id`)
     ORDER BY p.`status` DESC, p.`project_name` ASC
     LIMIT i_page_size OFFSET v_offset;
 

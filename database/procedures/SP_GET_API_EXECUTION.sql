@@ -10,6 +10,7 @@ BEGIN
 -- 명칭 : SP_GET_API_EXECUTION
 -- 작성 : 2026-06-30 trisakion
 -- 수정 : 2026-07-17 trisakion - company 단위 스코핑(i_caller_company_id)을 project 단위(user_role)로 좁힘
+-- 수정 : 2026-07-17 trisakion - EXISTS 인라인 체크를 FN_HAS_PROJECT_ROLE() 호출로 공용화
 -- 내용 : API 실행 이력 상세 조회
 --        OPERATOR(40) : 본인 요청 건만 조회 가능 (31009)
 --        비SUPER_ADMIN : 대상 project_id에 대한 실제 활성 user_role이 없으면 조회 불가 (20001)
@@ -48,12 +49,7 @@ BEGIN
             LEAVE transaction_block;
         END IF;
 
-        IF i_caller_role_code != 10 AND NOT EXISTS (
-                SELECT 1 FROM `user_role` ur
-                WHERE ur.`user_id`    = i_caller_user_id
-                  AND ur.`project_id` = v_project_id
-                  AND ur.`status`     = 1
-            ) THEN
+        IF NOT FN_HAS_PROJECT_ROLE(i_caller_role_code, i_caller_user_id, v_project_id) THEN
             SELECT 20001 AS RESULT;
             LEAVE transaction_block;
         END IF;
