@@ -54,6 +54,7 @@ export async function updateApiExecutionResult(
 
 /**
  * API 실행 이력 목록을 페이지네이션으로 조회한다.
+ * SUPER_ADMIN은 전체, 일반 사용자는 권한 있는 프로젝트만 조회 가능하다.
  * OPERATOR의 request_user_id 강제 적용은 서비스 레이어에서 처리한다.
  * @author trisakion
  * @param projectId 프로젝트 ID
@@ -64,7 +65,7 @@ export async function updateApiExecutionResult(
  * @param page 페이지 번호 (1부터)
  * @param pageSize 페이지 크기 (20/30/50/100)
  * @param callerRoleCode 요청자 역할 코드
- * @param callerCompanyId 요청자 company_id
+ * @param callerUserId 요청자 user_id
  * @returns { total_count, items }
  */
 export async function getApiExecutionList(
@@ -76,10 +77,10 @@ export async function getApiExecutionList(
   page: number,
   pageSize: number,
   callerRoleCode: number,
-  callerCompanyId: number,
+  callerUserId: number,
 ): Promise<{ total_count: number; items: APIExecutionRow[] }> {
   const [, [countRows, itemRows]] = await callSP('SP_GET_API_EXECUTION_LIST', [
-    projectId, apiId, requestUserId, status, requiredApprovalOnly, page, pageSize, callerRoleCode, callerCompanyId,
+    projectId, apiId, requestUserId, status, requiredApprovalOnly, page, pageSize, callerRoleCode, callerUserId,
   ]);
   return {
     total_count: (countRows[0] as unknown as { total_count: number }).total_count,
@@ -89,12 +90,13 @@ export async function getApiExecutionList(
 
 /**
  * 승인 대기(status=10) 목록을 페이지네이션으로 조회한다.
+ * SUPER_ADMIN은 전체, 일반 사용자는 권한 있는 프로젝트만 조회 가능하다.
  * @author trisakion
  * @param projectId 프로젝트 ID
  * @param page 페이지 번호 (1부터)
  * @param pageSize 페이지 크기 (20/30/50/100)
  * @param callerRoleCode 요청자 역할 코드
- * @param callerCompanyId 요청자 company_id
+ * @param callerUserId 요청자 user_id
  * @returns { total_count, items }
  */
 export async function getApiExecutionPending(
@@ -102,10 +104,10 @@ export async function getApiExecutionPending(
   page: number,
   pageSize: number,
   callerRoleCode: number,
-  callerCompanyId: number,
+  callerUserId: number,
 ): Promise<{ total_count: number; items: APIExecutionRow[] }> {
   const [, [countRows, itemRows]] = await callSP('SP_GET_API_EXECUTION_PENDING', [
-    projectId, page, pageSize, callerRoleCode, callerCompanyId,
+    projectId, page, pageSize, callerRoleCode, callerUserId,
   ]);
   return {
     total_count: (countRows[0] as unknown as { total_count: number }).total_count,
@@ -115,23 +117,21 @@ export async function getApiExecutionPending(
 
 /**
  * API 실행 이력 단건을 조회한다.
- * OPERATOR는 본인 요청 건만, 비SUPER_ADMIN은 자신의 company 프로젝트만 조회 가능하다.
+ * OPERATOR는 본인 요청 건만, 비SUPER_ADMIN은 대상 프로젝트에 대한 실제 활성 user_role이 있어야 조회 가능하다.
  * 미존재 시 null, 접근 불가 시 DBError(20001)를 던진다.
  * @author trisakion
  * @param apiExecutionId 조회할 실행 이력 ID
  * @param callerRoleCode 요청자 역할 코드
  * @param callerUserId 요청자 user_id
- * @param callerCompanyId 요청자 company_id
  * @returns 실행 이력 상세, 없으면 null
  */
 export async function getApiExecution(
   apiExecutionId: number,
   callerRoleCode: number,
   callerUserId: number,
-  callerCompanyId: number,
 ): Promise<APIExecutionRow | null> {
   const [status, [data]] = await callSP('SP_GET_API_EXECUTION', [
-    apiExecutionId, callerRoleCode, callerUserId, callerCompanyId,
+    apiExecutionId, callerRoleCode, callerUserId,
   ]);
   switch (status[0].RESULT) {
     case 31009: return null;

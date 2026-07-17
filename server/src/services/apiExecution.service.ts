@@ -65,7 +65,7 @@ export async function executeApi(
 
   if (is_immediate === 1) {
     await callExternalApi(row.api_execution_id, api_base_url + row.endpoint, requestJson, api_key);
-    return (await db.getApiExecution(row.api_execution_id, roleCode, requestUserId, companyId))!;
+    return (await db.getApiExecution(row.api_execution_id, roleCode, requestUserId))!;
   }
 
   return execution as APIExecutionRow;
@@ -73,6 +73,7 @@ export async function executeApi(
 
 /**
  * API 실행 이력 목록을 조회한다.
+ * SUPER_ADMIN 외에는 대상 프로젝트에 대한 실제 활성 user_role이 있어야 조회 가능하다.
  * OPERATOR는 request_user_id가 본인 ID로 강제된다.
  * @author trisakion
  * @param projectId 프로젝트 ID
@@ -83,7 +84,7 @@ export async function executeApi(
  * @param page 페이지 번호
  * @param pageSize 페이지 크기
  * @param roleCode 요청자 역할 코드
- * @param companyId 요청자 company_id
+ * @param userId 요청자 user_id
  * @returns { total_count, items }
  */
 export async function getApiExecutionList(
@@ -95,19 +96,20 @@ export async function getApiExecutionList(
   page: number,
   pageSize: number,
   roleCode: number,
-  companyId: number,
+  userId: number,
 ): Promise<{ total_count: number; items: APIExecutionRow[] }> {
-  return db.getApiExecutionList(projectId, apiId, requestUserId, status, requiredApprovalOnly, page, pageSize, roleCode, companyId);
+  return db.getApiExecutionList(projectId, apiId, requestUserId, status, requiredApprovalOnly, page, pageSize, roleCode, userId);
 }
 
 /**
  * 승인 대기(PENDING) 목록을 조회한다.
+ * SUPER_ADMIN 외에는 대상 프로젝트에 대한 실제 활성 user_role이 있어야 조회 가능하다.
  * @author trisakion
  * @param projectId 프로젝트 ID
  * @param page 페이지 번호
  * @param pageSize 페이지 크기
  * @param roleCode 요청자 역할 코드
- * @param companyId 요청자 company_id
+ * @param userId 요청자 user_id
  * @returns { total_count, items }
  */
 export async function getApiExecutionPending(
@@ -115,9 +117,9 @@ export async function getApiExecutionPending(
   page: number,
   pageSize: number,
   roleCode: number,
-  companyId: number,
+  userId: number,
 ): Promise<{ total_count: number; items: APIExecutionRow[] }> {
-  return db.getApiExecutionPending(projectId, page, pageSize, roleCode, companyId);
+  return db.getApiExecutionPending(projectId, page, pageSize, roleCode, userId);
 }
 
 /**
@@ -126,16 +128,14 @@ export async function getApiExecutionPending(
  * @param executionId 실행 이력 ID
  * @param roleCode 요청자 역할 코드
  * @param userId 요청자 user_id
- * @param companyId 요청자 company_id
  * @returns 실행 이력 상세
  */
 export async function getApiExecution(
   executionId: number,
   roleCode: number,
   userId: number,
-  companyId: number,
 ): Promise<APIExecutionRow> {
-  const result = await db.getApiExecution(executionId, roleCode, userId, companyId);
+  const result = await db.getApiExecution(executionId, roleCode, userId);
   if (!result)
     throw toAppError(ERROR_MAP.API_EXECUTION_NOT_FOUND);
   return result;
@@ -148,14 +148,12 @@ export async function getApiExecution(
  * @param executionId 실행 이력 ID
  * @param approveUserId 승인자 user_id
  * @param callerRoleCode 승인자 역할 코드
- * @param callerCompanyId 승인자 company_id
  * @returns HTTP 호출 후 최종 실행 이력
  */
 export async function approveApiExecution(
   executionId: number,
   approveUserId: number,
   callerRoleCode: number,
-  callerCompanyId: number,
 ): Promise<APIExecutionRow> {
   const row = await db.approveApiExecution(executionId, approveUserId, callerRoleCode);
   if (!row)
@@ -164,7 +162,7 @@ export async function approveApiExecution(
   const { api_base_url, api_key, ...execution } = row;
   await callExternalApi(executionId, api_base_url + execution.endpoint, JSON.parse(execution.request_json!), api_key);
 
-  return (await db.getApiExecution(executionId, callerRoleCode, approveUserId, callerCompanyId))!;
+  return (await db.getApiExecution(executionId, callerRoleCode, approveUserId))!;
 }
 
 /**

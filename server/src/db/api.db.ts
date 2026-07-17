@@ -90,15 +90,20 @@ export async function getActiveApis(
 
 /**
  * API 단건을 조회한다. api, api_request 목록, api_response 목록을 함께 반환한다.
- * 미존재 시 null을 반환한다.
+ * SUPER_ADMIN 외에는 해당 API 소속 프로젝트에 활성 user_role이 없으면 미존재로 처리된다.
+ * 미존재 또는 접근 불가 시 null을 반환한다.
  * @author trisakion
  * @param apiId 조회할 API ID
+ * @param callerRoleCode 요청자 역할 코드 (프로젝트 스코핑용)
+ * @param callerUserId 요청자 user_id (프로젝트 스코핑용)
  * @returns { api, requests, responses }, 없으면 null
  */
 export async function getApi(
   apiId: number,
+  callerRoleCode: number,
+  callerUserId: number,
 ): Promise<{ api: APIRow; requests: APIRequestRow[]; responses: APIResponseRow[] } | null> {
-  const [status, [apiRows, requestRows, responseRows]] = await callSP('SP_GET_API', [apiId]);
+  const [status, [apiRows, requestRows, responseRows]] = await callSP('SP_GET_API', [apiId, callerRoleCode, callerUserId]);
   if (status[0].RESULT === 31006)
     return null;
   return {
@@ -191,13 +196,21 @@ export async function createApiRequest(
 }
 
 /**
- * API Request 파라미터 단건을 조회한다. 미존재 시 null을 반환한다.
+ * API Request 파라미터 단건을 조회한다.
+ * SUPER_ADMIN 외에는 소속 API의 프로젝트에 활성 user_role이 없으면 미존재로 처리된다.
+ * 미존재 또는 접근 불가 시 null을 반환한다.
  * @author trisakion
  * @param apiRequestId 조회할 API Request 파라미터 ID
+ * @param callerRoleCode 요청자 역할 코드 (프로젝트 스코핑용)
+ * @param callerUserId 요청자 user_id (프로젝트 스코핑용)
  * @returns API Request 파라미터 정보, 없으면 null
  */
-export async function getApiRequest(apiRequestId: number): Promise<APIRequestRow | null> {
-  const [status, [data]] = await callSP('SP_GET_API_REQUEST', [apiRequestId]);
+export async function getApiRequest(
+  apiRequestId: number,
+  callerRoleCode: number,
+  callerUserId: number,
+): Promise<APIRequestRow | null> {
+  const [status, [data]] = await callSP('SP_GET_API_REQUEST', [apiRequestId, callerRoleCode, callerUserId]);
   if (status[0].RESULT === 31007)
     return null;
   return data[0] as unknown as APIRequestRow;
@@ -280,13 +293,21 @@ export async function createApiResponse(
 }
 
 /**
- * API Response 파라미터 단건을 조회한다. 미존재 시 null을 반환한다.
+ * API Response 파라미터 단건을 조회한다.
+ * SUPER_ADMIN 외에는 소속 API의 프로젝트에 활성 user_role이 없으면 미존재로 처리된다.
+ * 미존재 또는 접근 불가 시 null을 반환한다.
  * @author trisakion
  * @param apiResponseId 조회할 API Response 파라미터 ID
+ * @param callerRoleCode 요청자 역할 코드 (프로젝트 스코핑용)
+ * @param callerUserId 요청자 user_id (프로젝트 스코핑용)
  * @returns API Response 파라미터 정보, 없으면 null
  */
-export async function getApiResponse(apiResponseId: number): Promise<APIResponseRow | null> {
-  const [status, [data]] = await callSP('SP_GET_API_RESPONSE', [apiResponseId]);
+export async function getApiResponse(
+  apiResponseId: number,
+  callerRoleCode: number,
+  callerUserId: number,
+): Promise<APIResponseRow | null> {
+  const [status, [data]] = await callSP('SP_GET_API_RESPONSE', [apiResponseId, callerRoleCode, callerUserId]);
   if (status[0].RESULT === 31008)
     return null;
   return data[0] as unknown as APIResponseRow;

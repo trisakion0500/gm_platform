@@ -35,23 +35,33 @@ export async function createCodeGroup(
  * @author trisakion
  * @param projectId 프로젝트 ID
  * @param status 상태 필터 (null=전체)
+ * @param callerRoleCode 요청자 역할 코드 (SUPER_ADMIN 외에는 해당 프로젝트에 대한 실제 user_role 보유 여부를 검증)
+ * @param callerUserId 요청자 user_id (프로젝트별 역할 검증용)
  * @returns 코드 그룹 목록
  */
 export async function getCodeGroupList(
   projectId: number,
   status: number | null,
+  callerRoleCode: number,
+  callerUserId: number,
 ): Promise<CodeGroupRow[]> {
-  return db.getCodeGroupList(projectId, status);
+  return db.getCodeGroupList(projectId, status, callerRoleCode, callerUserId);
 }
 
 /**
- * 코드 그룹 단건을 조회한다. 미존재 시 AppError(31004)를 던진다.
+ * 코드 그룹 단건을 조회한다. 미존재 또는 접근 불가 시 AppError(31004)를 던진다.
  * @author trisakion
  * @param codeGroupId 조회할 코드 그룹 ID
+ * @param callerRoleCode 요청자 역할 코드 (SUPER_ADMIN 외에는 소속 프로젝트에 대한 실제 user_role 보유 여부를 재검증)
+ * @param callerUserId 요청자 user_id (프로젝트별 역할 재검증용)
  * @returns 코드 그룹 정보
  */
-export async function getCodeGroup(codeGroupId: number): Promise<CodeGroupRow> {
-  const codeGroup = await db.getCodeGroup(codeGroupId);
+export async function getCodeGroup(
+  codeGroupId: number,
+  callerRoleCode: number,
+  callerUserId: number,
+): Promise<CodeGroupRow> {
+  const codeGroup = await db.getCodeGroup(codeGroupId, callerRoleCode, callerUserId);
   if (!codeGroup)
     throw toAppError(ERROR_MAP.CODE_GROUP_NOT_FOUND);
   return codeGroup;
@@ -76,7 +86,7 @@ export async function updateCodeGroup(
   updatedBy: number,
   callerRoleCode: number,
 ): Promise<CodeGroupRow> {
-  const before = await db.getCodeGroup(codeGroupId);
+  const before = await db.getCodeGroup(codeGroupId, callerRoleCode, updatedBy);
   if (!before)
     throw toAppError(ERROR_MAP.CODE_GROUP_NOT_FOUND);
   await assertProjectRole(updatedBy, callerRoleCode, before.project_id, [ROLE.DEVELOPER]);
@@ -92,10 +102,16 @@ export async function updateCodeGroup(
  * 코드 그룹의 활성 아이템 목록을 반환한다.
  * @author trisakion
  * @param codeGroupId 코드 그룹 ID
+ * @param callerRoleCode 요청자 역할 코드 (SUPER_ADMIN 외에는 소속 프로젝트에 대한 실제 user_role 보유 여부를 검증)
+ * @param callerUserId 요청자 user_id (프로젝트별 역할 검증용)
  * @returns 활성 코드 아이템 목록
  */
-export async function getActiveCodeItems(codeGroupId: number): Promise<ActiveCodeItemRow[]> {
-  return db.getActiveCodeItems(codeGroupId);
+export async function getActiveCodeItems(
+  codeGroupId: number,
+  callerRoleCode: number,
+  callerUserId: number,
+): Promise<ActiveCodeItemRow[]> {
+  return db.getActiveCodeItems(codeGroupId, callerRoleCode, callerUserId);
 }
 
 /**
@@ -104,10 +120,16 @@ export async function getActiveCodeItems(codeGroupId: number): Promise<ActiveCod
  * 코드그룹 관리 화면(`/admin/code-groups`)은 SUPER_ADMIN/DEVELOPER 전용이라, 이 엔드포인트로 별도 조회 경로를 제공한다.
  * @author trisakion
  * @param projectId 조회할 프로젝트 ID
+ * @param callerRoleCode 요청자 역할 코드 (SUPER_ADMIN 외에는 해당 프로젝트에 대한 실제 user_role 보유 여부를 검증)
+ * @param callerUserId 요청자 user_id (프로젝트별 역할 검증용)
  * @returns 코드그룹별로 묶인 활성 아이템 목록
  */
-export async function getActiveCodeGroupsWithItems(projectId: number): Promise<ActiveCodeGroupWithItems[]> {
-  const rows = await db.getActiveCodeGroupsWithItems(projectId);
+export async function getActiveCodeGroupsWithItems(
+  projectId: number,
+  callerRoleCode: number,
+  callerUserId: number,
+): Promise<ActiveCodeGroupWithItems[]> {
+  const rows = await db.getActiveCodeGroupsWithItems(projectId, callerRoleCode, callerUserId);
   const groups = new Map<number, ActiveCodeGroupWithItems>();
   for (const row of rows) {
     if (!groups.has(row.code_group_id)) {

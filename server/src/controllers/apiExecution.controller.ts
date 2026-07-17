@@ -90,7 +90,7 @@ export async function getApiExecutionList(req: Request, res: Response, next: Nex
 
     const result = await service.getApiExecutionList(
       projectId, apiIdNum, requestUserIdNum, statusNum, requiredApprovalOnlyNum,
-      paged.page, paged.pageSize, req.user!.role_code, req.user!.company_id,
+      paged.page, paged.pageSize, req.user!.role_code, req.user!.user_id,
     );
     success(res, {
       ...result,
@@ -126,7 +126,7 @@ export async function getApiExecutionPending(req: Request, res: Response, next: 
       return;
     }
     const result = await service.getApiExecutionPending(
-      projectId, paged.page, paged.pageSize, req.user!.role_code, req.user!.company_id,
+      projectId, paged.page, paged.pageSize, req.user!.role_code, req.user!.user_id,
     );
     success(res, {
       ...result,
@@ -152,7 +152,7 @@ export async function getApiExecution(req: Request, res: Response, next: NextFun
       return;
     }
     const execution = await service.getApiExecution(
-      executionId, req.user!.role_code, req.user!.user_id, req.user!.company_id,
+      executionId, req.user!.role_code, req.user!.user_id,
     );
     success(res, formatApiExecution(execution));
   } catch (err) {
@@ -175,7 +175,7 @@ export async function approveApiExecution(req: Request, res: Response, next: Nex
       return;
     }
     const execution = await service.approveApiExecution(
-      executionId, req.user!.user_id, req.user!.role_code, req.user!.company_id,
+      executionId, req.user!.user_id, req.user!.role_code,
     );
     success(res, formatApiExecution(execution));
   } catch (err) {

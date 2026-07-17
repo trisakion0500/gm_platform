@@ -79,15 +79,19 @@ export async function getActiveApis(
 }
 
 /**
- * API 단건을 조회한다. 미존재 시 AppError(31006)를 던진다.
+ * API 단건을 조회한다. 미존재 또는 접근 불가 시 AppError(31006)를 던진다.
  * @author trisakion
  * @param apiId 조회할 API ID
+ * @param callerRoleCode 요청자 역할 코드 (SUPER_ADMIN 외에는 소속 프로젝트의 실제 user_role 보유 여부를 재검증)
+ * @param callerUserId 요청자 user_id (프로젝트별 역할 재검증용)
  * @returns { api, requests, responses }
  */
 export async function getApi(
   apiId: number,
+  callerRoleCode: number,
+  callerUserId: number,
 ): Promise<{ api: APIRow; requests: APIRequestRow[]; responses: APIResponseRow[] }> {
-  const result = await db.getApi(apiId);
+  const result = await db.getApi(apiId, callerRoleCode, callerUserId);
   if (!result)
     throw toAppError(ERROR_MAP.API_NOT_FOUND);
   return result;
@@ -124,7 +128,7 @@ export async function updateApi(
   updatedBy: number,
   callerRoleCode: number,
 ): Promise<APIRow> {
-  const beforeResult = await db.getApi(apiId);
+  const beforeResult = await db.getApi(apiId, callerRoleCode, updatedBy);
   if (!beforeResult)
     throw toAppError(ERROR_MAP.API_NOT_FOUND);
   await assertProjectRole(updatedBy, callerRoleCode, beforeResult.api.project_id, [ROLE.DEVELOPER]);
@@ -175,13 +179,19 @@ export async function createApiRequest(
 }
 
 /**
- * API Request 파라미터 단건을 조회한다. 미존재 시 AppError(31007)를 던진다.
+ * API Request 파라미터 단건을 조회한다. 미존재 또는 접근 불가 시 AppError(31007)를 던진다.
  * @author trisakion
  * @param apiRequestId 조회할 API Request 파라미터 ID
+ * @param callerRoleCode 요청자 역할 코드 (SUPER_ADMIN 외에는 소속 API의 프로젝트에 대한 실제 user_role 보유 여부를 재검증)
+ * @param callerUserId 요청자 user_id (프로젝트별 역할 재검증용)
  * @returns API Request 파라미터 정보
  */
-export async function getApiRequest(apiRequestId: number): Promise<APIRequestRow> {
-  const result = await db.getApiRequest(apiRequestId);
+export async function getApiRequest(
+  apiRequestId: number,
+  callerRoleCode: number,
+  callerUserId: number,
+): Promise<APIRequestRow> {
+  const result = await db.getApiRequest(apiRequestId, callerRoleCode, callerUserId);
   if (!result)
     throw toAppError(ERROR_MAP.API_REQUEST_NOT_FOUND);
   return result;
@@ -218,7 +228,7 @@ export async function updateApiRequest(
   updatedBy: number,
   callerRoleCode: number,
 ): Promise<APIRequestRow> {
-  const before = await db.getApiRequest(apiRequestId);
+  const before = await db.getApiRequest(apiRequestId, callerRoleCode, updatedBy);
   if (!before)
     throw toAppError(ERROR_MAP.API_REQUEST_NOT_FOUND);
   const scope = await audit.resolveApiScope(before.api_id);
@@ -268,13 +278,19 @@ export async function createApiResponse(
 }
 
 /**
- * API Response 파라미터 단건을 조회한다. 미존재 시 AppError(31008)를 던진다.
+ * API Response 파라미터 단건을 조회한다. 미존재 또는 접근 불가 시 AppError(31008)를 던진다.
  * @author trisakion
  * @param apiResponseId 조회할 API Response 파라미터 ID
+ * @param callerRoleCode 요청자 역할 코드 (SUPER_ADMIN 외에는 소속 API의 프로젝트에 대한 실제 user_role 보유 여부를 재검증)
+ * @param callerUserId 요청자 user_id (프로젝트별 역할 재검증용)
  * @returns API Response 파라미터 정보
  */
-export async function getApiResponse(apiResponseId: number): Promise<APIResponseRow> {
-  const result = await db.getApiResponse(apiResponseId);
+export async function getApiResponse(
+  apiResponseId: number,
+  callerRoleCode: number,
+  callerUserId: number,
+): Promise<APIResponseRow> {
+  const result = await db.getApiResponse(apiResponseId, callerRoleCode, callerUserId);
   if (!result)
     throw toAppError(ERROR_MAP.API_RESPONSE_NOT_FOUND);
   return result;
@@ -307,7 +323,7 @@ export async function updateApiResponse(
   updatedBy: number,
   callerRoleCode: number,
 ): Promise<APIResponseRow> {
-  const before = await db.getApiResponse(apiResponseId);
+  const before = await db.getApiResponse(apiResponseId, callerRoleCode, updatedBy);
   if (!before)
     throw toAppError(ERROR_MAP.API_RESPONSE_NOT_FOUND);
   const scope = await audit.resolveApiScope(before.api_id);

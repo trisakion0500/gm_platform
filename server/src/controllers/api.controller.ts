@@ -150,7 +150,7 @@ export async function getApi(req: Request, res: Response, next: NextFunction): P
       fail(res, ERROR_MAP.INVALID_FORMAT);
       return;
     }
-    const result = await apiService.getApi(apiId);
+    const result = await apiService.getApi(apiId, req.user!.role_code, req.user!.user_id);
     success(res, {
       api: formatApi(result.api),
       requests: result.requests.map(formatApiRequest),

@@ -68,7 +68,7 @@ export async function getCodeItemList(req: Request, res: Response, next: NextFun
       return;
     }
     const statusNum = status !== undefined ? Number(status) : null;
-    const items = await codeItemService.getCodeItemList(codeGroupId, statusNum);
+    const items = await codeItemService.getCodeItemList(codeGroupId, statusNum, req.user!.role_code, req.user!.user_id);
     success(res, { items: items.map(formatCodeItem) });
   } catch (err) {
     next(err);
@@ -89,7 +89,7 @@ export async function getCodeItem(req: Request, res: Response, next: NextFunctio
       fail(res, ERROR_MAP.INVALID_FORMAT);
       return;
     }
-    const codeItem = await codeItemService.getCodeItem(codeItemId);
+    const codeItem = await codeItemService.getCodeItem(codeItemId, req.user!.role_code, req.user!.user_id);
     success(res, formatCodeItem(codeItem));
   } catch (err) {
     next(err);

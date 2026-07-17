@@ -9,15 +9,16 @@ CREATE PROCEDURE SP_GET_API_EXECUTION_LIST(
     IN  i_page                  INT,       -- 페이지 번호 (1부터)
     IN  i_page_size             INT,       -- 페이지 크기 (20/30/50/100)
     IN  i_caller_role_code      INT,       -- 요청자 역할 코드
-    IN  i_caller_company_id     BIGINT     -- 요청자 company_id (접근 검사용)
-) COMMENT 'API 실행 이력 목록 조회 - 역할별 스코핑, 페이지네이션'
+    IN  i_caller_user_id        BIGINT     -- 요청자 user_id (비SUPER_ADMIN 프로젝트 접근 검사용)
+) COMMENT 'API 실행 이력 목록 조회 - 프로젝트 스코핑, 페이지네이션'
 BEGIN
 -- --------------------------------- --
 -- 명칭 : SP_GET_API_EXECUTION_LIST
 -- 작성 : 2026-06-30 trisakion
+-- 수정 : 2026-07-17 trisakion - company 단위 스코핑(i_caller_company_id)을 project 단위(user_role)로 좁힘
 -- 내용 : API 실행 이력 목록 조회
 --        SUPER_ADMIN(10) : 모든 project 가능
---        그 외           : project.company_id = i_caller_company_id 만 가능
+--        그 외           : 본인이 활성 user_role을 가진 프로젝트만 가능
 --        OPERATOR의 request_user_id 강제는 서비스 레이어에서 처리
 --        정렬 : requested_at DESC
 -- --------------------------------- --
@@ -29,9 +30,13 @@ BEGIN
     SELECT COUNT(ae.`api_execution_id`) AS total_count
     FROM `api_execution` ae
     JOIN `api` a ON a.`api_id` = ae.`api_id`
-    JOIN `project` p ON p.`project_id` = a.`project_id`
-    WHERE p.`project_id` = i_project_id
-      AND (i_caller_role_code = 10 OR p.`company_id`       = i_caller_company_id)
+    WHERE a.`project_id` = i_project_id
+      AND (i_caller_role_code = 10 OR EXISTS (
+              SELECT 1 FROM `user_role` ur
+              WHERE ur.`user_id`    = i_caller_user_id
+                AND ur.`project_id` = a.`project_id`
+                AND ur.`status`     = 1
+          ))
       AND (i_api_id          IS NULL OR ae.`api_id`         = i_api_id)
       AND (i_request_user_id IS NULL OR ae.`request_user_id` = i_request_user_id)
       AND (i_status          IS NULL OR ae.`status`          = i_status)
@@ -43,11 +48,15 @@ BEGIN
            ae.`requested_at`, ae.`approved_at`, ae.`executed_at`, ae.`updated_at`
     FROM `api_execution` ae
     JOIN `api` a ON a.`api_id` = ae.`api_id`
-    JOIN `project` p ON p.`project_id` = a.`project_id`
     LEFT JOIN `user` u1 ON u1.`user_id` = ae.`request_user_id`
     LEFT JOIN `user` u2 ON u2.`user_id` = ae.`approve_user_id`
-    WHERE p.`project_id` = i_project_id
-      AND (i_caller_role_code = 10 OR p.`company_id`       = i_caller_company_id)
+    WHERE a.`project_id` = i_project_id
+      AND (i_caller_role_code = 10 OR EXISTS (
+              SELECT 1 FROM `user_role` ur
+              WHERE ur.`user_id`    = i_caller_user_id
+                AND ur.`project_id` = a.`project_id`
+                AND ur.`status`     = 1
+          ))
       AND (i_api_id          IS NULL OR ae.`api_id`         = i_api_id)
       AND (i_request_user_id IS NULL OR ae.`request_user_id` = i_request_user_id)
       AND (i_status          IS NULL OR ae.`status`          = i_status)

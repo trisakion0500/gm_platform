@@ -32,27 +32,40 @@ export async function createCodeItem(
 
 /**
  * 코드 그룹의 코드 아이템 목록을 반환한다.
+ * SUPER_ADMIN은 전체, 일반 사용자는 소속 프로젝트에 권한이 있는 경우만 조회 가능하다.
  * @author trisakion
  * @param codeGroupId 소속 코드 그룹 ID
  * @param status 상태 필터 (null=전체)
+ * @param callerRoleCode 요청자 역할 코드
+ * @param callerUserId 요청자 user_id
  * @returns 코드 아이템 목록
  */
 export async function getCodeItemList(
   codeGroupId: number,
   status: number | null,
+  callerRoleCode: number,
+  callerUserId: number,
 ): Promise<CodeItemRow[]> {
-  const [, [data]] = await callSP('SP_GET_CODE_ITEM_LIST', [codeGroupId, status]);
+  const [, [data]] = await callSP('SP_GET_CODE_ITEM_LIST', [codeGroupId, status, callerRoleCode, callerUserId]);
   return data as unknown as CodeItemRow[];
 }
 
 /**
- * 코드 아이템 단건을 조회한다. 미존재 시 null을 반환한다.
+ * 코드 아이템 단건을 조회한다.
+ * SUPER_ADMIN 외에는 소속 코드 그룹의 프로젝트에 활성 user_role이 없으면 미존재로 처리된다.
+ * 미존재 또는 접근 불가 시 null을 반환한다.
  * @author trisakion
  * @param codeItemId 조회할 코드 아이템 ID
+ * @param callerRoleCode 요청자 역할 코드 (프로젝트 스코핑용)
+ * @param callerUserId 요청자 user_id (프로젝트 스코핑용)
  * @returns 코드 아이템 정보, 없으면 null
  */
-export async function getCodeItem(codeItemId: number): Promise<CodeItemRow | null> {
-  const [status, [data]] = await callSP('SP_GET_CODE_ITEM', [codeItemId]);
+export async function getCodeItem(
+  codeItemId: number,
+  callerRoleCode: number,
+  callerUserId: number,
+): Promise<CodeItemRow | null> {
+  const [status, [data]] = await callSP('SP_GET_CODE_ITEM', [codeItemId, callerRoleCode, callerUserId]);
   if (status[0].RESULT === 31005)
     return null;
   return data[0] as unknown as CodeItemRow;

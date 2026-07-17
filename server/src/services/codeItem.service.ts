@@ -40,23 +40,33 @@ export async function createCodeItem(
  * @author trisakion
  * @param codeGroupId 코드 그룹 ID
  * @param status 상태 필터 (null=전체)
+ * @param callerRoleCode 요청자 역할 코드 (SUPER_ADMIN 외에는 소속 프로젝트에 대한 실제 user_role 보유 여부를 검증)
+ * @param callerUserId 요청자 user_id (프로젝트별 역할 검증용)
  * @returns 코드 아이템 목록
  */
 export async function getCodeItemList(
   codeGroupId: number,
   status: number | null,
+  callerRoleCode: number,
+  callerUserId: number,
 ): Promise<CodeItemRow[]> {
-  return db.getCodeItemList(codeGroupId, status);
+  return db.getCodeItemList(codeGroupId, status, callerRoleCode, callerUserId);
 }
 
 /**
- * 코드 아이템 단건을 조회한다. 미존재 시 AppError(31005)를 던진다.
+ * 코드 아이템 단건을 조회한다. 미존재 또는 접근 불가 시 AppError(31005)를 던진다.
  * @author trisakion
  * @param codeItemId 조회할 코드 아이템 ID
+ * @param callerRoleCode 요청자 역할 코드 (SUPER_ADMIN 외에는 소속 코드 그룹의 프로젝트에 대한 실제 user_role 보유 여부를 재검증)
+ * @param callerUserId 요청자 user_id (프로젝트별 역할 재검증용)
  * @returns 코드 아이템 정보
  */
-export async function getCodeItem(codeItemId: number): Promise<CodeItemRow> {
-  const codeItem = await db.getCodeItem(codeItemId);
+export async function getCodeItem(
+  codeItemId: number,
+  callerRoleCode: number,
+  callerUserId: number,
+): Promise<CodeItemRow> {
+  const codeItem = await db.getCodeItem(codeItemId, callerRoleCode, callerUserId);
   if (!codeItem)
     throw toAppError(ERROR_MAP.CODE_ITEM_NOT_FOUND);
   return codeItem;
@@ -83,7 +93,7 @@ export async function updateCodeItem(
   updatedBy: number,
   callerRoleCode: number,
 ): Promise<CodeItemRow> {
-  const before = await db.getCodeItem(codeItemId);
+  const before = await db.getCodeItem(codeItemId, callerRoleCode, updatedBy);
   if (!before)
     throw toAppError(ERROR_MAP.CODE_ITEM_NOT_FOUND);
   const scope = await audit.resolveCodeGroupScope(before.code_group_id);

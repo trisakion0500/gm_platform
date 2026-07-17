@@ -77,7 +77,8 @@ async function resolveUserName(userId: number): Promise<string | null> {
  * @returns { projectId, projectName, companyId }, 실패 시 null
  */
 export async function resolveApiScope(apiId: number): Promise<{ projectId: number; projectName: string; companyId: number } | null> {
-  const [status, [apiRows]] = await callSP('SP_GET_API', [apiId]);
+  // 감사로그 내부 조회라 호출자의 실제 프로젝트 권한과 무관하게 항상 조회되어야 함 — role_code=10(SUPER_ADMIN)으로 스코핑 우회
+  const [status, [apiRows]] = await callSP('SP_GET_API', [apiId, 10, 0]);
   if (status[0].RESULT !== 0)
     return null;
   const projectId = (apiRows[0] as any)?.project_id;
@@ -97,7 +98,8 @@ export async function resolveApiScope(apiId: number): Promise<{ projectId: numbe
  * @returns { projectId, projectName, companyId }, 실패 시 null
  */
 export async function resolveCodeGroupScope(codeGroupId: number): Promise<{ projectId: number; projectName: string; companyId: number } | null> {
-  const [status, [data]] = await callSP('SP_GET_CODE_GROUP', [codeGroupId]);
+  // 감사로그 내부 조회라 호출자의 실제 프로젝트 권한과 무관하게 항상 조회되어야 함 — role_code=10(SUPER_ADMIN)으로 스코핑 우회
+  const [status, [data]] = await callSP('SP_GET_CODE_GROUP', [codeGroupId, 10, 0]);
   if (status[0].RESULT !== 0)
     return null;
   const projectId = (data[0] as any)?.project_id;

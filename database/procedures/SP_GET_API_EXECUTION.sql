@@ -1,22 +1,22 @@
 DROP PROCEDURE IF EXISTS SP_GET_API_EXECUTION;
 DELIMITER $
 CREATE PROCEDURE SP_GET_API_EXECUTION(
-    IN  i_api_execution_id    BIGINT,  -- 조회할 실행 이력 ID
-    IN  i_caller_role_code    INT,     -- 요청자 역할 코드
-    IN  i_caller_user_id      BIGINT,  -- 요청자 user_id (OPERATOR 가시성 검사용)
-    IN  i_caller_company_id   BIGINT   -- 요청자 company_id (접근 검사용)
-) COMMENT 'API 실행 이력 상세 조회 - 역할별 가시성 검사'
+    IN  i_api_execution_id  BIGINT,  -- 조회할 실행 이력 ID
+    IN  i_caller_role_code  INT,     -- 요청자 역할 코드
+    IN  i_caller_user_id    BIGINT   -- 요청자 user_id (OPERATOR 가시성 검사 및 프로젝트 스코핑용)
+) COMMENT 'API 실행 이력 상세 조회 - 역할별 가시성 검사, 프로젝트 스코핑'
 BEGIN
 -- --------------------------------- --
 -- 명칭 : SP_GET_API_EXECUTION
 -- 작성 : 2026-06-30 trisakion
+-- 수정 : 2026-07-17 trisakion - company 단위 스코핑(i_caller_company_id)을 project 단위(user_role)로 좁힘
 -- 내용 : API 실행 이력 상세 조회
 --        OPERATOR(40) : 본인 요청 건만 조회 가능 (31009)
---        비SUPER_ADMIN : 자신의 company 프로젝트만 조회 가능 (20001)
+--        비SUPER_ADMIN : 대상 project_id에 대한 실제 활성 user_role이 없으면 조회 불가 (20001)
 -- --------------------------------- --
 
-    DECLARE v_request_user_id     BIGINT;
-    DECLARE v_project_company_id  BIGINT;
+    DECLARE v_request_user_id  BIGINT;
+    DECLARE v_project_id       BIGINT;
 
     DECLARE sql_state      CHAR(5)       DEFAULT '00000';
     DECLARE error_no       INT           DEFAULT 0;
@@ -32,14 +32,13 @@ BEGIN
 
     transaction_block: BEGIN
 
-        SELECT ae.`request_user_id`, p.`company_id`
-        INTO   v_request_user_id, v_project_company_id
+        SELECT ae.`request_user_id`, a.`project_id`
+        INTO   v_request_user_id, v_project_id
         FROM `api_execution` ae
         JOIN `api` a ON a.`api_id` = ae.`api_id`
-        JOIN `project` p ON p.`project_id` = a.`project_id`
         WHERE ae.`api_execution_id` = i_api_execution_id;
 
-        IF v_project_company_id IS NULL THEN
+        IF v_project_id IS NULL THEN
             SELECT 31009 AS RESULT;
             LEAVE transaction_block;
         END IF;
@@ -49,7 +48,12 @@ BEGIN
             LEAVE transaction_block;
         END IF;
 
-        IF i_caller_role_code != 10 AND v_project_company_id != i_caller_company_id THEN
+        IF i_caller_role_code != 10 AND NOT EXISTS (
+                SELECT 1 FROM `user_role` ur
+                WHERE ur.`user_id`    = i_caller_user_id
+                  AND ur.`project_id` = v_project_id
+                  AND ur.`status`     = 1
+            ) THEN
             SELECT 20001 AS RESULT;
             LEAVE transaction_block;
         END IF;

@@ -195,7 +195,7 @@ GET /api-executions
 
 | Name                    | Required | Description                                           |
 | ----------------------- | -------- | ----------------------------------------------------- |
-| project_id              | Y        | SUPER_ADMIN: 전체 가능 / 그 외: 자신이 속한 company의 project만 가능 |
+| project_id              | Y        | SUPER_ADMIN: 전체 가능 / 그 외: 해당 project_id에 실제 활성 user_role이 있어야 조회 가능 |
 | api_id                  | N        |                                                       |
 | request_user_id         | N        | OPERATOR: 서버가 자동으로 본인 ID 강제 적용 (파라미터 무시)             |
 | status                  | N        |                                                       |
@@ -208,8 +208,8 @@ GET /api-executions
 | 역할 | project_id | request_user_id |
 | ---- | ---------- | --------------- |
 | SUPER_ADMIN (10) | 모든 company의 project 가능 | 모든 파라미터 사용 가능 |
-| DEVELOPER (20) / APPROVER (30) | 자신이 속한 company의 project만 가능 | 모든 파라미터 사용 가능 |
-| OPERATOR (40) | 자신이 속한 company의 project만 가능 | 서버가 본인 ID 자동 강제 적용 |
+| DEVELOPER (20) / APPROVER (30) | 실제 활성 user_role이 있는 project만 가능 | 모든 파라미터 사용 가능 |
+| OPERATOR (40) | 실제 활성 user_role이 있는 project만 가능 | 서버가 본인 ID 자동 강제 적용 |
 
 ---
 

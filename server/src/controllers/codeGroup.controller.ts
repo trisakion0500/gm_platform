@@ -66,7 +66,7 @@ export async function getCodeGroupList(req: Request, res: Response, next: NextFu
       return;
     }
     const statusNum = status !== undefined ? Number(status) : null;
-    const items = await codeGroupService.getCodeGroupList(projectId, statusNum);
+    const items = await codeGroupService.getCodeGroupList(projectId, statusNum, req.user!.role_code, req.user!.user_id);
     success(res, { items: items.map(formatCodeGroup) });
   } catch (err) {
     next(err);
@@ -87,7 +87,7 @@ export async function getCodeGroup(req: Request, res: Response, next: NextFuncti
       fail(res, ERROR_MAP.INVALID_FORMAT);
       return;
     }
-    const codeGroup = await codeGroupService.getCodeGroup(codeGroupId);
+    const codeGroup = await codeGroupService.getCodeGroup(codeGroupId, req.user!.role_code, req.user!.user_id);
     success(res, formatCodeGroup(codeGroup));
   } catch (err) {
     next(err);
@@ -137,7 +137,7 @@ export async function getActiveCodeItems(req: Request, res: Response, next: Next
       fail(res, ERROR_MAP.INVALID_FORMAT);
       return;
     }
-    const items = await codeGroupService.getActiveCodeItems(codeGroupId);
+    const items = await codeGroupService.getActiveCodeItems(codeGroupId, req.user!.role_code, req.user!.user_id);
     success(res, { items });
   } catch (err) {
     next(err);
@@ -163,7 +163,7 @@ export async function getActiveCodeGroupsWithItems(req: Request, res: Response, 
       fail(res, ERROR_MAP.INVALID_FORMAT);
       return;
     }
-    const items = await codeGroupService.getActiveCodeGroupsWithItems(projectId);
+    const items = await codeGroupService.getActiveCodeGroupsWithItems(projectId, req.user!.role_code, req.user!.user_id);
     success(res, { items });
   } catch (err) {
     next(err);
