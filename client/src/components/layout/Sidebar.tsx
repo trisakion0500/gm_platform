@@ -15,7 +15,7 @@ interface MenuDef {
   allow: RoleCode[];
 }
 
-// 13_LAYOUT.md §3.1
+// 16_LAYOUT.md §3.1
 // 내 계정은 헤더 우측 아바타 드롭다운에서 이미 접근 가능해 사이드바에는 중복 등록하지 않는다.
 // API는 아래 ApiMenuSection이 담당하므로(체크박스 목록으로 확장) 이 배열에는 두지 않는다.
 const MAIN_MENU: MenuDef[] = [
@@ -23,7 +23,7 @@ const MAIN_MENU: MenuDef[] = [
   { key: '/executions/pending', label: '승인대기', allow: [ROLE.SUPER_ADMIN, ROLE.DEVELOPER, ROLE.APPROVER] },
 ];
 
-// 13_LAYOUT.md §4.1
+// 16_LAYOUT.md §4.1
 // 코드그룹은 편집이 SUPER_ADMIN/DEVELOPER 전용이라 관리 메뉴에 둔다.
 // APPROVER/OPERATOR의 코드값 참조는 이 화면이 아니라 GET /code-groups/active-with-items로 API 상세/실행 화면에서 처리한다.
 const ADMIN_MENU: MenuDef[] = [

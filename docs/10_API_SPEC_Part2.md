@@ -579,6 +579,6 @@ status
 
 ## 프로젝트 권한 재검증
 
-API/API Request/API Response 등록·수정(1.1, 1.4, 2.1, 2.3, 3.1, 3.3)의 Permission에 있는 DEVELOPER는, 대상 API가 속한 `project_id`에 대해 실제로 활성 `user_role`(role_code=20)을 보유한 경우만 허용된다. 로그인 세션의 `role_code`(여러 프로젝트 중 최고 권한, [05_AUTH_API.md](./05_AUTH_API.md) §2.4.1 참고)와 무관하게 요청마다 재검증하며, 미보유 시 20001을 반환한다. SUPER_ADMIN은 `user_role` 배정과 무관하게 항상 허용된다.
+API/API Request/API Response 등록·수정(1.1, 1.4, 2.1, 2.3, 3.1, 3.3)의 Permission에 있는 DEVELOPER는, 대상 API가 속한 `project_id`에 대해 실제로 활성 `user_role`(role_code=20)을 보유한 경우만 허용된다. 로그인 세션의 `role_code`(여러 프로젝트 중 최고 권한, [08_AUTH_API.md](./08_AUTH_API.md) §2.4.1 참고)와 무관하게 요청마다 재검증하며, 미보유 시 20001을 반환한다. SUPER_ADMIN은 `user_role` 배정과 무관하게 항상 허용된다.
 
 조회(1.2, 1.2B, 1.3, 2.2, 3.2)도 SUPER_ADMIN 외에는 동일하게 대상 `project_id`에 대한 실제 활성 `user_role` 보유 여부를 재검증한다. 목록류(1.2, 1.2B)는 project_id를 호출자가 이미 알고 있어 숨길 필요가 없으므로 20001을 반환하고, 단건 조회(1.3, 2.2, 3.2)는 존재 여부 자체를 숨기기 위해 기존 미존재 오류코드(31006/31007/31008)를 그대로 재사용한다.

@@ -1,4 +1,4 @@
-# 05_AUTH_API.md
+# 08_AUTH_API.md
 
 # 1. 개요
 
@@ -95,7 +95,7 @@ role_code = MIN(user_role.role_code) WHERE user_id = ? AND status = 1
             배정된 활성 user_role이 없으면 40(OPERATOR)
 ```
 
-사용자가 프로젝트마다 다른 역할을 가질 수 있으므로(A 프로젝트 DEVELOPER, B 프로젝트 OPERATOR 등), JWT의 `role_code`는 그중 최고 권한 하나일 뿐이다. 그래서 `project_id`를 특정하는 쓰기 API(API/Request/Response, Code Group/Item 등)는 라우트 단의 역할 검사와 별도로, 요청마다 대상 project_id에 대한 실제 `user_role`을 다시 조회해 검증한다 (미보유 시 20001). 자세한 내용은 [07_API_SPEC_Part2.md](./07_API_SPEC_Part2.md) §7, [09_API_SPEC_Part4.md](./09_API_SPEC_Part4.md) §1 참고.
+사용자가 프로젝트마다 다른 역할을 가질 수 있으므로(A 프로젝트 DEVELOPER, B 프로젝트 OPERATOR 등), JWT의 `role_code`는 그중 최고 권한 하나일 뿐이다. 그래서 `project_id`를 특정하는 쓰기 API(API/Request/Response, Code Group/Item 등)는 라우트 단의 역할 검사와 별도로, 요청마다 대상 project_id에 대한 실제 `user_role`을 다시 조회해 검증한다 (미보유 시 20001). 자세한 내용은 [10_API_SPEC_Part2.md](./10_API_SPEC_Part2.md) §7, [12_API_SPEC_Part4.md](./12_API_SPEC_Part4.md) §1 참고.
 
 #### 기본값이 40(OPERATOR)인 이유
 
@@ -296,7 +296,7 @@ Session 조회 기준은 access_token_jti를 사용한다.
 초과 시 : 429 Too Many Requests, result 40001
 ```
 
-`POST /auth/refresh`는 유효한 refresh_token 보유가 전제되어야 해 대상에서 제외한다. 자세한 내용은 [04_API_COMMON.md](./04_API_COMMON.md) §6.3 참고.
+`POST /auth/refresh`는 유효한 refresh_token 보유가 전제되어야 해 대상에서 제외한다. 자세한 내용은 [07_API_COMMON.md](./07_API_COMMON.md) §6.3 참고.
 
 ---
 

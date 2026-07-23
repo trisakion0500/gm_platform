@@ -24,7 +24,7 @@ export const useGlobalStore = create<GlobalState>()((set) => ({
   projectRoleCode: null,
   setCompanyList: (companyList) => set({ companyList }),
   setProjectList: (projectList) => set({ projectList }),
-  // 회사 변경 시 프로젝트 선택은 초기화 (13_LAYOUT.md §2.1)
+  // 회사 변경 시 프로젝트 선택은 초기화 (16_LAYOUT.md §2.1)
   selectCompany: (selectedCompanyId) => set({ selectedCompanyId, selectedProjectId: null, projectRoleCode: null }),
   selectProject: (selectedProjectId) => set({ selectedProjectId, projectRoleCode: null }),
   setProjectRoleCode: (projectRoleCode) => set({ projectRoleCode }),

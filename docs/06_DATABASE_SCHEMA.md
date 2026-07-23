@@ -1,4 +1,4 @@
-# 03_DATABASE_SCHEMA.md
+# 06_DATABASE_SCHEMA.md
 
 ## 개요
 
@@ -93,7 +93,7 @@ SUPER_ADMIN은 어떤 프로젝트에 연결되어도 무관함
 - `refresh_token_hash` — refresh token 원문은 저장하지 않고 해시값만 저장
 - `user_id`에 FK를 의도적으로 적용하지 않음 — 세션 조회가 `access_token_jti` 기준으로 이뤄져, MySQL → Redis 저장소 전환 시 인증 로직 수정 없이 확장 가능하도록 설계
 - `user.status`와 별도로 관리되는 세션 단위 상태 — 비밀번호 변경(`SP_UPDATE_PASSWORD`) 시 전체 세션이 즉시 종료됨
-- 로그인마다 INSERT되고 로그아웃/만료는 `status`만 변경(UPDATE)할 뿐 DELETE하지 않아 그대로 두면 행이 무한정 누적됨 — `SP_CLEANUP_EXPIRED_SESSIONS`가 `expired_at`이 지난 세션을 `status`와 무관하게 주기적으로 삭제한다. 자세한 내용은 [04_API_COMMON.md](./04_API_COMMON.md) §6.4 참고
+- 로그인마다 INSERT되고 로그아웃/만료는 `status`만 변경(UPDATE)할 뿐 DELETE하지 않아 그대로 두면 행이 무한정 누적됨 — `SP_CLEANUP_EXPIRED_SESSIONS`가 `expired_at`이 지난 세션을 `status`와 무관하게 주기적으로 삭제한다. 자세한 내용은 [07_API_COMMON.md](./07_API_COMMON.md) §6.4 참고
 
 ### 상태
 
@@ -902,7 +902,7 @@ END;
 - **첫 번째 SELECT**: `SELECT [코드] AS RESULT;` — 항상 단독으로 반환
 - **두 번째 SELECT**: 반환할 데이터가 있을 때만 추가 (없으면 생략)
 
-`RESULT = 0` 은 성공, `RESULT = 99` 는 시스템 오류(SQLEXCEPTION 핸들러 자동 반환), 그 외는 비즈니스 오류 코드(`04_API_COMMON.md` 참조).
+`RESULT = 0` 은 성공, `RESULT = 99` 는 시스템 오류(SQLEXCEPTION 핸들러 자동 반환), 그 외는 비즈니스 오류 코드(`07_API_COMMON.md` 참조).
 
 ```sql
 -- 성공 (데이터 없음)

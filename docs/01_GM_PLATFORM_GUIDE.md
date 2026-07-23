@@ -1,4 +1,4 @@
-# 99_GM_PLATFORM_GUIDE.md
+# 01_GM_PLATFORM_GUIDE.md
 
 # GM Platform 소개 및 사용 가이드
 

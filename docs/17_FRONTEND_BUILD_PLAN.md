@@ -1,4 +1,4 @@
-# 16_FRONTEND_BUILD_PLAN.md
+# 17_FRONTEND_BUILD_PLAN.md
 
 # 프론트엔드 구현 계획
 
@@ -6,7 +6,7 @@
 
 # 1. 전체 화면 목록 및 그룹 구분
 
-[12_SCREEN_LIST.md](./12_SCREEN_LIST.md) 기준 22개 화면을 4개 그룹으로 나누고, 공통 인프라를 먼저 구축한 뒤 그룹 단위로 개발을 진행한다.
+[15_SCREEN_LIST.md](./15_SCREEN_LIST.md) 기준 22개 화면을 4개 그룹으로 나누고, 공통 인프라를 먼저 구축한 뒤 그룹 단위로 개발을 진행한다.
 
 ## 1.0 공통 인프라 (화면 아님, 선행 구축)
 
@@ -34,7 +34,7 @@
 
 ## 1.3 그룹 C — API 정의 · 실행 · 코드그룹
 
-> SCR-100~102는 최초 계획 시 하나의 `/apis` 화면(권한별 노출 제어)으로 구상했으나, 코드그룹과 동일한 이유(정의 화면 자체를 편집 불가 역할에게 보여줄 필요가 없음)로 정의(CRUD)와 실행(워크스페이스)을 분리했다. 실제 Route/ID는 [12_SCREEN_LIST.md](./12_SCREEN_LIST.md) 최신본 기준.
+> SCR-100~102는 최초 계획 시 하나의 `/apis` 화면(권한별 노출 제어)으로 구상했으나, 코드그룹과 동일한 이유(정의 화면 자체를 편집 불가 역할에게 보여줄 필요가 없음)로 정의(CRUD)와 실행(워크스페이스)을 분리했다. 실제 Route/ID는 [15_SCREEN_LIST.md](./15_SCREEN_LIST.md) 최신본 기준.
 
 | 화면 ID | 화면명 | Route |
 |---|---|---|
@@ -78,11 +78,11 @@
 - **회사·프로젝트 선택 콤보박스 데이터**: `GET /companies`는 이제 4개 역할 모두 호출 가능(SUPER_ADMIN=전체, 그 외=본인 회사만). `GET /projects`는 SUPER_ADMIN 외에는 "본인이 활성 user_role을 가진 프로젝트만" 반환(같은 회사 소속이어도 role 미배정 프로젝트는 제외) — globalStore의 companyList/projectList를 이 두 API로 그대로 채우면 됨.
 - **선택된 프로젝트의 실제 role_code**: `GET /user-roles/me?project_id=`로 조회한다(신설). SUPER_ADMIN은 배정 없이 항상 `role_code: 10`, 그 외는 활성 user_role 없으면 `role_code: null`. 프로젝트 변경 시(회사 변경 시 첫 프로젝트 자동 선택 포함) 이 API를 다시 호출해 globalStore의 현재 role_code를 갱신하고, 사이드바·버튼 노출은 세션 role_code가 아니라 이 값을 기준으로 판단한다.
 
-> **문서 vs 실제 라우트 차이**: 코드그룹/코드아이템 목록은 [09_API_SPEC_Part4.md](./09_API_SPEC_Part4.md) 표기(nested path)와 달리 실제로는 쿼리 파라미터 방식(`GET /code-groups?project_id=`, `GET /code-items?code_group_id=`) — CLAUDE.md와 일치하므로 이를 기준으로 구현한다.
+> **문서 vs 실제 라우트 차이**: 코드그룹/코드아이템 목록은 [12_API_SPEC_Part4.md](./12_API_SPEC_Part4.md) 표기(nested path)와 달리 실제로는 쿼리 파라미터 방식(`GET /code-groups?project_id=`, `GET /code-items?code_group_id=`) — CLAUDE.md와 일치하므로 이를 기준으로 구현한다.
 
 ## 2.2 레이아웃/라우트
 
-[13_LAYOUT.md](./13_LAYOUT.md)(공통 레이아웃 구조) 그대로 따른다. 요약:
+[16_LAYOUT.md](./16_LAYOUT.md)(공통 레이아웃 구조) 그대로 따른다. 요약:
 
 - `AuthLayout`(/login, /signup, 사이드바 없음) / `MainLayout`(/apis, /executions, /my-account) / `AdminLayout`(/admin/*, OPERATOR 접근불가. /admin/code-groups는 APPROVER도 접근불가 — 회사/프로젝트/사용자와 동일 가드)
 - Header: 로고→/apis, 회사선택(SUPER_ADMIN만 드롭다운, "전체 회사" 옵션 포함), 프로젝트선택(회사기준, 회사변경시 초기화, SUPER_ADMIN만 "전체 프로젝트" 선택 가능), [관리]버튼(OPERATOR 제외), 사용자명 드롭다운(내계정/로그아웃)
@@ -91,7 +91,7 @@
 
 ## 2.3 API 스펙
 
-52개 엔드포인트(Auth 6 / Company 4 / Project 4 / User 6 / UserRole 4[me 포함] / API 4 / ApiRequest 3 / ApiResponse 3 / ApiExecution 7[`/apis/:id/execute` 포함] / CodeGroup 4 / CodeItem 4+active-items 1 / LogAudit 2)의 요청/응답 필드는 [04_API_COMMON.md](./04_API_COMMON.md), [05_AUTH_API.md](./05_AUTH_API.md), [06_API_SPEC_Part1.md](./06_API_SPEC_Part1.md)~[10_API_SPEC_Part5.md](./10_API_SPEC_Part5.md) 기준. `*.api.ts` 작성 시 문서보다 실제 서버 컨트롤러/서비스 코드를 우선 신뢰한다.
+52개 엔드포인트(Auth 6 / Company 4 / Project 4 / User 6 / UserRole 4[me 포함] / API 4 / ApiRequest 3 / ApiResponse 3 / ApiExecution 7[`/apis/:id/execute` 포함] / CodeGroup 4 / CodeItem 4+active-items 1 / LogAudit 2)의 요청/응답 필드는 [07_API_COMMON.md](./07_API_COMMON.md), [08_AUTH_API.md](./08_AUTH_API.md), [09_API_SPEC_Part1.md](./09_API_SPEC_Part1.md)~[13_API_SPEC_Part5.md](./13_API_SPEC_Part5.md) 기준. `*.api.ts` 작성 시 문서보다 실제 서버 컨트롤러/서비스 코드를 우선 신뢰한다.
 
 ---
 
@@ -117,7 +117,7 @@
 
 ## Stage 2 — 공통 인프라: 라우터 · 레이아웃 · 가드 · 공통 컴포넌트 ✅ 완료
 
-- `router/{index,AuthGuard,RoleGuard}.tsx` + `GuestGuard`(인증 상태로 auth 라우트 접근 차단) — [13_LAYOUT.md](./13_LAYOUT.md) §7 라우트 테이블 전체 등록(페이지는 `pages/PagePlaceholder.tsx`로 대체, `pages/errors/{ForbiddenPage,NotFoundPage}.tsx` 신설)
+- `router/{index,AuthGuard,RoleGuard}.tsx` + `GuestGuard`(인증 상태로 auth 라우트 접근 차단) — [16_LAYOUT.md](./16_LAYOUT.md) §7 라우트 테이블 전체 등록(페이지는 `pages/PagePlaceholder.tsx`로 대체, `pages/errors/{ForbiddenPage,NotFoundPage}.tsx` 신설)
 - `components/layout/{AuthLayout,MainLayout,AdminLayout,Header,Sidebar,Footer}.tsx`
   - `Header`: 로고(`VITE_APP_NAME`) · 회사/프로젝트 선택 · 관리 버튼 · `[역할]이름` 사용자 드롭다운. 로고 텍스트와 Footer의 저작권 문구·버전·문의 이메일은 `VITE_APP_NAME`/`VITE_FOOTER_COPYRIGHT`/`VITE_APP_VERSION`/`VITE_SUPPORT_EMAIL` 환경변수로 분리(`client/.env`)
   - `Sidebar`: `variant='main'|'admin'` prop으로 메뉴 목록 전환, roleCode 기준 필터링 + 현재 경로 기준 최장 접두사 매치로 선택 상태 표시
@@ -151,7 +151,7 @@
 - `pages/admin/code-groups/*`, `pages/admin/apis/*`(List/New/Detail, Tabs: 기본정보/Request/Response) → `pages/main/apis/*`(체크박스 워크스페이스) → `pages/main/executions/*`(+Pending)
 - **코드그룹·코드아이템은 List/New/Detail 3화면 패턴을 따르지 않고 `CodeGroupPage.tsx` 한 페이지의 엑셀형 편집 그리드로 구현, 관리 라우트(`/admin/code-groups`)에 위치** — 공통코드 성격상 다건을 빠르게 등록·수정하는 게 목적이라 페이지 이동 없이 처리하는 게 낫다는 판단이고, 편집이 SUPER_ADMIN/DEVELOPER 전용이라 회사/프로젝트/사용자와 동일한 관리 라우트 가드(`RoleGuard allow={[SUPER_ADMIN, DEVELOPER]}`)를 재사용했다(처음엔 메인 메뉴에 전 역할 대상으로 뒀다가, 편집 권한 있는 역할만 접근할 수 있는 관리 화면이라는 성격에 맞춰 이동함). 프로젝트는 화면 자체 선택 없이 헤더 전역 선택(`globalStore.selectedProjectId`)을 그대로 사용. 그리드에 "행 추가"로 그룹ID 없는 신규 행(코드값 포함 모든 필드 편집 가능)을 만들고, 셀 변경은 로컬 state에만 반영하다가 "적용" 버튼을 눌러야 신규 행은 POST, 변경된 기존 행은 PATCH로 일괄 처리(셀 변경마다 즉시 저장 안 함). 그룹ID는 auto_increment라 컬럼에 노출하지 않음. 코드 아이템은 그룹 행을 expand했을 때 하단에 `CodeItemGrid.tsx`(동일한 그리드+적용 패턴)로 관리 — 미저장 신규 그룹 행은 expand 불가. "적용" 시 일부 행만 실패해도 성공한 행은 반영하고 실패한 행만 에러 메시지와 함께 편집 가능한 상태로 남김(행 배경색 강조, `client/src/index.css`의 `.editable-row-error`)
 - **API 정의(관리, SCR-140~142)는 `/admin/apis`에 Company/Project와 동일한 List/New/Detail 패턴으로 구현** — 상세 화면은 Tabs(기본정보/Request/Response)로 구성, 편집은 SUPER_ADMIN/DEVELOPER만. `api_code`/`endpoint`/`is_required_approval`/`response_view_type` 수정 시 `api_stage` 자동 롤백 경고 UI 포함.
-- **API 실행(메인, SCR-100, `/apis`)은 최초 계획했던 "탭 안에 실행 포함된 단일 상세 화면"이 아니라, 좌측 사이드바에서 여러 API를 체크박스로 동시에 열어 우측에 패널을 쌓는 워크스페이스 형태로 최종 구현했다** — `client/src/stores/apiWorkspaceStore.ts`(열린 API 목록·순서, 패널별 입력값·실행결과를 zustand로 보관, 로그아웃·프로젝트 변경 시 초기화, 페이지 이동해도 유지), `components/layout/Sidebar.tsx`의 `ApiMenuSection`(펼치기/접기 + 체크박스, `api_stage`별 실행 가능 역할에 안 맞는 API는 목록에서 필터링 — 세션 role_code 기준, `11_MENU_PERMISSION.md` §3.2 검사와 동일 규칙), `pages/main/apis/{ApiWorkspacePage,ApiPanel}.tsx`(패널 = API Name+승인필요 태그(OPERATOR에게만) → Request 실행폼(component_type별 입력 컨트롤, SELECT/RADIO/CHECKBOX는 코드그룹) → Response(실행 전 필드정의만, 실행 후 response_view_type별 KEY_VALUE/GRID, GRID 20행 초과 시 스크롤)).
+- **API 실행(메인, SCR-100, `/apis`)은 최초 계획했던 "탭 안에 실행 포함된 단일 상세 화면"이 아니라, 좌측 사이드바에서 여러 API를 체크박스로 동시에 열어 우측에 패널을 쌓는 워크스페이스 형태로 최종 구현했다** — `client/src/stores/apiWorkspaceStore.ts`(열린 API 목록·순서, 패널별 입력값·실행결과를 zustand로 보관, 로그아웃·프로젝트 변경 시 초기화, 페이지 이동해도 유지), `components/layout/Sidebar.tsx`의 `ApiMenuSection`(펼치기/접기 + 체크박스, `api_stage`별 실행 가능 역할에 안 맞는 API는 목록에서 필터링 — 세션 role_code 기준, `14_MENU_PERMISSION.md` §3.2 검사와 동일 규칙), `pages/main/apis/{ApiWorkspacePage,ApiPanel}.tsx`(패널 = API Name+승인필요 태그(OPERATOR에게만) → Request 실행폼(component_type별 입력 컨트롤, SELECT/RADIO/CHECKBOX는 코드그룹) → Response(실행 전 필드정의만, 실행 후 response_view_type별 KEY_VALUE/GRID, GRID 20행 초과 시 스크롤)).
 - **외부 API 응답 규약**: 모든 외부 API가 `{ result, message, data: [...] }` 봉투로 응답하기로 확정 — `data`는 항상 배열이며 KEY_VALUE는 `data[0]`을 단일 객체로, GRID는 `data` 전체를 행 목록으로 사용(`ApiPanel.tsx`의 `unwrapDataArray`). `result`가 0이 아니면 HTTP 200이어도 `apiExecution.service.ts`의 `callExternalApi`가 FAILED(50) 처리하고 `message`를 `error_message`로 저장 — HTTP 레벨 실패(타임아웃/네트워크 오류)와는 별개의 검사. 테스트용 `/mock-external`(`server/src/routes/index.ts`)도 이 봉투 형태로 고정 100행을 반환하도록 맞춰둠(필드명은 테스트 API의 api_response 정의에 종속적이라 다른 API로 테스트 시 조정 필요).
 - **APPROVER/OPERATOR의 코드값 참조**: `/admin/code-groups`·`/admin/apis`에 접근할 수 없으므로, 신설한 `GET /code-groups/active-with-items?project_id=`(전 역할 허용, 프로젝트의 활성 코드그룹+활성 아이템을 그룹당 1건으로 묶어 한 번에 반환하는 `SP_GET_ACTIVE_CODE_GROUPS_WITH_ITEMS` 기반)를 API 실행 워크스페이스에서 호출해 SELECT/RADIO/CHECKBOX 값 + 응답 코드 치환에 사용한다. 그룹별 `active-items`를 개별 호출하는 N+1 대신 프로젝트 단위 일괄 조회로 설계.
 - **알려진 계약 불일치 수정**: 초기 구현에서 `client/src/api/api.api.ts`의 `executeApi`가 body를 flat하게 보내 서버(`request_json` 래핑 기대)와 어긋나 항상 30001 에러가 났고, `apiExecution.api.ts`의 `cancelApiExecution`도 서버가 필수로 요구하는 `reject_reason`을 안 보내고 있었다 — 워크스페이스 화면 작업 착수 전에 둘 다 수정.
@@ -174,7 +174,7 @@
 - **점검 중 발견해 함께 고친 버그 2건** (둘 다 Playwright로 백엔드를 강제 종료해 재현 → 수정 → 재현 안 됨을 확인):
   - `DataTable.tsx`의 `fetcher().then().finally()`에 `.catch()`가 없어 네트워크 에러 시 목록이 조용히 비던 문제 — `.catch()` 추가 + `Alert`로 에러 메시지 표시.
   - `useAuth.ts`가 `GET /auth/me` 실패 시 원인 구분 없이 무조건 `clear()`(로그아웃)를 호출해, 백엔드가 잠깐 다운된 순간 새로고침만 해도 유효한 토큰이 강제로 지워지던 문제 — `err.response`가 있는(서버가 실제로 인증 실패를 응답한) 경우만 `clear()`하도록 수정.
-- 22개 화면 × 4역할 접근 매트릭스 재대조 — `router/index.tsx`의 `RoleGuard` allow 배열이 [11_MENU_PERMISSION.md](./11_MENU_PERMISSION.md)와 정확히 일치함을 코드 대조로 확인, 경계 케이스(APPROVER의 감사로그 허용/코드그룹·사용자·회사관리 차단, DEVELOPER의 API·사용자·코드그룹 허용, OPERATOR의 승인대기·API관리 차단)는 Playwright로 4계정 실제 로그인 후 라이브 검증까지 완료.
+- 22개 화면 × 4역할 접근 매트릭스 재대조 — `router/index.tsx`의 `RoleGuard` allow 배열이 [14_MENU_PERMISSION.md](./14_MENU_PERMISSION.md)와 정확히 일치함을 코드 대조로 확인, 경계 케이스(APPROVER의 감사로그 허용/코드그룹·사용자·회사관리 차단, DEVELOPER의 API·사용자·코드그룹 허용, OPERATOR의 승인대기·API관리 차단)는 Playwright로 4계정 실제 로그인 후 라이브 검증까지 완료.
 - `npm run build` — client(`tsc && vite build`)·server(`tsc`) 모두 정상 통과. client 번들이 500KB 경고를 낸 것을 이 시점엔 내부 전용 툴 특성상 후순위로 보류했으나, **(해결됨, 이후) `router/index.tsx`의 페이지 컴포넌트 전체를 `React.lazy()` + `Suspense`로 전환해 라우트별 코드 스플리팅 적용** — 레이아웃/가드는 eager 유지, 26개 페이지만 지연 로딩. 상세 내용은 CLAUDE.md 핵심 결정사항 참고.
 
 ---

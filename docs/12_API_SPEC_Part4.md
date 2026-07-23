@@ -28,7 +28,7 @@ SUPER_ADMIN
 DEVELOPER
 ```
 
-DEVELOPER는 대상 `project_id`(Code Item은 소속 Code Group의 `project_id`)에 대해 실제로 활성 `user_role`(role_code=20)을 보유한 경우만 가능하다. 로그인 세션의 `role_code`(여러 프로젝트 중 최고 권한, [05_AUTH_API.md](./05_AUTH_API.md) §2.4.1 참고)와 무관하게 요청마다 재검증하며, 미보유 시 20001을 반환한다. SUPER_ADMIN은 `user_role` 배정과 무관하게 항상 허용된다.
+DEVELOPER는 대상 `project_id`(Code Item은 소속 Code Group의 `project_id`)에 대해 실제로 활성 `user_role`(role_code=20)을 보유한 경우만 가능하다. 로그인 세션의 `role_code`(여러 프로젝트 중 최고 권한, [08_AUTH_API.md](./08_AUTH_API.md) §2.4.1 참고)와 무관하게 요청마다 재검증하며, 미보유 시 20001을 반환한다. SUPER_ADMIN은 `user_role` 배정과 무관하게 항상 허용된다.
 
 ---
 

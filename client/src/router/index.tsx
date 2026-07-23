@@ -36,7 +36,7 @@ const MyAccountPage = lazy(() => import('../pages/main/my-account/MyAccountPage'
 const ForbiddenPage = lazy(() => import('../pages/errors/ForbiddenPage'));
 const NotFoundPage = lazy(() => import('../pages/errors/NotFoundPage'));
 
-// /admin 진입 시 역할별 첫 메뉴로 리다이렉트 (13_LAYOUT.md §4.1) — APPROVER는 감사로그만 접근 가능
+// /admin 진입 시 역할별 첫 메뉴로 리다이렉트 (16_LAYOUT.md §4.1) — APPROVER는 감사로그만 접근 가능
 function AdminIndexRedirect() {
   const roleCode = useAuthStore((state) => state.roleCode);
   const target = roleCode === ROLE.APPROVER ? '/admin/audit-logs' : '/admin/companies';

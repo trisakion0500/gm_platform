@@ -30,7 +30,7 @@
 
 ## 1.2 Error Code
 
-공통 규약은 `04_API_COMMON.md` 를 따른다.
+공통 규약은 `07_API_COMMON.md` 를 따른다.
 
 ---
 
@@ -149,7 +149,7 @@ ORDER BY status DESC,
 
 ### Response
 
-페이지네이션 응답 형식 (`04_API_COMMON.md` 3.4 참고)
+페이지네이션 응답 형식 (`07_API_COMMON.md` 3.4 참고)
 
 ---
 
@@ -357,7 +357,7 @@ ORDER BY status DESC,
 
 ### Response
 
-페이지네이션 응답 형식 (`04_API_COMMON.md` 3.4 참고)
+페이지네이션 응답 형식 (`07_API_COMMON.md` 3.4 참고)
 
 각 항목에 company 정보를 포함한다.
 
@@ -688,7 +688,7 @@ ORDER BY status ASC,
 
 ### Response
 
-페이지네이션 응답 형식 (`04_API_COMMON.md` 3.4 참고)
+페이지네이션 응답 형식 (`07_API_COMMON.md` 3.4 참고)
 
 ---
 
@@ -1030,7 +1030,7 @@ GET /user-roles/me
 
 ### 용도
 
-로그인 세션의 role_code(여러 프로젝트 중 최고 권한, [05_AUTH_API.md](./05_AUTH_API.md) §2.4.1 참고)는 특정 프로젝트에서의 실제 권한과 다를 수 있다. 프론트엔드가 헤더에서 프로젝트를 선택했을 때, 그 프로젝트에 대한 실제 role_code를 이 API로 조회해 메뉴·버튼 노출을 결정한다.
+로그인 세션의 role_code(여러 프로젝트 중 최고 권한, [08_AUTH_API.md](./08_AUTH_API.md) §2.4.1 참고)는 특정 프로젝트에서의 실제 권한과 다를 수 있다. 프론트엔드가 헤더에서 프로젝트를 선택했을 때, 그 프로젝트에 대한 실제 role_code를 이 API로 조회해 메뉴·버튼 노출을 결정한다.
 
 ---
 
