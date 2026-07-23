@@ -132,6 +132,8 @@ npm run dev
 
 서버 기동 확인: `http://localhost:3000`
 
+`SWAGGER_ENABLED=true`인 경우 API 문서 확인: `http://localhost:3000/api/docs`
+
 ---
 
 # 5. 코드 스타일
