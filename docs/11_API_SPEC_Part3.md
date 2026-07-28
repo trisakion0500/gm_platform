@@ -39,62 +39,48 @@ API 실행은 모두 `api_execution` 테이블을 기준으로 관리한다.
 
 ---
 
-## 3.2 즉시 실행 상태 전이
+## 3.2 상태 전이 다이어그램
 
-```text id="e2"
-10 → 40 (SUCCESS)
-10 → 50 (FAILED)
-10 → 60 (CANCELED)
+즉시 실행(§3.1 표의 위 두 조건)과 승인 필요(OPERATOR + `is_required_approval=1`) 경로를 함께 표시한다.
+
+```mermaid
+stateDiagram-v2
+    [*] --> PENDING : SP_CREATE_API_EXECUTION
+
+    PENDING --> SUCCESS : 즉시 실행 성공
+    PENDING --> FAILED : 즉시 실행 실패
+    PENDING --> CANCELED : 취소(본인)
+    PENDING --> APPROVED : 승인 (OPERATOR 승인필요 건)
+    PENDING --> REJECTED : 반려 (OPERATOR 승인필요 건)
+
+    APPROVED --> SUCCESS : HTTP 호출 성공
+    APPROVED --> FAILED : HTTP 호출 실패
+
+    SUCCESS --> [*]
+    FAILED --> [*]
+    REJECTED --> [*]
+    CANCELED --> [*]
 ```
 
 ---
 
-## 3.3 승인 필요 상태 전이 (OPERATOR)
+## 3.3 SP 흐름 다이어그램
 
-```text id="e4"
-10 → 20 → 40 (승인 후 성공)
-10 → 20 → 50 (승인 후 실패)
-10 → 30      (반려)
-10 → 60      (취소)
-```
+```mermaid
+flowchart TD
+    A["SP_CREATE_API_EXECUTION<br/>status = 10 (PENDING)"] --> B{is_immediate?}
+    B -->|"1 (승인 불필요 or SA/DEV/APPROVER)"| C[HTTP 호출]
+    B -->|"0 (OPERATOR + 승인필요)"| D["SP_GET_API_EXECUTION_PENDING<br/>status = 10"]
 
----
+    D --> E{처리}
+    E -->|"승인 (SA/DEV/APPROVER)"| F["SP_APPROVE_API_EXECUTION<br/>status = 20 (APPROVED)"]
+    E -->|반려| G["SP_REJECT_API_EXECUTION<br/>status = 30 (REJECTED)"]
+    E -->|"취소 (본인)"| H["SP_CANCEL_API_EXECUTION<br/>status = 60 (CANCELED)"]
 
-## 3.4 SP 흐름 다이어그램
-
-```
-                              ┌─────────────────────────────┐
-                              │   SP_CREATE_API_EXECUTION   │
-                              │         status = 10         │
-                              └──────────────┬──────────────┘
-                                             │
-                          ┌──────────────────┴──────────────────┐
-                    is_immediate=1                          is_immediate=0
-                    (승인 불필요 or SA/DEV/APP)            (OPERATOR + 승인필요)
-                          │                                      │
-                          ▼                                      ▼
-                   [HTTP 호출]                    ┌──────────────────────────────┐
-                          │                       │ SP_GET_API_EXECUTION_PENDING │
-                          │                       │         status = 10          │
-                          │                       └──────┬───────────────────────┘
-                          │                              │
-                          │               ┌──────────────┼──────────────┐
-                          │            승인(SA/DEV/APP) 반려          취소(본인)
-                          │               │              │              │
-                          │               ▼              ▼              ▼
-                          │  SP_APPROVE_API_EXECUTION  SP_REJECT   SP_CANCEL
-                          │       status = 20          status=30   status=60
-                          │               │
-                          │          [HTTP 호출]
-                          │               │
-                          └───────────────┘
-                                          │
-                              ┌───────────┴───────────┐
-                            성공                     실패
-                              │                       │
-                              ▼                       ▼
-              SP_UPDATE_API_EXECUTION_RESULT  SP_UPDATE_API_EXECUTION_RESULT
-                        status = 40                status = 50
+    F --> C
+    C --> I{HTTP 결과}
+    I -->|성공| J["SP_UPDATE_API_EXECUTION_RESULT<br/>status = 40 (SUCCESS)"]
+    I -->|실패| K["SP_UPDATE_API_EXECUTION_RESULT<br/>status = 50 (FAILED)"]
 ```
 
 ---

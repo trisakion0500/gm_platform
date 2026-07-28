@@ -23,6 +23,22 @@
 | 2   | 가입반려     |
 | 3   | 사용중지     |
 
+### 상태 전이 다이어그램
+
+전이 규칙 상세는 `09_API_SPEC_Part1.md` §4.5~4.7 참고. `SP_UPDATE_USER`는 status 값 자체를 검증하지 않으므로(COALESCE로 그대로 반영) 아래 그림은 API 레벨 제약이 아니라 프론트엔드(UserDetailPage)가 노출하는 액션 버튼 기준의 설계 의도다.
+
+```mermaid
+stateDiagram-v2
+    [*] --> 가입승인대기 : POST /auth/signup
+
+    가입승인대기 --> 가입승인 : 승인 (POST /users/:id/approve)
+    가입승인대기 --> 가입반려 : 반려 (POST /users/:id/reject)
+    가입반려 --> 가입승인대기 : 승인대기로 되돌림 (PATCH /users/:id)
+
+    가입승인 --> 사용중지 : 정지 (PATCH /users/:id)
+    사용중지 --> 가입승인 : 재개 (PATCH /users/:id)
+```
+
 ---
 
 ## 2.2 로그인 가능 상태

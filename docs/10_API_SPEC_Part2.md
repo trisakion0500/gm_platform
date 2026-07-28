@@ -212,7 +212,22 @@ created_at
 
 ### Stage Rollback Rules
 
-아래 컬럼 수정 시
+```mermaid
+stateDiagram-v2
+    state "개발 (20)" as S20
+    state "스테이징 (30)" as S30
+    state "운영 (40)" as S40
+
+    [*] --> S20 : SP_CREATE_API
+
+    S20 --> S30 : PATCH api_stage
+    S30 --> S40 : PATCH api_stage
+
+    S30 --> S20 : 핵심 필드 변경 시 자동 롤백
+    S40 --> S20 : 핵심 필드 변경 시 자동 롤백
+```
+
+핵심 필드(아래 컬럼) 수정 시 `api_stage`를 강제로 20으로 롤백한다. 이때 요청에 `api_stage` 값을 함께 전달해도 무시된다.
 
 ```text
 api_code
@@ -221,13 +236,7 @@ is_required_approval
 response_view_type
 ```
 
-자동 처리
-
-```text
-api_stage = 20
-```
-
-단,
+아래 컬럼 변경 시에는 api_stage 유지
 
 ```text
 api_name
@@ -236,7 +245,7 @@ display_order
 status
 ```
 
-변경 시에는 api_stage 유지
+동일한 롤백 규칙이 API Request/Response 파라미터의 생성·핵심 필드 변경 시에도 적용된다(§2.1/2.3/3.1/3.3 참고) — 부모 API의 핵심 스펙이 바뀌었다고 간주해 재검증·재승급을 요구하는 설계다.
 
 ### Response
 
