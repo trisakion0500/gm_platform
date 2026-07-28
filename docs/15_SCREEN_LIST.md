@@ -24,7 +24,7 @@ GM-Tool 프론트엔드 화면 목록 및 역할별 접근 권한 정의.
 | SCR-022 | 프로젝트 상세·수정  | `/admin/projects/:project_id`         | O           | O         | -        | -        | 조회·수정 모두 DEVELOPER는 실제 DEVELOPER 역할보유 프로젝트만; 수정 범위: SUPER_ADMIN(전체), DEVELOPER(API Base URL/API 키만) |
 | SCR-030 | 사용자 목록         | `/admin/users`                        | O           | O         | -        | -        | 상태 콤보박스(전체/승인대기/정상/반려/사용중지) 필터; DEVELOPER: 본인 소속 회사 전체 status |
 | SCR-031 | 사용자 상세·수정    | `/admin/users/:user_id`               | O           | O         | -        | -        | 수정·승인·반려·사용중지/재개·비밀번호초기화·권한관리: SUPER_ADMIN만                  |
-| SCR-040 | 감사 로그 목록      | `/admin/audit-logs`                   | O           | O         | O        | -        | SUPER_ADMIN 외: 자사만                                  |
+| SCR-040 | 감사 로그 목록      | `/admin/audit-logs`                   | O           | O         | O        | -        | SUPER_ADMIN 외: 프로젝트 로그는 실제 배정만, company·user 로그는 자사만 |
 | SCR-041 | 감사 로그 상세      | `/admin/audit-logs/:log_audit_id`     | O           | O         | O        | -        |                                                         |
 | SCR-130 | 코드그룹·코드아이템 | `/admin/code-groups`            | O           | O         | -        | -        | 헤더 프로젝트 선택 필요. 엑셀형 그리드 한 페이지에서 조회·등록·수정(등록/상세 화면 분리 없음). APPROVER/OPERATOR는 이 화면 접근 불가 — `GET /code-groups/active-with-items`로 API 화면에서 코드값만 참조 |
 | SCR-140 | API 목록(관리)      | `/admin/apis`                   | O           | O         | -        | -        | 헤더 프로젝트 선택 필요, api_stage/상태 필터                |
@@ -195,7 +195,7 @@ GM-Tool 프론트엔드 화면 목록 및 역할별 접근 권한 정의.
 ### SCR-040. 감사 로그 목록
 
 - **Route:** `/admin/audit-logs`
-- **접근:** SUPER_ADMIN, DEVELOPER, APPROVER (SUPER_ADMIN 외: 자사만)
+- **접근:** SUPER_ADMIN, DEVELOPER, APPROVER (SUPER_ADMIN 외: 프로젝트 로그는 대상 프로젝트에 실제 배정된 role_code가 세션과 일치해야 하고, company·user 로그는 자사만)
 - **주요 기능:** 감사 로그 목록 조회. 회사·프로젝트 필터는 화면 자체가 아닌 헤더의 전역 회사/프로젝트 선택을 그대로 사용(SUPER_ADMIN만 "전체" 선택 가능), 화면에는 테이블 / 작업 유형 / 기간 필터·페이지네이션 존재(작업자 필터는 없음 — 대신 목록·상세 모두 프로젝트/작업자를 원시 ID가 아닌 이름으로 표시), 상세 이동
 - **연관 API:**
 

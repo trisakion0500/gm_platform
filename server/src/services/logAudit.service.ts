@@ -572,7 +572,8 @@ export function logUpdateCodeItem(
  * @param page 페이지 번호
  * @param pageSize 페이지 크기
  * @param callerRoleCode 요청자 역할 코드
- * @param callerCompanyId 요청자 company_id
+ * @param callerUserId 요청자 user_id (project_id 있는 로그의 실제 role 재검증용)
+ * @param callerCompanyId 요청자 company_id (project_id 없는 로그의 회사 스코핑용)
  * @returns 페이지네이션 응답
  */
 export async function getLogAuditList(
@@ -586,11 +587,12 @@ export async function getLogAuditList(
   page: number,
   pageSize: number,
   callerRoleCode: number,
+  callerUserId: number,
   callerCompanyId: number,
 ): Promise<{ page: number; page_size: number; total_count: number; items: LogAuditRow[] }> {
   const result = await db.getLogAuditList(
     companyId, projectId, tableName, targetId, actionType,
-    fromCreatedAt, toCreatedAt, page, pageSize, callerRoleCode, callerCompanyId,
+    fromCreatedAt, toCreatedAt, page, pageSize, callerRoleCode, callerUserId, callerCompanyId,
   );
   return { page, page_size: pageSize, ...result };
 }
@@ -600,16 +602,18 @@ export async function getLogAuditList(
  * @author trisakion
  * @param logAuditId 조회할 감사 로그 ID
  * @param callerRoleCode 요청자 역할 코드
- * @param callerCompanyId 요청자 company_id
+ * @param callerUserId 요청자 user_id (project_id 있는 로그의 실제 role 재검증용)
+ * @param callerCompanyId 요청자 company_id (project_id 없는 로그의 회사 스코핑용)
  * @returns 감사 로그 상세
  */
 export async function getLogAudit(
   logAuditId: number,
   callerRoleCode: number,
+  callerUserId: number,
   callerCompanyId: number,
 ): Promise<LogAuditRow> {
   try {
-    return await db.getLogAudit(logAuditId, callerRoleCode, callerCompanyId);
+    return await db.getLogAudit(logAuditId, callerRoleCode, callerUserId, callerCompanyId);
   } catch {
     throw toAppError(ERROR_MAP.LOG_AUDIT_NOT_FOUND);
   }

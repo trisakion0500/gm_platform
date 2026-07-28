@@ -166,6 +166,11 @@ GET /log-audits
 | page            | Y    | 페이지 번호                                        |
 | page_size       | Y    | 20/30/50/100 중 선택. 기본 20                         |
 
+## Business Rules
+
+- SUPER_ADMIN : 전체 로그 반환
+- DEVELOPER/APPROVER : `project_id`가 있는 로그(프로젝트 소속 엔티티 변경)는 대상 프로젝트에 실제 DEVELOPER(20)/APPROVER(30)로 배정되어 있고 그 role_code가 세션 role_code와 일치하는 경우만 반환. `project_id`가 없는 로그(company/user 테이블 변경)는 본인 소속 회사 로그만 반환
+
 ## 사용 패턴
 
 특정 대상 전체 변경 이력 조회

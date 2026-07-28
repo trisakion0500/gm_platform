@@ -45,6 +45,7 @@ export async function getLogAuditList(req: Request, res: Response, next: NextFun
       paged.page,
       paged.pageSize,
       req.user!.role_code,
+      req.user!.user_id,
       req.user!.company_id,
     );
     success(res, {
@@ -71,7 +72,7 @@ export async function getLogAudit(req: Request, res: Response, next: NextFunctio
       fail(res, ERROR_MAP.INVALID_FORMAT);
       return;
     }
-    const log = await logAuditService.getLogAudit(logAuditId, req.user!.role_code, req.user!.company_id);
+    const log = await logAuditService.getLogAudit(logAuditId, req.user!.role_code, req.user!.user_id, req.user!.company_id);
     success(res, formatLogAudit(log));
   } catch (err) {
     next(err);

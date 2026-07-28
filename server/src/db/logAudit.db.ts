@@ -41,7 +41,8 @@ export async function insertLogAudit(
 
 /**
  * 감사 로그 목록을 페이지네이션으로 조회한다.
- * SUPER_ADMIN은 전체, DEVELOPER/APPROVER는 본인 회사만 조회 가능하다.
+ * SUPER_ADMIN은 전체, 그 외는 project_id가 있는 로그는 해당 프로젝트에 실제 caller_role_code로 배정된 경우만,
+ * project_id가 없는 로그(company/user 테이블)는 본인 회사 로그만 조회 가능하다.
  * @author trisakion
  * @param companyId 회사 ID 필터 (null=전체)
  * @param projectId 프로젝트 ID 필터 (null=전체)
@@ -53,7 +54,8 @@ export async function insertLogAudit(
  * @param page 페이지 번호 (1부터)
  * @param pageSize 페이지 크기 (20/30/50/100)
  * @param callerRoleCode 요청자 역할 코드
- * @param callerCompanyId 요청자 company_id
+ * @param callerUserId 요청자 user_id (project_id 있는 로그의 실제 role 재검증용)
+ * @param callerCompanyId 요청자 company_id (project_id 없는 로그의 회사 스코핑용)
  * @returns { total_count, items }
  */
 export async function getLogAuditList(
@@ -67,11 +69,12 @@ export async function getLogAuditList(
   page: number,
   pageSize: number,
   callerRoleCode: number,
+  callerUserId: number,
   callerCompanyId: number,
 ): Promise<{ total_count: number; items: LogAuditRow[] }> {
   const [, [countRows, itemRows]] = await callSP('SP_GET_LOG_AUDIT_LIST', [
     companyId, projectId, tableName, targetId, actionType,
-    fromCreatedAt, toCreatedAt, page, pageSize, callerRoleCode, callerCompanyId,
+    fromCreatedAt, toCreatedAt, page, pageSize, callerRoleCode, callerUserId, callerCompanyId,
   ]);
   return {
     total_count: (countRows[0] as unknown as { total_count: number }).total_count,
@@ -85,15 +88,17 @@ export async function getLogAuditList(
  * @author trisakion
  * @param logAuditId 조회할 감사 로그 ID
  * @param callerRoleCode 요청자 역할 코드
- * @param callerCompanyId 요청자 company_id
+ * @param callerUserId 요청자 user_id (project_id 있는 로그의 실제 role 재검증용)
+ * @param callerCompanyId 요청자 company_id (project_id 없는 로그의 회사 스코핑용)
  * @returns 감사 로그 상세 (before_json, after_json 포함)
  */
 export async function getLogAudit(
   logAuditId: number,
   callerRoleCode: number,
+  callerUserId: number,
   callerCompanyId: number,
 ): Promise<LogAuditRow> {
-  const [status, [data]] = await callSP('SP_GET_LOG_AUDIT', [logAuditId, callerRoleCode, callerCompanyId]);
+  const [status, [data]] = await callSP('SP_GET_LOG_AUDIT', [logAuditId, callerRoleCode, callerUserId, callerCompanyId]);
   if (status[0].RESULT === 31010)
     throw toDBError(ERROR_MAP.LOG_AUDIT_NOT_FOUND);
   return data[0] as unknown as LogAuditRow;

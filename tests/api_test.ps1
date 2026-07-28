@@ -1096,6 +1096,43 @@ Check "로그 단건 OP 차단 #2" (Req GET /log-audits/$LOG_ID $null $TOKEN_OP)
 Check "로그 단건 OP 차단 #3" (Req GET /log-audits/$LOG_ID $null $TOKEN_OP) 20001
 
 # ============================================================
+# 14A. AUDIT LOG 프로젝트 스코핑 검증
+# ============================================================
+# project_id가 있는 로그(company/user 제외)는 기존 회사 스코핑 대신 대상 프로젝트에 대한
+# 실제 role_code가 세션 role_code와 일치해야 조회 가능하도록 강화. 13A에서 만든 스코프 사용자 재사용:
+# apv=A에서만 실제 APPROVER(30)·B에는 role 없음, exec=A에서 실제 DEVELOPER(20)·B에서 실제 APPROVER(30)이지만
+# 세션 role_code는 MIN(20,30)=20(DEVELOPER)로 고정되어 B에서는 실제 role(APPROVER)과 세션이 불일치.
+Section "14A. AUDIT LOG 프로젝트 스코핑 검증"
+
+$laApvA = Req GET "/log-audits?project_id=$SCOPE_PID_A&table_name=api&page=1&page_size=20" $null $TOKEN_SCOPE_APV
+if ($laApvA.data.total_count -lt 1) { $script:FAIL++; Write-Host "  [FAIL] 감사로그 목록 apv 본인프로젝트(A) 조회 실패 (total_count=$($laApvA.data.total_count))" -ForegroundColor Red } else { $script:PASS++; Write-Host "  [PASS] 감사로그 목록 apv 본인프로젝트(A) 조회 확인 (total_count=$($laApvA.data.total_count))" -ForegroundColor Green }
+
+$laApvB = Req GET "/log-audits?project_id=$SCOPE_PID_B&table_name=api&page=1&page_size=20" $null $TOKEN_SCOPE_APV
+if ($laApvB.data.total_count -ne 0) { $script:FAIL++; Write-Host "  [FAIL] 감사로그 목록 apv 교차프로젝트(B) 노출됨 (role 없는데 total_count=$($laApvB.data.total_count))" -ForegroundColor Red } else { $script:PASS++; Write-Host "  [PASS] 감사로그 목록 apv 교차프로젝트(B) 제외 확인" -ForegroundColor Green }
+
+$laExecA = Req GET "/log-audits?project_id=$SCOPE_PID_A&table_name=api&page=1&page_size=20" $null $TOKEN_SCOPE_EXEC
+if ($laExecA.data.total_count -lt 1) { $script:FAIL++; Write-Host "  [FAIL] 감사로그 목록 exec 본인프로젝트(A) 조회 실패 (total_count=$($laExecA.data.total_count))" -ForegroundColor Red } else { $script:PASS++; Write-Host "  [PASS] 감사로그 목록 exec 본인프로젝트(A) 조회 확인 (total_count=$($laExecA.data.total_count))" -ForegroundColor Green }
+
+$laExecB = Req GET "/log-audits?project_id=$SCOPE_PID_B&table_name=api&page=1&page_size=20" $null $TOKEN_SCOPE_EXEC
+if ($laExecB.data.total_count -ne 0) { $script:FAIL++; Write-Host "  [FAIL] 감사로그 목록 exec 교차프로젝트(B) 노출됨 (세션 DEVELOPER≠실제 APPROVER인데 total_count=$($laExecB.data.total_count))" -ForegroundColor Red } else { $script:PASS++; Write-Host "  [PASS] 감사로그 목록 exec 교차프로젝트(B) 제외 확인 (세션 role_code 불일치)" -ForegroundColor Green }
+
+$laListA = Req GET "/log-audits?project_id=$SCOPE_PID_A&table_name=api&target_id=$EA_STG20_A&page=1&page_size=20" $null $TOKEN
+$LOG_A_ID = $laListA.data.items[0].log_audit_id
+Check "감사로그 단건 - 본인프로젝트(A) 정상 #1" (Req GET /log-audits/$LOG_A_ID $null $TOKEN_SCOPE_APV)
+Check "감사로그 단건 - 본인프로젝트(A) 정상 #2" (Req GET /log-audits/$LOG_A_ID $null $TOKEN_SCOPE_APV)
+Check "감사로그 단건 - 본인프로젝트(A) 정상 #3" (Req GET /log-audits/$LOG_A_ID $null $TOKEN_SCOPE_APV)
+
+$laListB = Req GET "/log-audits?project_id=$SCOPE_PID_B&table_name=api&target_id=$EA_STG20_B&page=1&page_size=20" $null $TOKEN
+$LOG_B_ID = $laListB.data.items[0].log_audit_id
+Check "감사로그 단건 - 교차프로젝트(B) 차단 #1" (Req GET /log-audits/$LOG_B_ID $null $TOKEN_SCOPE_APV) 31010
+Check "감사로그 단건 - 교차프로젝트(B) 차단 #2" (Req GET /log-audits/$LOG_B_ID $null $TOKEN_SCOPE_APV) 31010
+Check "감사로그 단건 - 교차프로젝트(B) 차단 #3" (Req GET /log-audits/$LOG_B_ID $null $TOKEN_SCOPE_APV) 31010
+
+Check "감사로그 단건 - SUPER_ADMIN B 정상 #1" (Req GET /log-audits/$LOG_B_ID $null $TOKEN)
+Check "감사로그 단건 - SUPER_ADMIN B 정상 #2" (Req GET /log-audits/$LOG_B_ID $null $TOKEN)
+Check "감사로그 단건 - SUPER_ADMIN B 정상 #3" (Req GET /log-audits/$LOG_B_ID $null $TOKEN)
+
+# ============================================================
 # 15. AUTH - 비밀번호 변경 / 로그아웃
 # ============================================================
 Section "15. AUTH / 비밀번호 변경 · 로그아웃"
