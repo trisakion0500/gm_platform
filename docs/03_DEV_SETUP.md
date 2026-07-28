@@ -80,6 +80,9 @@ DB_USER=root
 DB_PASSWORD=your_db_password
 DB_NAME=gm_platform
 
+# mysql2 풀 커넥션 수(인스턴스당) — 생략 시 기본값 10. 스케일아웃 시 총 커넥션 = 이 값 × 인스턴스 수이므로 MySQL max_connections와 맞춰 조정
+DB_CONNECTION_LIMIT=10
+
 JWT_SECRET=your_jwt_secret_key
 JWT_ACCESS_EXPIRES_IN=30m
 JWT_REFRESH_EXPIRES_IN=7d

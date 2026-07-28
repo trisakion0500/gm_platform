@@ -27,6 +27,7 @@ export const env = {
     user: process.env.DB_USER!, // 이 값은 절대 null/undefined가 아님
     password: process.env.DB_PASSWORD!,
     name: process.env.DB_NAME!, // 이 값은 절대 null/undefined가 아님
+    connectionLimit: Number(process.env.DB_CONNECTION_LIMIT ?? 10), // 인스턴스당 풀 크기, 기본 10 (스케일아웃 시 총 커넥션 = 이 값 × 인스턴스 수)
   },
   jwt: {
     secret: process.env.JWT_SECRET!,

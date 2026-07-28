@@ -42,6 +42,7 @@
 | `DB_USER` | ✓ | — | MySQL 접속 계정. |
 | `DB_PASSWORD` | ✓ | — | MySQL 접속 비밀번호. |
 | `DB_NAME` | ✓ | — | 사용할 DB 스키마명. |
+| `DB_CONNECTION_LIMIT` | ✗ | `10` | `config/db.ts`의 mysql2 pool `connectionLimit`(인스턴스당). 스케일아웃 시 총 커넥션 = 이 값 × 인스턴스 수이므로 MySQL `max_connections`와 맞춰 배포 단위로 조정. |
 | `JWT_SECRET` | ✓ | — | Access/Refresh 관련 JWT 서명·검증 키(HS256). `utils/jwt.ts`에서 사용 — 유출 시 토큰 위조 가능하므로 배포 환경마다 별도 값 필요. |
 | `JWT_ACCESS_EXPIRES_IN` | ✗ | `15m` | Access Token 만료 기간(jsonwebtoken `expiresIn` 포맷). 로그인/refresh 시 발급되는 토큰의 유효 기간을 결정. |
 | `JWT_REFRESH_EXPIRES_IN` | ✗ | `7d` | Refresh Token(및 `user_session.expired_at`) 만료 기간. 이 값을 바꿔도 `SP_CLEANUP_EXPIRED_SESSIONS`는 `expired_at`과 `NOW()`만 비교하므로 SP 수정 없이 반영됨. |
@@ -53,4 +54,4 @@
 | `API_EXECUTION_TIMEOUT_MS` | ✗ | `10000` | `POST /apis/:api_id/execute`가 외부 게임서버(S2S)를 호출할 때 axios 타임아웃. 대상 서버가 응답 없을 때 실행을 FAILED로 처리하기까지 대기하는 최대 시간. |
 | `LOGIN_RATE_LIMIT_WINDOW_MS` | ✗ | `900000`(15분) | `/auth/login`·`/auth/signup`에 적용되는 `loginLimiter`(express-rate-limit)의 카운트 윈도우. 브루트포스 방지 목적. |
 | `LOGIN_RATE_LIMIT_MAX` | ✗ | `10` | 위 윈도우 동안 IP당 허용되는 최대 요청 수. 초과 시 `40001`(HTTP 429). |
-| `SESSION_CLEANUP_CRON` | ✗ | `0 4 * * *`(매일 새벽 4시) | `jobs/sessionCleanup.job.ts`가 `node-cron`으로 등록하는 만료 세션 정리 주기. `user_session`에서 `expired_at`이 지난 행을 삭제(`SP_CLEANUP_EXPIRED_SESSIONS`)해 테이블 무한 누적을 방지. |
+| `SESSION_CLEANUP_CRON` | ✗ | `0 4 * * *`(매일 새벽 4시) | `jobs/sessionCleanup.job.ts`가 `node-cron`으로 등록하는 만료 세션 정리 주기. `user_session`에서 `expired_at`이 지난 행을 삭제(`SP_CLEANUP_EXPIRED_SESSIONS`)해 테이블 무한 누적을 방지. 스케일아웃 시 인스턴스마다 각자 등록되므로 `config/db.ts`의 `runExclusive`(MySQL advisory lock)로 감싸 한 시점에 한 인스턴스만 실행되도록 함(§6.4 참고). |

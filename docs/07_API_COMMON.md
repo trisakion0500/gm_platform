@@ -489,6 +489,12 @@ script-src-attr 'none'; style-src 'self' https: 'unsafe-inline'; upgrade-insecur
 
 서버 기동 시(`app.ts`) `node-cron`으로 크론 잡을 등록하고(`server/src/jobs/sessionCleanup.job.ts`), `SP_CLEANUP_EXPIRED_SESSIONS`를 호출해 대상 행을 DELETE한다. `expired_at`은 로그인 시점에 `JWT_REFRESH_EXPIRES_IN`만큼 더한 절대 시각으로 이미 저장돼 있어, 이 SP는 만료 기간 값 자체를 알 필요 없이 `NOW()`와 비교만 하면 된다 — `JWT_REFRESH_EXPIRES_IN`을 바꿔도 SP 수정은 불필요하다. `status=1`(활성)이면서 아직 만료되지 않은 세션은 조건에 걸리지 않아 삭제되지 않는다.
 
+### 6.4.1 인스턴스 간 중복 실행 방지
+
+`node-cron`은 프로세스 로컬 스케줄러라 리더 선출·분산 락이 없다 — 스케일아웃으로 인스턴스를 여러 개 띄우면 각 인스턴스가 자기 스케줄러를 독립적으로 등록해, 같은 시각에 `SP_CLEANUP_EXPIRED_SESSIONS`가 인스턴스 수만큼 중복 실행된다(DELETE라 결과 자체는 틀리지 않지만 DB 부하 낭비).
+
+`server/src/config/db.ts`의 `runExclusive(lockName, fn)`으로 크론 콜백을 감싸 MySQL advisory lock(`GET_LOCK`/`RELEASE_LOCK`, `SP_LOCK_ACQUIRE`/`SP_LOCK_RELEASE`)을 획득한 인스턴스만 실제로 정리를 수행하도록 한다. `timeout=0`(non-blocking)으로 시도해 이미 다른 인스턴스가 점유 중이면 대기 없이 즉시 포기하고 다음 스케줄을 기다린다 — Redis 등 별도 분산 락 인프라 없이 이미 쓰는 MySQL만으로 해결한 방식이다. `GET_LOCK`은 커넥션 세션에 종속되므로 `callSP`(pool이 매 호출마다 임의로 커넥션을 고름)를 못 쓰고 `pool.getConnection()`으로 커넥션 하나를 직접 뽑아 락 획득→작업→해제까지 유지한다.
+
 ---
 
 # 7. Health Check

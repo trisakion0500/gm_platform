@@ -25,7 +25,7 @@ gm_platform/
 server/
 ├── src/
 │   ├── config/
-│   │   ├── db.ts            # mysql2 커넥션 풀 설정, callSP() 래퍼
+│   │   ├── db.ts            # mysql2 커넥션 풀 설정, callSP() 래퍼, runExclusive()(MySQL advisory lock, 스케일아웃 시 크론 잡 중복 실행 방지)
 │   │   ├── env.ts           # 환경변수 로드 및 검증
 │   │   └── swagger.ts       # Swagger UI 설정 및 공통 컴포넌트 스키마 (SWAGGER_ENABLED=true 시에만 require)
 │   │
@@ -112,7 +112,7 @@ server/
 │   │   └── fixSeedPhone.ts  # `npm run fix-seed-phone` — ENCRYPTION_KEY 교체 시 시드 계정(user_id 1~4) phone_number 재암호화
 │   │
 │   ├── jobs/
-│   │   └── sessionCleanup.job.ts # node-cron 기반 만료 세션 정리 잡 (SESSION_CLEANUP_CRON 주기, app.ts에서 서버 기동 시 등록)
+│   │   └── sessionCleanup.job.ts # node-cron 기반 만료 세션 정리 잡 (SESSION_CLEANUP_CRON 주기, app.ts에서 서버 기동 시 등록, runExclusive로 인스턴스 간 중복 실행 방지)
 │   │
 │   └── app.ts               # Express 앱 초기화, DB 연결 확인, 서버 기동
 │
