@@ -353,7 +353,7 @@ ORDER BY status DESC,
 ### Business Rules
 
 - SUPER_ADMIN : 전체 프로젝트 목록 반환
-- DEVELOPER : 본인이 활성 user_role을 가진 프로젝트만 반환 (같은 회사 소속이어도 role 미배정 프로젝트는 제외)
+- DEVELOPER : 본인이 실제 DEVELOPER(20) role로 배정된 프로젝트만 반환 (다른 역할로 배정된 프로젝트, role 미배정 프로젝트 모두 제외)
 
 ### Response
 

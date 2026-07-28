@@ -36,13 +36,13 @@
 
 | 메뉴               | SUPER_ADMIN | DEVELOPER      | APPROVER       | OPERATOR       |
 | ------------------ | :---------: | :------------: | :------------: | :------------: |
-| 프로젝트 목록 조회 | O (전체)    | O (역할보유만) | O (역할보유만) | O (역할보유만) |
-| 프로젝트 상세 조회 | O (전체)    | O (역할보유만) | O (역할보유만) | O (역할보유만) |
+| 프로젝트 목록 조회 | O (전체)    | O (실제 DEVELOPER 배정만) | -              | -              |
+| 프로젝트 상세 조회 | O (전체)    | O (실제 DEVELOPER 배정만) | -              | -              |
 | 프로젝트 등록      | O           | -              | -              | -              |
 | 프로젝트 수정      | O           | -              | -              | -              |
 
-> SUPER_ADMIN 외에는 "본인 소속 회사의 프로젝트 전체"가 아니라 "본인이 활성 `user_role`을 가진 프로젝트만" 반환된다(`user_role.status=1` 기준). 같은 회사 소속이어도 role 미배정 프로젝트는 조회되지 않는다.
-> APPROVER / OPERATOR 의 목록·상세 조회는 관리 목적이 아니라 API 선택, 실행 이력 조회, 승인 대기 목록 진입 시 프로젝트를 선택하기 위한 탐색 경로로 오픈된 것이다.
+> `GET /projects`, `GET /projects/:project_id`는 SUPER_ADMIN/DEVELOPER 전용 라우트다(APPROVER/OPERATOR는 403). SUPER_ADMIN 외에는 "본인 소속 회사의 프로젝트 전체"도 "본인이 어떤 역할로든 배정된 프로젝트 전체"도 아니라 "본인이 실제 DEVELOPER(20) role로 배정된 프로젝트만" 반환된다(`user_role.status=1` 기준). 같은 프로젝트에 DEVELOPER가 아닌 다른 역할(APPROVER/OPERATOR)로 배정돼 있어도 이 화면에서는 조회되지 않는다.
+> APPROVER/OPERATOR가 API 선택·실행 이력 조회·승인 대기 목록 진입 시 프로젝트를 선택하는 경로는 이 API가 아니라 헤더 콤보박스 전용 `GET /companies/active-header-data`다.
 
 ---
 

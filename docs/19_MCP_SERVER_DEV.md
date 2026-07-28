@@ -69,7 +69,7 @@ mcp_server_dev/
 
 | tool | GM Platform API | 설명 |
 | --- | --- | --- |
-| `list_projects` | `GET /projects` | 로그인 계정이 실제 `user_role`을 가진 프로젝트 목록(SUPER_ADMIN은 전체). 다른 tool에 넘길 `project_id`를 확인하는 진입점 — 가장 먼저 호출해야 한다 |
+| `list_projects` | `GET /projects` | 로그인 계정이 실제 DEVELOPER(20)로 배정된 프로젝트 목록(SUPER_ADMIN은 전체). 다른 tool에 넘길 `project_id`를 확인하는 진입점 — 가장 먼저 호출해야 한다. **주의**: `GET /projects`는 SUPER_ADMIN/DEVELOPER 전용 라우트라, "전 역할 공통"으로 분류돼 있지만 실제로는 APPROVER/OPERATOR 계정으로 실행되는 MCP 인스턴스에서는 403(20001)이 난다 — 이 문서 미해결 항목, §4 구조 재검토 필요 |
 | `list_apis` | `GET /apis/active` | 프로젝트의 실행 가능한 활성 API 목록 (`api_id`/`api_name`/`api_stage`) |
 | `list_code_groups` | `GET /code-groups/active-with-items` | 프로젝트의 활성 코드그룹+코드아이템 — SELECT/RADIO/CHECKBOX 파라미터 값이나 응답 코드 해석에 사용 |
 | `execute_api` | `POST /apis/:api_id/execute` | API 실행. 승인 필요 API는 PENDING으로 등록되고 실제 승인/반려는 GM Platform 화면 또는 아래 role 게이팅된 tool로 처리 |

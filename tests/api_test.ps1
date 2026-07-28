@@ -412,6 +412,19 @@ Check "role 없는 프로젝트 단건조회 차단 #1" (Req GET /projects/$PROJ
 Check "role 없는 프로젝트 단건조회 차단 #2" (Req GET /projects/$PROJID2 $null $TOKEN_U2) 31002
 Check "role 없는 프로젝트 단건조회 차단 #3" (Req GET /projects/$PROJID2 $null $TOKEN_U2) 31002
 
+# U1은 PROJID=30(APPROVER), PROJID2=20(DEVELOPER) 보유 — role은 있지만 DEVELOPER가 아닌 프로젝트도
+# 관리 화면(/admin/projects) 단건·목록 조회에서 차단되어야 한다(기존엔 role만 있으면 통과).
+Check "DEVELOPER 아닌 역할 프로젝트 단건조회 차단 #1" (Req GET /projects/$PROJID $null $TOKEN_U1) 31002
+Check "DEVELOPER 아닌 역할 프로젝트 단건조회 차단 #2" (Req GET /projects/$PROJID $null $TOKEN_U1) 31002
+Check "DEVELOPER 아닌 역할 프로젝트 단건조회 차단 #3" (Req GET /projects/$PROJID $null $TOKEN_U1) 31002
+Check "실제 DEVELOPER 프로젝트 단건조회 정상 #1" (Req GET /projects/$PROJID2 $null $TOKEN_U1)
+Check "실제 DEVELOPER 프로젝트 단건조회 정상 #2" (Req GET /projects/$PROJID2 $null $TOKEN_U1)
+Check "실제 DEVELOPER 프로젝트 단건조회 정상 #3" (Req GET /projects/$PROJID2 $null $TOKEN_U1)
+
+$projListU1 = Req GET "/projects?page=1&page_size=20" $null $TOKEN_U1
+if ($projListU1.data.items.project_id -contains $PROJID) { Write-Host "  [FAIL] DEVELOPER 아닌 역할 프로젝트가 목록에 노출됨 (PROJID=$PROJID)" -ForegroundColor Red; $script:FAIL++ } else { Write-Host "  [PASS] DEVELOPER 아닌 역할 프로젝트 목록조회 제외 확인" -ForegroundColor Green; $script:PASS++ }
+if ($projListU1.data.items.project_id -contains $PROJID2) { Write-Host "  [PASS] 실제 DEVELOPER 프로젝트 목록조회 포함 확인" -ForegroundColor Green; $script:PASS++ } else { Write-Host "  [FAIL] 실제 DEVELOPER 프로젝트가 목록에서 누락됨 (PROJID2=$PROJID2)" -ForegroundColor Red; $script:FAIL++ }
+
 # ============================================================
 # 7B2. 프로젝트 연결정보 수정 (api_base_url, DEVELOPER 자체 관리)
 # ============================================================
