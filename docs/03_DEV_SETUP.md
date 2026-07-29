@@ -56,6 +56,18 @@ mysql -u root -p gm_platform < database/tables/all_tables.sql
 | user | 3 | `apv` | Approver | pw=`1234`, company=2, project=2, role=APPROVER(30) |
 | user | 4 | `op` | Operator | pw=`1234`, company=2, project=2, role=OPERATOR(40) |
 
+## 3.3 스토어드 프로시저 및 함수 생성
+
+```bash
+mysql -u root -p gm_platform < database/functions/FN_HAS_PROJECT_ROLE.sql
+mysql -u root -p gm_platform < database/functions/FN_GET_PROJECT_ROLE_CODE.sql
+mysql -u root -p gm_platform < database/procedures/all_procedures.sql
+```
+
+`database/procedures/all_procedures.sql`은 `database/procedures/*.sql`(SP 68개)을 알파벳순으로 이어붙인 통합 스크립트다(`all_tables.sql`과 동일 패턴). 프로시저가 내부에서 참조하므로 함수(FN_*)를 먼저 생성한다.
+
+이 단계를 건너뛰면 테이블만 있고 SP가 없는 상태가 되어, `callSP()`를 거치는 모든 API 호출이 `Table/Procedure doesn't exist` 오류로 실패한다.
+
 ---
 
 # 4. 백엔드 설정
