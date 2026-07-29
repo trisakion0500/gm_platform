@@ -178,7 +178,7 @@ export async function refresh(refreshToken: string) {
     role_code: session.role_code,
   });
 
-  await db.updateSessionJti(session.session_id, jti);
+  await db.updateSessionJti(session.session_id, jti, session.access_token_jti);
 
   return {
     access_token: token,

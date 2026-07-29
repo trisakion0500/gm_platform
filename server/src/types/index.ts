@@ -99,6 +99,8 @@ export interface SessionWithUserRow extends SessionRow {
   company_id: number;
   /** 역할 코드 */
   role_code: number;
+  /** 조회 시점의 Access Token JTI (동시 refresh 감지용 낙관적 동시성 체크에 사용) */
+  access_token_jti: string;
 }
 
 /**

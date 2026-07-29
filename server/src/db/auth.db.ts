@@ -116,13 +116,19 @@ export async function getSessionByRefresh(refreshTokenHash: string): Promise<Ses
 
 /**
  * 세션의 Access Token JTI를 새 값으로 갱신한다.
+ * expectedJti는 호출자가 조회 시점에 읽은 기존 access_token_jti — 그 사이 다른 refresh
+ * 요청이 먼저 갱신했으면(레이스) DBError(10009, INVALID_SESSION)를 던진다.
  * @author trisakion
  * @param sessionId 갱신할 세션 ID
  * @param jti 새 Access Token JTI
+ * @param expectedJti 호출자가 조회 시점에 읽은 기존 access_token_jti (동시수정 감지용)
  * @returns void
  */
-export async function updateSessionJti(sessionId: number, jti: string): Promise<void> {
-  await callSP('SP_UPDATE_SESSION_JTI', [sessionId, jti]);
+export async function updateSessionJti(sessionId: number, jti: string, expectedJti: string): Promise<void> {
+  const [status] = await callSP('SP_UPDATE_SESSION_JTI', [sessionId, jti, expectedJti]);
+  switch (status[0].RESULT) {
+    case 10009: throw toDBError(ERROR_MAP.INVALID_SESSION);
+  }
 }
 
 /**

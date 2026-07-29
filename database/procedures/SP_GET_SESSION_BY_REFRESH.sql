@@ -7,6 +7,10 @@ BEGIN
 -- --------------------------------- --
 -- 명칭 : SP_GET_SESSION_BY_REFRESH
 -- 작성 : 2026-06-28 trisakion
+-- 수정 : 2026-07-29 trisakion - access_token_jti를 결과에 포함. 동일 refresh_token으로 거의
+--        동시에 두 refresh 요청이 들어오면 SP_UPDATE_SESSION_JTI가 무조건 덮어써 나중에
+--        커밋된 요청만 유효해지는 레이스가 있었음 — 이 값을 SP_UPDATE_SESSION_JTI에
+--        낙관적 동시성 가드로 넘기기 위해 추가.
 -- 내용 : refresh_token_hash로 세션 및 사용자 정보 조회
 --        세션 만료(expired_at) 및 상태(status) 검증 포함
 --        세션이 존재하지 않거나 만료된 경우 10008 반환
@@ -49,12 +53,13 @@ BEGIN
                s.`status` AS session_status,
                u.`status` AS user_status,
                u.`company_id`,
+               s.`access_token_jti`,
                COALESCE(MIN(ur.`role_code`), 40) AS role_code
         FROM   `user_session` s
         JOIN   `user` u ON s.`user_id` = u.`user_id`
         LEFT JOIN `user_role` ur ON u.`user_id` = ur.`user_id` AND ur.`status` = 1
         WHERE  s.`session_id` = v_session_id
-        GROUP BY s.`session_id`, s.`user_id`, s.`status`, u.`status`, u.`company_id`;
+        GROUP BY s.`session_id`, s.`user_id`, s.`status`, u.`status`, u.`company_id`, s.`access_token_jti`;
 
     END;
 
