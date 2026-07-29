@@ -58,6 +58,8 @@ export const ERROR_MAP = {
   LOG_AUDIT_NOT_FOUND:     { code: 31010, message: '존재하지 않는 감사 로그입니다.',         httpStatus: 404 },
   /** 중복 데이터 */
   DUPLICATE_VALUE:       { code: 32001, message: '이미 사용 중인 값입니다.',              httpStatus: 400 },
+  /** 조회 이후 다른 요청이 먼저 데이터를 변경해 현재 요청을 반영할 수 없음 (낙관적 동시성 충돌) */
+  CONCURRENT_MODIFICATION: { code: 32002, message: '다른 요청이 먼저 처리되어 반영할 수 없습니다. 새로고침 후 다시 시도해주세요.', httpStatus: 409 },
   // 요청 제한
   /** 짧은 시간 내 과도한 요청 (로그인/회원가입 브루트포스 방지) */
   TOO_MANY_REQUESTS:     { code: 40001, message: '요청이 너무 많습니다. 잠시 후 다시 시도해주세요.', httpStatus: 429 },

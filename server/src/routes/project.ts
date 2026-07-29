@@ -357,6 +357,8 @@ router.patch('/:project_id/connection', authenticate, requireRole(ROLE.SUPER_ADM
  *         $ref: '#/components/responses/Forbidden'
  *       404:
  *         $ref: '#/components/responses/NotFound'
+ *       409:
+ *         $ref: '#/components/responses/Conflict'
  */
 router.post('/:project_id/api-key',     authenticate, requireRole(ROLE.SUPER_ADMIN, ROLE.DEVELOPER),                    ctrl.issueProjectApiKey);
 

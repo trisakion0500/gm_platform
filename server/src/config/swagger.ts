@@ -74,6 +74,15 @@ const options: swaggerJsdoc.Options = {
             },
           },
         },
+        Conflict: {
+          description: '조회 이후 다른 요청이 먼저 데이터를 변경함 (낙관적 동시성 충돌) — 재조회 후 재시도 필요',
+          content: {
+            'application/json': {
+              schema: { $ref: '#/components/schemas/ErrorResponse' },
+              example: { result: 32002, message: '다른 요청이 먼저 처리되어 반영할 수 없습니다. 새로고침 후 다시 시도해주세요.' },
+            },
+          },
+        },
       },
       schemas: {
         ErrorResponse: {

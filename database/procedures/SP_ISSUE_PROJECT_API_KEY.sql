@@ -1,16 +1,25 @@
 DROP PROCEDURE IF EXISTS SP_ISSUE_PROJECT_API_KEY;
 DELIMITER $
 CREATE PROCEDURE SP_ISSUE_PROJECT_API_KEY(
-    IN  i_project_id      BIGINT,        -- 대상 프로젝트 ID
-    IN  i_encrypted_key   VARCHAR(255)   -- 서비스 레이어에서 AES-256-CBC로 암호화한 api_key
-) COMMENT '프로젝트 X-API-Key 발급/재발급 - project.api_key UPDATE (기존 키 덮어씀)'
+    IN  i_project_id             BIGINT,        -- 대상 프로젝트 ID
+    IN  i_encrypted_key          VARCHAR(255),  -- 서비스 레이어에서 AES-256-CBC로 암호화한 api_key
+    IN  i_expected_api_base_url  VARCHAR(255)   -- 호출자가 조회 시점에 읽은 api_base_url (동시수정 감지용)
+) COMMENT '프로젝트 X-API-Key 발급/재발급 - api_base_url 동시변경 감지, project.api_key UPDATE'
 BEGIN
 -- --------------------------------- --
 -- 명칭 : SP_ISSUE_PROJECT_API_KEY
 -- 작성 : 2026-07-15 trisakion
+-- 수정 : 2026-07-29 trisakion - i_expected_api_base_url 파라미터 추가, UPDATE에
+--        AND api_base_url = i_expected_api_base_url 가드 + ROW_COUNT() 체크 추가.
+--        이 발급과 SP_UPDATE_PROJECT_CONNECTION(api_base_url 변경 시 api_key 자동폐기)이
+--        서로 다른 트랜잭션으로 거의 동시에 실행되면, url 변경이 먼저 커밋된 뒤에 이 발급이
+--        나중에 커밋되어 "새 url + (변경 전 url 기준으로 발급된) 유효한 키"가 되는 레이스가
+--        있었음 — 발급 시점에 호출자가 읽었던 api_base_url이 그새 바뀌었으면 32002로 실패시켜
+--        재조회 후 재시도하도록 강제.
 -- 내용 : GM Platform이 대상 서버 호출용 X-API-Key를 발급/재발급
 --        project 존재 검사 후 api_key UPDATE (재발급 시 기존 암호문 덮어씀)
 --        평문은 서비스 레이어가 호출 직전에 생성해 응답에만 1회 실어보내고, 이 SP는 암호문만 다룬다
+--        api_base_url이 호출자가 읽은 값과 다르면(동시 변경됨) 갱신하지 않고 32002 반환
 --        수정된 project 전체 정보 반환 (company 정보 포함, has_api_key=1 확정)
 -- 테이블 적용 순서 : project
 -- --------------------------------- --
@@ -39,7 +48,14 @@ BEGIN
 
             UPDATE `project`
             SET `api_key` = i_encrypted_key
-            WHERE `project_id` = i_project_id;
+            WHERE `project_id` = i_project_id
+              AND `api_base_url` = i_expected_api_base_url;
+
+            IF ROW_COUNT() = 0 THEN
+                ROLLBACK;
+                SELECT 32002 AS RESULT;
+                LEAVE transaction_block;
+            END IF;
 
         COMMIT;
 

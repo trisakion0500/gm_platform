@@ -162,6 +162,9 @@ export async function updateProjectConnection(
  * 프로젝트의 X-API-Key를 발급/재발급한다 (재발급 시 기존 키 덮어씀).
  * 권한 범위는 updateProjectConnection과 동일 — SUPER_ADMIN + 해당 project_id에 실제 활성 DEVELOPER 배정을 가진 사용자.
  * 평문은 이 함수 호출 시점에만 생성되어 반환값에 1회 실리고, DB에는 암호문만 저장된다(GitHub PAT류 one-time-reveal 패턴).
+ * before.api_base_url을 발급 SP에 그대로 넘겨, 그 사이 updateProjectConnection이 api_base_url을
+ * 바꿔버렸으면(레이스) DBError(32002)로 실패시킨다 — "url 변경 시 옛 키 자동폐기" 불변식이
+ * 새로 발급되는 키에도 깨지지 않도록 하기 위함(호출자는 재조회 후 재시도해야 함).
  * @author trisakion
  * @param projectId 대상 프로젝트 ID
  * @param callerRoleCode 호출자 역할 코드
@@ -178,7 +181,7 @@ export async function issueApiKey(
     throw toAppError(ERROR_MAP.PROJECT_NOT_FOUND);
   await assertProjectRole(callerUserId, callerRoleCode, projectId, [ROLE.DEVELOPER]);
   const plainKey = randomBytes(32).toString('hex');
-  const after = await db.issueProjectApiKey(projectId, encrypt(plainKey));
+  const after = await db.issueProjectApiKey(projectId, encrypt(plainKey), before.api_base_url);
   audit.logUpdate('project', String(after.project_id), after.project_name,
     after.company_id, after.project_id, after.project_name,
     before as unknown as Record<string, unknown>,

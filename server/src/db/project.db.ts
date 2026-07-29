@@ -140,18 +140,23 @@ export async function updateProjectConnection(
 /**
  * 프로젝트의 X-API-Key를 발급/재발급하고(암호문 저장) 수정된 프로젝트 정보를 반환한다.
  * 재발급 시 기존 암호문을 덮어쓴다. 프로젝트 미존재 시 DBError(31002)를 던진다.
+ * expectedApiBaseUrl은 호출자가 조회 시점에 읽은 api_base_url — 그 사이 다른 요청이
+ * updateProjectConnection으로 api_base_url을 바꿨으면(레이스) DBError(32002)를 던진다.
  * @author trisakion
  * @param projectId 대상 프로젝트 ID
  * @param encryptedKey 서비스 레이어에서 암호화한 api_key
+ * @param expectedApiBaseUrl 호출자가 조회 시점에 읽은 api_base_url (동시수정 감지용)
  * @returns 수정된 프로젝트 정보 (has_api_key=1, company 정보 포함)
  */
 export async function issueProjectApiKey(
   projectId: number,
   encryptedKey: string,
+  expectedApiBaseUrl: string,
 ): Promise<ProjectRow> {
-  const [spStatus, [data]] = await callSP('SP_ISSUE_PROJECT_API_KEY', [projectId, encryptedKey]);
+  const [spStatus, [data]] = await callSP('SP_ISSUE_PROJECT_API_KEY', [projectId, encryptedKey, expectedApiBaseUrl]);
   switch (spStatus[0].RESULT) {
     case 31002: throw toDBError(ERROR_MAP.PROJECT_NOT_FOUND);
+    case 32002: throw toDBError(ERROR_MAP.CONCURRENT_MODIFICATION);
   }
   return data[0] as unknown as ProjectRow;
 }
