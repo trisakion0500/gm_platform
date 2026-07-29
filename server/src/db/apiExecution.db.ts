@@ -1,6 +1,7 @@
 import { callSP } from '../config/db';
 import { APIExecutionRow } from '../types';
 import { toDBError, ERROR_MAP } from '../constants/errors';
+import logger from '../utils/logger';
 
 /**
  * API 실행 이력을 생성하고 생성된 이력 + HTTP 호출 정보를 반환한다.
@@ -33,7 +34,10 @@ export async function createApiExecution(
 }
 
 /**
- * HTTP 호출 결과를 api_execution 에 반영한다 (status 40/50).
+ * HTTP 호출 결과를 api_execution 에 반영한다 (status 10/20→40/50).
+ * 대상이 이미 취소·반려 등으로 종결되어 SP가 31009(스킵됨)를 반환해도 예외를 던지지 않는다 —
+ * 호출자인 callExternalApi()는 절대 throw하지 않는다는 계약을 갖고 있고, 이 경우는 실패가
+ * 아니라 "이미 종결된 건이라 결과를 반영하지 않았다"는 정상적인 레이스 회피 결과이기 때문.
  * @author trisakion
  * @param apiExecutionId 대상 실행 이력 ID
  * @param newStatus 결과 상태 (40=SUCCESS, 50=FAILED)
@@ -47,9 +51,11 @@ export async function updateApiExecutionResult(
   responseData: string | null,
   errorMessage: string | null,
 ): Promise<void> {
-  await callSP('SP_UPDATE_API_EXECUTION_RESULT', [
+  const [status] = await callSP('SP_UPDATE_API_EXECUTION_RESULT', [
     apiExecutionId, newStatus, responseData, errorMessage,
   ]);
+  if (status[0].RESULT === 31009)
+    logger.warn(`SP_UPDATE_API_EXECUTION_RESULT(${apiExecutionId}) skipped — execution already finalized (canceled/rejected)`);
 }
 
 /**
