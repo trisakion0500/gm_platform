@@ -29,7 +29,7 @@ mcp_server_dev/
 │   │   ├── env.ts               # GM_BASE_URL/GM_LOGIN_ID/GM_PASSWORD 검증
 │   │   └── logger.ts            # log4js 설정 — console 어펜더 없음(아래 §3 참고)
 │   ├── tools/
-│   │   ├── listProjects.ts      # GET /projects
+│   │   ├── listProjects.ts      # GET /companies/active-header-data
 │   │   ├── listApis.ts          # GET /apis/active
 │   │   ├── listCodeGroups.ts    # GET /code-groups/active-with-items
 │   │   ├── executeApi.ts        # POST /apis/:id/execute
@@ -58,6 +58,7 @@ mcp_server_dev/
 - `runExclusive()`로 동시 요청이 로그인/refresh를 중복 트리거하지 않도록 직렬화한다.
 - GM Platform이 `result!==0`으로 응답한 비즈니스 오류는 `GmApiError(code, message)`로 던져지고, `utils/toolResult.ts`의 `safeTool()`이 이를 잡아 `isError:true`인 `CallToolResult`로 변환해 LLM에게 그대로 전달한다 — CLAUDE.md 오류 코드 표와 대조 가능한 형태 유지.
 - **stdio transport에서는 stdout이 MCP JSON-RPC 메시지 전용 채널**이라, `config/logger.ts`는 `server/`·`test_game_server/`와 달리 **console 어펜더를 두지 않는다** — 파일(`logs/app.log`, `logs/error.log`)로만 기록한다. console 어펜더를 두면 로그 출력이 프로토콜 스트림에 섞여 Claude Code(Host)의 파싱이 깨진다.
+- **(변경됨) 로그 파일 경로는 `__dirname` 기준 절대경로** — 원래 `filename: "logs/app.log"`(상대경로, `process.cwd()` 기준)였는데, Claude Desktop 앱이 이 서버를 spawn할 때 cwd를 `mcp_server_dev/`가 아닌 다른 경로(예: `C:\Windows\System32`, 쓰기 권한 없음)로 잡아 `log4js.configure()`가 모듈 로드 시점에 EPERM으로 즉시 크래시하는 문제가 있었다 — Claude Code는 project-scope `.mcp.json` 덕에 cwd가 항상 `mcp_server_dev/`라 우연히 문제없었을 뿐. `path.join(__dirname, "..", "..", "logs")`로 고쳐 어떤 클라이언트가 어떤 cwd로 spawn하든 항상 `mcp_server_dev/logs`를 가리키게 함.
 
 ---
 
@@ -69,7 +70,7 @@ mcp_server_dev/
 
 | tool | GM Platform API | 설명 |
 | --- | --- | --- |
-| `list_projects` | `GET /projects` | 로그인 계정이 실제 DEVELOPER(20)로 배정된 프로젝트 목록(SUPER_ADMIN은 전체). 다른 tool에 넘길 `project_id`를 확인하는 진입점 — 가장 먼저 호출해야 한다. **주의**: `GET /projects`는 SUPER_ADMIN/DEVELOPER 전용 라우트라, "전 역할 공통"으로 분류돼 있지만 실제로는 APPROVER/OPERATOR 계정으로 실행되는 MCP 인스턴스에서는 403(20001)이 난다 — 이 문서 미해결 항목, §4 구조 재검토 필요 |
+| `list_projects` | `GET /companies/active-header-data` | 로그인 계정이 소속된 회사 + 실제 user_role을 가진 프로젝트 목록(SUPER_ADMIN은 전체). 다른 tool에 넘길 `project_id`를 확인하는 진입점 — 가장 먼저 호출해야 한다. **(변경됨)** 원래 `GET /projects`를 썼으나 이 라우트가 SUPER_ADMIN/DEVELOPER 전용이라 APPROVER/OPERATOR 계정으로 실행되는 MCP 인스턴스에서는 항상 403(20001)이 나는 문제가 있었다 — 헤더 콤보박스용으로 이미 전 역할에 열려있고 `FN_HAS_PROJECT_ROLE`로 동일하게 스코핑되는 `GET /companies/active-header-data`로 교체해 해결(파라미터 없음, 페이지네이션 없음) |
 | `list_apis` | `GET /apis/active` | 프로젝트의 실행 가능한 활성 API 목록 (`api_id`/`api_name`/`api_stage`) |
 | `list_code_groups` | `GET /code-groups/active-with-items` | 프로젝트의 활성 코드그룹+코드아이템 — SELECT/RADIO/CHECKBOX 파라미터 값이나 응답 코드 해석에 사용 |
 | `execute_api` | `POST /apis/:api_id/execute` | API 실행. 승인 필요 API는 PENDING으로 등록되고 실제 승인/반려는 GM Platform 화면 또는 아래 role 게이팅된 tool로 처리 |
@@ -179,7 +180,70 @@ claude -p "project_id=2 API 목록 보여줘" --mcp-config mcp_server_dev/.mcp.j
 
 ---
 
-# 8. 실행 방법 (수동 기동/디버깅용)
+# 8. Claude Desktop 앱 등록
+
+## 설정 파일 위치
+
+Windows Store(MSIX/AppX) 배포판은 일반적으로 알려진 `%APPDATA%\Claude\claude_desktop_config.json`이 아니라, 패키지별로 가상화된 경로를 쓴다:
+
+```
+%LOCALAPPDATA%\Packages\<PackageFamilyName>\LocalCache\Roaming\Claude\claude_desktop_config.json
+```
+
+`<PackageFamilyName>`은 `Get-ChildItem "$env:LOCALAPPDATA\Packages" -Filter "*Claude*"`로 확인한다(이 환경에서는 `Claude_pzs8sxrjxfjjc`). 일반 설치형(MSIX 아닌) 배포판이면 표준 `%APPDATA%\Claude\claude_desktop_config.json` 경로를 그대로 쓴다.
+
+## `mcpServers` 등록
+
+이 파일은 앱이 자체 preferences(`coworkUserFilesPath`, `preferences` 등)도 함께 저장하는 파일이라, 기존 내용을 지우지 말고 최상위에 `mcpServers` 키만 추가한다:
+
+```json
+{
+  "mcpServers": {
+    "gm-platform": {
+      "command": "node",
+      "args": ["C:/workspace/gm_platform/mcp_server_dev/dist/index.js"],
+      "env": {
+        "GM_BASE_URL": "http://127.0.0.1:3000/api",
+        "GM_LOGIN_ID": "op",
+        "GM_PASSWORD": "1234"
+      }
+    }
+  },
+  "coworkUserFilesPath": "...",
+  "preferences": { ... }
+}
+```
+
+`.mcp.json`(Claude Code)과 달리 `"type": "stdio"` 필드는 없어도 된다.
+
+**주의 — 앱 내 "구성 편집" 메뉴에서 이 파일을 선택하면 안 된다.** 실제로 겪은 문제: "구성 편집"에서 방금 수동 편집한 `claude_desktop_config.json`을 선택했더니, 앱이 자기 메모리 상의 preferences를 그대로 그 파일에 다시 써버려 `mcpServers` 항목이 통째로 사라졌다(원복). `mcpServers`는 반드시 **앱을 완전히 종료한 상태**(트레이 아이콘까지)에서 파일을 직접 편집하고, 그 다음 앱을 재시작하는 방식으로만 안전하게 반영된다 — 재시작 시 앱이 파일을 읽어 `mcpServers`를 정상 파싱하는 것 자체는 코드로 확인됨(`app.asar`에 `"mcpServers" in n.parsed` 파싱 로직 존재).
+
+## Desktop 앱 전용 로그
+
+같은 `logs/` 폴더(`.../LocalCache/Roaming/Claude/logs/`)에 앱이 자체적으로 남기는 로그가 있다 — `mcp_server_dev/logs/app.log`(서버 자신이 남기는 로그)와는 별개다:
+
+- `mcp.log` — 전체 MCP 서버 공통 로그(spawn/initialize/tools-list 등 메시지 왕복 기록)
+- `mcp-server-<서버이름>.log` — 서버별 로그(여기 예시는 `mcp-server-gm-platform.log`), 자식 프로세스의 stderr가 그대로 캡처된다
+
+"Running"인데 앱 UI에 tool이 안 뜨거나 "disconnected"로 보일 때는 여기부터 확인한다 — §3의 로그 경로 EPERM 크래시도 이 파일에 찍힌 stderr 스택 트레이스로 원인을 특정했다.
+
+## 연결 확인
+
+**설정 UI**: Settings → 데스크톱 앱 → 개발자 → "로컬 MCP 서버" 패널에서 등록된 서버와 상태(`running`)를 확인할 수 있다 — 명령어/인수, "로그 보기"(§8 위 로그 파일을 바로 열어줌), "고급 옵션"도 여기 있다.
+
+![Claude Desktop 개발자 설정 - 로컬 MCP 서버](screenshots/30_mcp_desktop_developer_settings.png)
+
+**가장 확실한 방법은 채팅에서 직접 물어보는 것**이다 — "지엠플랫폼 mcp 사용할 수 있어?"라고 물으면 정상 연결 시 tool 목록으로 답하고, 이어서 자연어로 tool을 실제로 호출해준다(아래 예시는 `project_id=2`의 유저 목록을 `execute_api`로 test_game_server API를 실행해 조회한 결과).
+
+![Claude Desktop 채팅에서 gm-platform MCP 사용](screenshots/29_mcp_desktop_chat_tools.png)
+
+## 설정 변경 후 반영
+
+`.mcp.json`(Claude Code)과 달리 핫 리로드가 없다 — `mcpServers` 수정이나 `npm run build` 후에는 앱을 완전히 종료했다가 재시작해야 한다.
+
+---
+
+# 9. 실행 방법 (수동 기동/디버깅용)
 
 ```powershell
 cd mcp_server_dev
@@ -192,7 +256,7 @@ npm run dev     # tsx watch, stdio로 대기 (Claude Code가 아닌 수동 테�
 
 ---
 
-# 9. 후기 — 실효성에 대한 평가
+# 10. 후기 — 실효성에 대한 평가
 
 구현·등록·검증까지 마친 뒤 되짚어본 솔직한 평가.
 
@@ -200,4 +264,5 @@ npm run dev     # tsx watch, stdio로 대기 (Claude Code가 아닌 수동 테�
 - **더 근본적으로는 MCP 대상으로 GM Platform을 고른 것 자체가 안 맞는 선택이었다.** MCP의 가치는 "사람이 쓸 UI가 없거나 파편화된 시스템을 자연어로 조작"하는 데 있는데, GM Platform은 반대로 SELECT/RADIO/CHECKBOX 입력폼과 GRID/KEY_VALUE 결과 렌더링까지 갖춘 전용 웹 워크스페이스(`/apis`)가 이미 있어서, 사람이 쓰는 용도라면 웹 UI가 채팅으로 JSON 주고받는 것보다 명백히 빠르고 정확하다.
 - **MCP가 실제로 값을 하는 지점은 두 가지로 좁혀진다** — ① role_code 기반으로 **tool 자체를 원천 노출하지 않는 구조적 권한 차단**("Claude Code가 알아서 조심하는" 방식보다 확실함, §5), ② **호스트에 종속되지 않는 재사용성**(Claude Code 전용 스크립트가 아니라 프로토콜 레벨 자산이라 다른 MCP 클라이언트에서도 그대로 붙는다). 이 두 장점은 여러 사람·여러 클라이언트가 공유하는 시나리오나 UI 투자가 안 된 시스템에서 의미가 커지고, 지금처럼 UI가 이미 잘 갖춰진 시스템을 혼자 로컬에서 쓰는 상황에서는 체감이 약하다.
 - **"Claude Code가 하는 건지 MCP가 하는 건지 구분이 안 된다"는 관찰은 버그가 아니라 MCP의 설계 의도 자체다** — tool 호출이 대화 흐름에 자연스럽게 녹아들도록 만든 것이 MCP의 목표이기 때문. 다만 그 투명함이 "지금 실제로 무엇이 실행되고 있는지" 파악하기 어렵게 만드는 트레이드오프이기도 하다는 점은 실제로 써보고서야 체감됐다.
-- **결론: 이 컴포넌트는 "MCP 서버를 실제로 설계·구현·등록까지 해보는 학습/실험" 자체가 목적이었고, GM Platform 운영에 필수적인 인프라는 아니다.** 앞으로 GM Platform에 새 API가 추가되더라도 mcp_server_dev를 따라서 확장(기능 동기화)하지 않고 지금 tool 세트로 고정한다. 굳이 더 투자할 지점이 있다면 아직 검증 안 된 ②(호스트 비종속 재사용성) — 지금은 Claude Code 하나로만 붙여봤으니, 다른 MCP 클라이언트에서도 동일 서버가 그대로 동작하는 걸 보여주는 것 정도가 남은 값어치 있는 확장이다.
+- **결론: 이 컴포넌트는 "MCP 서버를 실제로 설계·구현·등록까지 해보는 학습/실험" 자체가 목적이었고, GM Platform 운영에 필수적인 인프라는 아니다.** 앞으로 GM Platform에 새 API가 추가되더라도 mcp_server_dev를 따라서 확장(기능 동기화)하지 않고 지금 tool 세트로 고정한다.
+- **(추가 검증) ②(호스트 비종속 재사용성)를 Claude Desktop 앱으로 실제 확인했다** — 같은 `dist/index.js`, 같은 `mcpServers` 스키마를 Claude Desktop에도 그대로 등록해 tool 7개가 정상 노출·호출되는 것까지 확인(§8). 다만 코드 수정 없이 되진 않았다 — 로그 경로가 상대경로였던 탓에 Claude Desktop이 spawn하는 cwd(Claude Code와 다름)에서 크래시가 났고(§3), 이건 애초에 "cwd에 의존하지 않는 게 맞는" 잠재 버그를 Claude Code만 붙여봤을 땐 우연히 못 찾았던 사례다 — 호스트 비종속성을 검증하는 과정 자체가 이런 종류의 암묵적 가정을 드러낸다는 걸 보여준 셈이다.

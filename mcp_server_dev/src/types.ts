@@ -27,19 +27,23 @@ export interface RefreshResult {
   role_code: number;
 }
 
-/** GET /projects 항목 — 로그인 계정이 실제 user_role을 가진 프로젝트만 반환(SUPER_ADMIN은 전체) */
-export interface Project {
+/** GET /companies/active-header-data 소속 회사 항목 */
+export interface ActiveCompany {
+  company_id: number;
+  company_name: string;
+}
+
+/** GET /companies/active-header-data 프로젝트 항목 — 로그인 계정이 실제 user_role을 가진 프로젝트만 반환(SUPER_ADMIN은 전체) */
+export interface ActiveHeaderProject {
   project_id: number;
   company_id: number;
-  company_code: string;
-  company_name: string;
-  project_code: string;
   project_name: string;
-  api_base_url: string;
-  description: string | null;
-  status: number;
-  created_at: string;
-  updated_at: string;
+}
+
+/** GET /companies/active-header-data 응답 데이터 */
+export interface ActiveHeaderData {
+  companies: ActiveCompany[];
+  projects: ActiveHeaderProject[];
 }
 
 /** GET /apis/active 항목 */

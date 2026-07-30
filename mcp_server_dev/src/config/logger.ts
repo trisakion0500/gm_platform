@@ -1,6 +1,8 @@
 import log4js from "log4js";
+import path from "path";
 
 const isProd = process.env.NODE_ENV === "production";
+const logDir = path.join(__dirname, "..", "..", "logs");
 
 const layout = {
   type: "pattern",
@@ -13,14 +15,14 @@ log4js.configure({
   appenders: {
     file: {
       type: "dateFile",
-      filename: "logs/app.log",
+      filename: path.join(logDir, "app.log"),
       pattern: "yyyy-MM-dd",
       keepFileExt: true,
       layout,
     },
     errorFile: {
       type: "dateFile",
-      filename: "logs/error.log",
+      filename: path.join(logDir, "error.log"),
       pattern: "yyyy-MM-dd",
       keepFileExt: true,
       layout,
