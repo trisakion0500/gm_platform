@@ -2,6 +2,8 @@
 
 > 게임 서비스 운영을 위한 데이터 기반 GM-Tool 플랫폼
 
+📄 [포트폴리오 요약 (PDF)](docs/GM_PLATFORM_PORTFOLIO.pdf)
+
 ---
 
 ## 왜 만들었나
