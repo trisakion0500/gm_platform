@@ -42,7 +42,7 @@ const SUPER_ADMIN_ONLY = [10]; // 회사/프로젝트/사용자 쓰기, 역할 �
 
 /**
  * env 계정으로 로그인해 role_code를 확인한 뒤, 그 범위만큼 tool을 등록하고 stdio transport로 연결한다.
- * mcp_server_dev의 실행/승인 tool 10개에 회사·프로젝트·사용자·역할배정 admin tool 17개를 더한 상위 호환 서버.
+ * mcp_server_dev의 실행/승인 tool 10개에 회사·프로젝트·사용자·역할배정 admin tool 20개를 더한 상위 호환 서버.
  * @returns void
  */
 async function main(): Promise<void> {
