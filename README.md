@@ -105,12 +105,12 @@ API 정의(요청/응답 파라미터)와 감사로그·실행이력 같은 운�
 
 ## 주요 기능
 
-- **회사 / 프로젝트 관리** — 다중 게임 서비스 통합 운영
-- **사용자 관리** — 가입 승인 워크플로우 / 역할 기반 권한(SUPER_ADMIN / DEVELOPER / APPROVER / OPERATOR)
+- **회사 / 프로젝트 관리 (Multi-tenant Architecture)** — 회사 단위로 하위 리소스 전체가 격리되는 다중 테넌트 구조
+- **사용자 관리 (RBAC)** — 가입 승인 워크플로우 / 역할 기반 권한(SUPER_ADMIN / DEVELOPER / APPROVER / OPERATOR), 프로젝트별 실제 권한 재검증
 - **API 정의** — 요청/응답 파라미터 등록으로 자동 UI 생성
-- **API 실행 / 승인 워크플로우** — 즉시 실행 또는 OPERATOR → 승인자 2단계 실행
+- **API 실행 / 승인 워크플로우 (API Execution Management / Approval Workflow)** — 즉시 실행 또는 OPERATOR → 승인자 2단계 실행
 - **공통 코드 관리** — 셀렉트/라디오/체크박스 데이터 소스 관리
-- **감사 로그** — 모든 운영 데이터 변경 이력 Append-Only 기록
+- **감사 로그 (Audit Logging)** — 모든 운영 데이터 변경 이력 Append-Only 기록(변경 전/후 JSON 포함)
 
 > **즉시 실행 vs 승인 워크플로우 기준**
 > 실행 방식은 역할(Role)과 API별 승인 필요 여부(`is_required_approval`) 조합으로 결정된다. `OPERATOR`가 `is_required_approval=1`로 설정된 API를 실행하는 경우에만 직접 실행이 막히고 `SUPER_ADMIN`·`DEVELOPER`·`APPROVER`의 승인을 거쳐 2단계로 처리되며, 그 외(승인 불필요 API이거나 요청자가 `DEVELOPER`/`APPROVER`/`SUPER_ADMIN`인 경우)는 즉시 실행된다. 이는 운영 실수(오지급, 오제재 등)를 승인이 필요한 API에 한해 한 번 더 걸러내기 위한 구조다.
