@@ -1,9 +1,7 @@
 import { CodeGroupRow, ActiveCodeItemRow, ActiveCodeGroupWithItems } from '../types';
 import { toAppError, ERROR_MAP } from '../constants/errors';
-import { ROLE } from '../constants/roles';
 import * as db from '../db/codeGroup.db';
 import * as audit from './logAudit.service';
-import { assertProjectRole } from './projectRole.service';
 
 /**
  * 코드 그룹을 생성한다.
@@ -13,7 +11,7 @@ import { assertProjectRole } from './projectRole.service';
  * @param codeGroupName 코드 그룹명
  * @param description 설명 (없으면 null)
  * @param createdBy 생성자 user_id
- * @param callerRoleCode 생성자 JWT의 전역 role_code (SUPER_ADMIN 외에는 projectId 소속 DEVELOPER 여부를 재검증)
+ * @param callerRoleCode 생성자 JWT의 전역 role_code (SUPER_ADMIN 외에는 projectId 소속 DEVELOPER 여부를 SP 내부에서 원자적으로 재검증)
  * @returns 생성된 코드 그룹 정보
  */
 export async function createCodeGroup(
@@ -24,8 +22,7 @@ export async function createCodeGroup(
   createdBy: number,
   callerRoleCode: number,
 ): Promise<CodeGroupRow> {
-  await assertProjectRole(createdBy, callerRoleCode, projectId, [ROLE.DEVELOPER]);
-  const after = await db.createCodeGroup(projectId, codeGroupCode, codeGroupName, description, createdBy);
+  const after = await db.createCodeGroup(projectId, codeGroupCode, codeGroupName, description, createdBy, callerRoleCode);
   audit.logCreateCodeGroup(after.project_id, after as unknown as Record<string, unknown>, createdBy);
   return after;
 }
@@ -75,7 +72,7 @@ export async function getCodeGroup(
  * @param description 설명 (null=변경 없음)
  * @param status 상태 (null=변경 없음)
  * @param updatedBy 수정자 user_id
- * @param callerRoleCode 수정자 JWT의 전역 role_code (SUPER_ADMIN 외에는 해당 코드 그룹 소속 프로젝트의 DEVELOPER 여부를 재검증)
+ * @param callerRoleCode 수정자 JWT의 전역 role_code (SUPER_ADMIN 외에는 해당 코드 그룹 소속 프로젝트의 DEVELOPER 여부를 SP 내부에서 원자적으로 재검증)
  * @returns 수정된 코드 그룹 정보
  */
 export async function updateCodeGroup(
@@ -89,8 +86,7 @@ export async function updateCodeGroup(
   const before = await db.getCodeGroup(codeGroupId, callerRoleCode, updatedBy);
   if (!before)
     throw toAppError(ERROR_MAP.CODE_GROUP_NOT_FOUND);
-  await assertProjectRole(updatedBy, callerRoleCode, before.project_id, [ROLE.DEVELOPER]);
-  const after = await db.updateCodeGroup(codeGroupId, codeGroupName, description, status, updatedBy);
+  const after = await db.updateCodeGroup(codeGroupId, codeGroupName, description, status, updatedBy, callerRoleCode);
   audit.logUpdateCodeGroup(after.project_id,
     before as unknown as Record<string, unknown>,
     after  as unknown as Record<string, unknown>,

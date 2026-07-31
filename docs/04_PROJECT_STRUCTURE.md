@@ -73,7 +73,6 @@ server/
 │   │   ├── auth.service.ts          # 인증 비즈니스 로직 (JWT 발급, 세션 관리, 비밀번호 검증)
 │   │   ├── company.service.ts       # 회사 비즈니스 로직 (역할별 스코핑 포함)
 │   │   ├── project.service.ts       # 프로젝트 비즈니스 로직
-│   │   ├── projectRole.service.ts   # assertProjectRole() — project_id 단위 실제 user_role 재검증 공통 함수
 │   │   ├── user.service.ts          # 사용자 비즈니스 로직 (가입 승인 워크플로우)
 │   │   ├── userRole.service.ts      # 사용자 권한 비즈니스 로직
 │   │   ├── api.service.ts           # API / Request / Response 파라미터 비즈니스 로직 (핵심 필드 수정 시 api_stage 롤백) — apiRequest/apiResponse 전용 service 파일은 없고 여기에 통합됨

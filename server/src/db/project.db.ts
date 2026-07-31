@@ -124,15 +124,20 @@ export async function updateProject(
  * @author trisakion
  * @param projectId 수정할 프로젝트 ID
  * @param apiBaseUrl 변경할 API Base URL
+ * @param callerUserId 호출자 user_id (프로젝트별 역할 재검증용)
+ * @param callerRoleCode 호출자 역할 코드 (SUPER_ADMIN 외에는 SP 내부에서 대상 프로젝트 실제 DEVELOPER 권한을 원자적으로 재검증)
  * @returns 수정된 프로젝트 정보 (company 정보 포함)
  */
 export async function updateProjectConnection(
   projectId: number,
   apiBaseUrl: string,
+  callerUserId: number,
+  callerRoleCode: number,
 ): Promise<ProjectRow> {
-  const [spStatus, [data]] = await callSP('SP_UPDATE_PROJECT_CONNECTION', [projectId, apiBaseUrl]);
+  const [spStatus, [data]] = await callSP('SP_UPDATE_PROJECT_CONNECTION', [projectId, apiBaseUrl, callerUserId, callerRoleCode]);
   switch (spStatus[0].RESULT) {
     case 31002: throw toDBError(ERROR_MAP.PROJECT_NOT_FOUND);
+    case 20001: throw toDBError(ERROR_MAP.FORBIDDEN);
   }
   return data[0] as unknown as ProjectRow;
 }
@@ -146,16 +151,21 @@ export async function updateProjectConnection(
  * @param projectId 대상 프로젝트 ID
  * @param encryptedKey 서비스 레이어에서 암호화한 api_key
  * @param expectedApiBaseUrl 호출자가 조회 시점에 읽은 api_base_url (동시수정 감지용)
+ * @param callerUserId 호출자 user_id (프로젝트별 역할 재검증용)
+ * @param callerRoleCode 호출자 역할 코드 (SUPER_ADMIN 외에는 SP 내부에서 대상 프로젝트 실제 DEVELOPER 권한을 원자적으로 재검증)
  * @returns 수정된 프로젝트 정보 (has_api_key=1, company 정보 포함)
  */
 export async function issueProjectApiKey(
   projectId: number,
   encryptedKey: string,
   expectedApiBaseUrl: string,
+  callerUserId: number,
+  callerRoleCode: number,
 ): Promise<ProjectRow> {
-  const [spStatus, [data]] = await callSP('SP_ISSUE_PROJECT_API_KEY', [projectId, encryptedKey, expectedApiBaseUrl]);
+  const [spStatus, [data]] = await callSP('SP_ISSUE_PROJECT_API_KEY', [projectId, encryptedKey, expectedApiBaseUrl, callerUserId, callerRoleCode]);
   switch (spStatus[0].RESULT) {
     case 31002: throw toDBError(ERROR_MAP.PROJECT_NOT_FOUND);
+    case 20001: throw toDBError(ERROR_MAP.FORBIDDEN);
     case 32002: throw toDBError(ERROR_MAP.CONCURRENT_MODIFICATION);
   }
   return data[0] as unknown as ProjectRow;

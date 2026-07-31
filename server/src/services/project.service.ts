@@ -1,11 +1,9 @@
 import { randomBytes } from 'crypto';
 import { ProjectRow, ProjectLookupRow } from '../types';
 import { toAppError, ERROR_MAP } from '../constants/errors';
-import { ROLE } from '../constants/roles';
 import * as db from '../db/project.db';
 import * as audit from './logAudit.service';
 import { assertCompanyScope } from './companyScope.service';
-import { assertProjectRole } from './projectRole.service';
 import { encrypt } from '../utils/crypto';
 
 /**
@@ -130,8 +128,8 @@ export async function updateProject(
  * 프로젝트의 api_base_url(연결 정보)만 수정한다.
  * project_code 등 정체성 필드와 달리 SUPER_ADMIN 외에 DEVELOPER도 호출 가능 —
  * 실제로 그 프로젝트의 대상 게임서버를 만드는 개발자가 서버 주소를 자체 관리할 수 있어야 하기 때문.
- * JWT role_code는 여러 프로젝트 중 최고 권한이라 세션값만으로는 부족해, assertProjectRole로
- * 이 project_id에 대한 실제 활성 DEVELOPER 배정을 재검증한다 (SUPER_ADMIN은 배정과 무관하게 통과).
+ * JWT role_code는 여러 프로젝트 중 최고 권한이라 세션값만으로는 부족해, SP 내부에서 FN_GET_PROJECT_ROLE_CODE로
+ * 이 project_id에 대한 실제 활성 DEVELOPER 배정을 검증+UPDATE를 한 트랜잭션으로 재검증한다 (SUPER_ADMIN은 배정과 무관하게 통과).
  * @author trisakion
  * @param projectId 수정할 프로젝트 ID
  * @param apiBaseUrl 변경할 API Base URL
@@ -148,8 +146,7 @@ export async function updateProjectConnection(
   const before = await db.getProject(projectId, 10, 0);
   if (!before)
     throw toAppError(ERROR_MAP.PROJECT_NOT_FOUND);
-  await assertProjectRole(callerUserId, callerRoleCode, projectId, [ROLE.DEVELOPER]);
-  const after = await db.updateProjectConnection(projectId, apiBaseUrl);
+  const after = await db.updateProjectConnection(projectId, apiBaseUrl, callerUserId, callerRoleCode);
   audit.logUpdate('project', String(after.project_id), after.project_name,
     after.company_id, after.project_id, after.project_name,
     before as unknown as Record<string, unknown>,
@@ -165,6 +162,7 @@ export async function updateProjectConnection(
  * before.api_base_url을 발급 SP에 그대로 넘겨, 그 사이 updateProjectConnection이 api_base_url을
  * 바꿔버렸으면(레이스) DBError(32002)로 실패시킨다 — "url 변경 시 옛 키 자동폐기" 불변식이
  * 새로 발급되는 키에도 깨지지 않도록 하기 위함(호출자는 재조회 후 재시도해야 함).
+ * DEVELOPER 권한 재검증은 updateProjectConnection과 동일하게 SP 내부에서 검증+UPDATE를 한 트랜잭션으로 처리한다.
  * @author trisakion
  * @param projectId 대상 프로젝트 ID
  * @param callerRoleCode 호출자 역할 코드
@@ -179,9 +177,8 @@ export async function issueApiKey(
   const before = await db.getProject(projectId, 10, 0);
   if (!before)
     throw toAppError(ERROR_MAP.PROJECT_NOT_FOUND);
-  await assertProjectRole(callerUserId, callerRoleCode, projectId, [ROLE.DEVELOPER]);
   const plainKey = randomBytes(32).toString('hex');
-  const after = await db.issueProjectApiKey(projectId, encrypt(plainKey), before.api_base_url);
+  const after = await db.issueProjectApiKey(projectId, encrypt(plainKey), before.api_base_url, callerUserId, callerRoleCode);
   audit.logUpdate('project', String(after.project_id), after.project_name,
     after.company_id, after.project_id, after.project_name,
     before as unknown as Record<string, unknown>,

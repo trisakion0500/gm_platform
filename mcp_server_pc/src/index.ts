@@ -35,7 +35,7 @@ import { registerAdminUpdateUserRoleTool } from "./tools/adminUpdateUserRole";
 
 // GM Platform role_code (CLAUDE.md 참고: 10=SUPER_ADMIN, 20=DEVELOPER, 30=APPROVER, 40=OPERATOR).
 // mcp_server_dev와 동일하게, 여기 게이팅은 UX 차원의 1차 필터일 뿐이고 최종 방어선은
-// 여전히 GM Platform 서버의 role/스코프 재검증(requireRole, assertCompanyScope, assertProjectRole)이다.
+// 여전히 GM Platform 서버의 role/스코프 재검증(requireRole, assertCompanyScope, SP 내부 원자적 재검증)이다.
 const APPROVAL_CAPABLE_ROLES = [10, 20, 30]; // 실행 승인/반려/대기목록 (mcp_server_dev와 동일)
 const SUPER_ADMIN_AND_DEVELOPER = [10, 20]; // 프로젝트/사용자 조회, 연결정보·API키 발급
 const SUPER_ADMIN_ONLY = [10]; // 회사/프로젝트/사용자 쓰기, 역할 배정

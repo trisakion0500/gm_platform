@@ -9,14 +9,18 @@ CREATE PROCEDURE SP_UPDATE_API_RESPONSE(
     IN  i_description      VARCHAR(1000), -- 설명 (NULL=변경 없음)
     IN  i_display_order    INT,           -- 표시 순서 (NULL=변경 없음)
     IN  i_status           TINYINT,       -- 상태 (NULL=변경 없음)
-    IN  i_updated_by       BIGINT         -- 수정자 user_id
-) COMMENT 'API Response 파라미터 수정 - api_response UPDATE, api_stage 자동 롤백 포함'
+    IN  i_updated_by       BIGINT,        -- 수정자 user_id
+    IN  i_caller_role_code INT            -- 수정자 역할 코드 (10=SUPER_ADMIN 외에는 대상 API 소속 프로젝트 실제 DEVELOPER 권한 재검증)
+) COMMENT 'API Response 파라미터 수정 - api_response UPDATE, api_stage 자동 롤백 포함, 프로젝트 DEVELOPER 권한 원자적 재검증'
 BEGIN
 -- --------------------------------- --
 -- 명칭 : SP_UPDATE_API_RESPONSE
 -- 작성 : 2026-06-30 trisakion
+-- 수정 : 2026-07-31 trisakion - i_caller_role_code 추가, FN_GET_PROJECT_ROLE_CODE로 DEVELOPER 권한을
+--        검증+UPDATE 한 트랜잭션에서 처리(TOCTOU 창 제거). api JOIN으로 project_id 함께 조회.
 -- 내용 : API Response 파라미터 수정
 --        api_response 존재 검사 (31008)
+--        SUPER_ADMIN 외 대상 프로젝트에 DEVELOPER 활성 권한 없음 → 20001
 --        parameter_name 변경 시 API 내 중복 검사 (32001)
 --        롤백 트리거 필드(parameter_name/parameter_type/code_group_id) 변경 시
 --        api.api_stage = 20 자동 설정
@@ -24,6 +28,8 @@ BEGIN
 -- --------------------------------- --
 
     DECLARE v_api_id              BIGINT;
+    DECLARE v_project_id          BIGINT;
+    DECLARE v_actual_role_code    INT;
     DECLARE v_old_parameter_name  VARCHAR(100);
     DECLARE v_old_parameter_type  TINYINT;
     DECLARE v_old_code_group_id   INT;
@@ -52,6 +58,15 @@ BEGIN
         IF v_api_id IS NULL THEN
             SELECT 31008 AS RESULT;
             LEAVE transaction_block;
+        END IF;
+
+        IF i_caller_role_code != 10 THEN
+            SELECT `project_id` INTO v_project_id FROM `api` WHERE `api_id` = v_api_id;
+            SET v_actual_role_code = FN_GET_PROJECT_ROLE_CODE(i_updated_by, v_project_id);
+            IF v_actual_role_code IS NULL OR v_actual_role_code != 20 THEN
+                SELECT 20001 AS RESULT;
+                LEAVE transaction_block;
+            END IF;
         END IF;
 
         -- parameter_name 변경 시 중복 검사

@@ -8,18 +8,26 @@ CREATE PROCEDURE SP_CREATE_API_RESPONSE(
     IN  i_code_group_id   INT,           -- 코드 그룹 ID (0:미사용)
     IN  i_description     VARCHAR(1000), -- 설명 (NULL 허용)
     IN  i_display_order   INT,           -- 화면 표시 순서
-    IN  i_created_by      BIGINT         -- 생성자 user_id
-) COMMENT 'API Response 파라미터 등록 - api_response INSERT, api_stage 자동 롤백'
+    IN  i_created_by      BIGINT,        -- 생성자 user_id
+    IN  i_caller_role_code INT           -- 생성자 역할 코드 (10=SUPER_ADMIN 외에는 대상 API 소속 프로젝트 실제 DEVELOPER 권한 재검증)
+) COMMENT 'API Response 파라미터 등록 - api_response INSERT, api_stage 자동 롤백, 프로젝트 DEVELOPER 권한 원자적 재검증'
 BEGIN
 -- --------------------------------- --
 -- 명칭 : SP_CREATE_API_RESPONSE
 -- 작성 : 2026-06-30 trisakion
+-- 수정 : 2026-07-31 trisakion - i_caller_role_code 추가, FN_GET_PROJECT_ROLE_CODE로 DEVELOPER 권한을
+--        검증+INSERT 한 트랜잭션에서 처리(TOCTOU 창 제거). api 존재 검사를 project_id도 함께
+--        얻도록 SELECT INTO로 변경.
 -- 내용 : API Response 파라미터 등록
 --        api 존재 검사 (31006)
+--        SUPER_ADMIN 외 대상 프로젝트에 DEVELOPER 활성 권한 없음 → 20001
 --        parameter_name API 내 중복 검사 (32001)
 --        등록 시 api.api_stage = 20 자동 설정
 -- 테이블 적용 순서 : api_response → api
 -- --------------------------------- --
+
+    DECLARE v_project_id       BIGINT;
+    DECLARE v_actual_role_code INT;
 
     DECLARE sql_state      CHAR(5)       DEFAULT '00000';
     DECLARE error_no       INT           DEFAULT 0;
@@ -36,9 +44,19 @@ BEGIN
 
     transaction_block: BEGIN
 
-        IF NOT EXISTS (SELECT 1 FROM `api` WHERE `api_id` = i_api_id) THEN
+        SELECT `project_id` INTO v_project_id FROM `api` WHERE `api_id` = i_api_id;
+
+        IF v_project_id IS NULL THEN
             SELECT 31006 AS RESULT;
             LEAVE transaction_block;
+        END IF;
+
+        IF i_caller_role_code != 10 THEN
+            SET v_actual_role_code = FN_GET_PROJECT_ROLE_CODE(i_created_by, v_project_id);
+            IF v_actual_role_code IS NULL OR v_actual_role_code != 20 THEN
+                SELECT 20001 AS RESULT;
+                LEAVE transaction_block;
+            END IF;
         END IF;
 
         IF EXISTS (SELECT 1 FROM `api_response` WHERE `api_id` = i_api_id AND `parameter_name` = i_parameter_name) THEN

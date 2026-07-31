@@ -15,6 +15,7 @@ import { toDBError, ERROR_MAP } from '../constants/errors';
  * @param responseViewType 응답 표시 방식 (1:KEY_VALUE, 2:GRID)
  * @param displayOrder 화면 표시 순서
  * @param createdBy 생성자 user_id
+ * @param callerRoleCode 생성자 역할 코드 (SUPER_ADMIN 외에는 SP 내부에서 대상 프로젝트 실제 DEVELOPER 권한을 원자적으로 재검증)
  * @returns 생성된 API 정보
  */
 export async function createApi(
@@ -27,13 +28,15 @@ export async function createApi(
   responseViewType: number,
   displayOrder: number,
   createdBy: number,
+  callerRoleCode: number,
 ): Promise<APIRow> {
   const [status, [data]] = await callSP('SP_CREATE_API', [
     projectId, apiCode, apiName, endpoint, description,
-    isRequiredApproval, responseViewType, displayOrder, createdBy,
+    isRequiredApproval, responseViewType, displayOrder, createdBy, callerRoleCode,
   ]);
   switch (status[0].RESULT) {
     case 31002: throw toDBError(ERROR_MAP.PROJECT_NOT_FOUND);
+    case 20001: throw toDBError(ERROR_MAP.FORBIDDEN);
     case 32001: throw toDBError(ERROR_MAP.DUPLICATE_VALUE);
   }
   return data[0] as unknown as APIRow;
@@ -132,6 +135,7 @@ export async function getApi(
  * @param displayOrder 화면 표시 순서 (null=변경 없음)
  * @param status 상태 (null=변경 없음)
  * @param updatedBy 수정자 user_id
+ * @param callerRoleCode 수정자 역할 코드 (SUPER_ADMIN 외에는 SP 내부에서 대상 프로젝트 실제 DEVELOPER 권한을 원자적으로 재검증)
  * @returns 수정된 API 정보
  */
 export async function updateApi(
@@ -146,13 +150,15 @@ export async function updateApi(
   displayOrder: number | null,
   status: number | null,
   updatedBy: number,
+  callerRoleCode: number,
 ): Promise<APIRow> {
   const [spStatus, [data]] = await callSP('SP_UPDATE_API', [
     apiId, apiCode, apiName, endpoint, description,
-    apiStage, isRequiredApproval, responseViewType, displayOrder, status, updatedBy,
+    apiStage, isRequiredApproval, responseViewType, displayOrder, status, updatedBy, callerRoleCode,
   ]);
   switch (spStatus[0].RESULT) {
     case 31006: throw toDBError(ERROR_MAP.API_NOT_FOUND);
+    case 20001: throw toDBError(ERROR_MAP.FORBIDDEN);
     case 32001: throw toDBError(ERROR_MAP.DUPLICATE_VALUE);
   }
   return data[0] as unknown as APIRow;
@@ -173,6 +179,7 @@ export async function updateApi(
  * @param description 설명 (없으면 null)
  * @param displayOrder 화면 표시 순서
  * @param createdBy 생성자 user_id
+ * @param callerRoleCode 생성자 역할 코드 (SUPER_ADMIN 외에는 SP 내부에서 대상 API 소속 프로젝트 실제 DEVELOPER 권한을 원자적으로 재검증)
  * @returns 생성된 API Request 파라미터 정보
  */
 export async function createApiRequest(
@@ -186,13 +193,15 @@ export async function createApiRequest(
   description: string | null,
   displayOrder: number,
   createdBy: number,
+  callerRoleCode: number,
 ): Promise<APIRequestRow> {
   const [status, [data]] = await callSP('SP_CREATE_API_REQUEST', [
     apiId, parameterName, parameterLabel, parameterType,
-    componentType, codeGroupId, isRequired, description, displayOrder, createdBy,
+    componentType, codeGroupId, isRequired, description, displayOrder, createdBy, callerRoleCode,
   ]);
   switch (status[0].RESULT) {
     case 31006: throw toDBError(ERROR_MAP.API_NOT_FOUND);
+    case 20001: throw toDBError(ERROR_MAP.FORBIDDEN);
     case 30003: throw toDBError(ERROR_MAP.INVALID_VALUE);
     case 32001: throw toDBError(ERROR_MAP.DUPLICATE_VALUE);
   }
@@ -235,6 +244,7 @@ export async function getApiRequest(
  * @param displayOrder 화면 표시 순서 (null=변경 없음)
  * @param status 상태 (null=변경 없음)
  * @param updatedBy 수정자 user_id
+ * @param callerRoleCode 수정자 역할 코드 (SUPER_ADMIN 외에는 SP 내부에서 대상 API 소속 프로젝트 실제 DEVELOPER 권한을 원자적으로 재검증)
  * @returns 수정된 API Request 파라미터 정보
  */
 export async function updateApiRequest(
@@ -249,13 +259,15 @@ export async function updateApiRequest(
   displayOrder: number | null,
   status: number | null,
   updatedBy: number,
+  callerRoleCode: number,
 ): Promise<APIRequestRow> {
   const [spStatus, [data]] = await callSP('SP_UPDATE_API_REQUEST', [
     apiRequestId, parameterName, parameterLabel, parameterType,
-    componentType, codeGroupId, isRequired, description, displayOrder, status, updatedBy,
+    componentType, codeGroupId, isRequired, description, displayOrder, status, updatedBy, callerRoleCode,
   ]);
   switch (spStatus[0].RESULT) {
     case 31007: throw toDBError(ERROR_MAP.API_REQUEST_NOT_FOUND);
+    case 20001: throw toDBError(ERROR_MAP.FORBIDDEN);
     case 32001: throw toDBError(ERROR_MAP.DUPLICATE_VALUE);
   }
   return data[0] as unknown as APIRequestRow;
@@ -273,6 +285,7 @@ export async function updateApiRequest(
  * @param description 설명 (없으면 null)
  * @param displayOrder 화면 표시 순서
  * @param createdBy 생성자 user_id
+ * @param callerRoleCode 생성자 역할 코드 (SUPER_ADMIN 외에는 SP 내부에서 대상 API 소속 프로젝트 실제 DEVELOPER 권한을 원자적으로 재검증)
  * @returns 생성된 API Response 파라미터 정보
  */
 export async function createApiResponse(
@@ -284,13 +297,15 @@ export async function createApiResponse(
   description: string | null,
   displayOrder: number,
   createdBy: number,
+  callerRoleCode: number,
 ): Promise<APIResponseRow> {
   const [status, [data]] = await callSP('SP_CREATE_API_RESPONSE', [
     apiId, parameterName, parameterLabel, parameterType,
-    codeGroupId, description, displayOrder, createdBy,
+    codeGroupId, description, displayOrder, createdBy, callerRoleCode,
   ]);
   switch (status[0].RESULT) {
     case 31006: throw toDBError(ERROR_MAP.API_NOT_FOUND);
+    case 20001: throw toDBError(ERROR_MAP.FORBIDDEN);
     case 32001: throw toDBError(ERROR_MAP.DUPLICATE_VALUE);
   }
   return data[0] as unknown as APIResponseRow;
@@ -330,6 +345,7 @@ export async function getApiResponse(
  * @param displayOrder 화면 표시 순서 (null=변경 없음)
  * @param status 상태 (null=변경 없음)
  * @param updatedBy 수정자 user_id
+ * @param callerRoleCode 수정자 역할 코드 (SUPER_ADMIN 외에는 SP 내부에서 대상 API 소속 프로젝트 실제 DEVELOPER 권한을 원자적으로 재검증)
  * @returns 수정된 API Response 파라미터 정보
  */
 export async function updateApiResponse(
@@ -342,13 +358,15 @@ export async function updateApiResponse(
   displayOrder: number | null,
   status: number | null,
   updatedBy: number,
+  callerRoleCode: number,
 ): Promise<APIResponseRow> {
   const [spStatus, [data]] = await callSP('SP_UPDATE_API_RESPONSE', [
     apiResponseId, parameterName, parameterLabel, parameterType,
-    codeGroupId, description, displayOrder, status, updatedBy,
+    codeGroupId, description, displayOrder, status, updatedBy, callerRoleCode,
   ]);
   switch (spStatus[0].RESULT) {
     case 31008: throw toDBError(ERROR_MAP.API_RESPONSE_NOT_FOUND);
+    case 20001: throw toDBError(ERROR_MAP.FORBIDDEN);
     case 32001: throw toDBError(ERROR_MAP.DUPLICATE_VALUE);
   }
   return data[0] as unknown as APIResponseRow;

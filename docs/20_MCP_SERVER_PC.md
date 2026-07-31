@@ -48,7 +48,7 @@ const SUPER_ADMIN_AND_DEVELOPER = [10, 20];    // 프로젝트/사용자 조회,
 const SUPER_ADMIN_ONLY = [10];                 // 회사/프로젝트/사용자 쓰기, 역할 배정
 ```
 
-이 게이팅은 mcp_server_dev와 동일하게 **UX 차원 1차 필터일 뿐**이고, 최종 방어선은 항상 GM Platform 서버(`requireRole`/`assertCompanyScope`/`assertProjectRole`)다.
+이 게이팅은 mcp_server_dev와 동일하게 **UX 차원 1차 필터일 뿐**이고, 최종 방어선은 항상 GM Platform 서버(`requireRole`/`assertCompanyScope`/SP 내부 원자적 재검증)다.
 
 ---
 

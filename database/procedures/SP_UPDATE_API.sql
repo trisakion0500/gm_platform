@@ -11,14 +11,18 @@ CREATE PROCEDURE SP_UPDATE_API(
     IN  i_response_view_type     TINYINT,       -- 응답 표시 방식 (NULL=변경 없음)
     IN  i_display_order          INT,           -- 표시 순서 (NULL=변경 없음)
     IN  i_status                 TINYINT,       -- 상태 (NULL=변경 없음)
-    IN  i_updated_by             BIGINT         -- 수정자 user_id
-) COMMENT 'API 수정 - api UPDATE, api_stage 자동 롤백 포함'
+    IN  i_updated_by             BIGINT,        -- 수정자 user_id
+    IN  i_caller_role_code       INT            -- 수정자 역할 코드 (10=SUPER_ADMIN 외에는 대상 프로젝트 실제 DEVELOPER 권한 재검증)
+) COMMENT 'API 수정 - api UPDATE, api_stage 자동 롤백 포함, 프로젝트 DEVELOPER 권한 원자적 재검증'
 BEGIN
 -- --------------------------------- --
 -- 명칭 : SP_UPDATE_API
 -- 작성 : 2026-06-30 trisakion
+-- 수정 : 2026-07-31 trisakion - i_caller_role_code 추가, FN_GET_PROJECT_ROLE_CODE로 DEVELOPER 권한을
+--        검증+UPDATE 한 트랜잭션에서 처리(TOCTOU 창 제거, SP_CREATE_API와 동일한 이유)
 -- 내용 : API 수정
 --        api 존재 검사 (31006)
+--        SUPER_ADMIN 외 대상 프로젝트에 DEVELOPER 활성 권한 없음 → 20001
 --        api_code 변경 시 프로젝트 내 중복 검사 (32001)
 --        롤백 트리거 필드(api_code/endpoint/is_required_approval/response_view_type) 변경 시
 --        api_stage 강제 20 (i_api_stage 무시)
@@ -26,6 +30,7 @@ BEGIN
 -- 테이블 적용 순서 : api
 -- --------------------------------- --
 
+    DECLARE v_actual_role_code        INT;
     DECLARE v_project_id              BIGINT;
     DECLARE v_old_api_code            VARCHAR(100);
     DECLARE v_old_endpoint            VARCHAR(500);
@@ -58,6 +63,14 @@ BEGIN
         IF v_project_id IS NULL THEN
             SELECT 31006 AS RESULT;
             LEAVE transaction_block;
+        END IF;
+
+        IF i_caller_role_code != 10 THEN
+            SET v_actual_role_code = FN_GET_PROJECT_ROLE_CODE(i_updated_by, v_project_id);
+            IF v_actual_role_code IS NULL OR v_actual_role_code != 20 THEN
+                SELECT 20001 AS RESULT;
+                LEAVE transaction_block;
+            END IF;
         END IF;
 
         -- api_code 변경 시 중복 검사

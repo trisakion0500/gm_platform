@@ -11,6 +11,7 @@ import { toDBError, ERROR_MAP } from '../constants/errors';
  * @param codeGroupName 코드 그룹명
  * @param description 설명 (없으면 null)
  * @param createdBy 생성자 user_id
+ * @param callerRoleCode 생성자 역할 코드 (SUPER_ADMIN 외에는 SP 내부에서 대상 프로젝트 실제 DEVELOPER 권한을 원자적으로 재검증)
  * @returns 생성된 코드 그룹 정보
  */
 export async function createCodeGroup(
@@ -19,10 +20,12 @@ export async function createCodeGroup(
   codeGroupName: string,
   description: string | null,
   createdBy: number,
+  callerRoleCode: number,
 ): Promise<CodeGroupRow> {
-  const [status, [data]] = await callSP('SP_CREATE_CODE_GROUP', [projectId, codeGroupCode, codeGroupName, description, createdBy]);
+  const [status, [data]] = await callSP('SP_CREATE_CODE_GROUP', [projectId, codeGroupCode, codeGroupName, description, createdBy, callerRoleCode]);
   switch (status[0].RESULT) {
     case 31002: throw toDBError(ERROR_MAP.PROJECT_NOT_FOUND);
+    case 20001: throw toDBError(ERROR_MAP.FORBIDDEN);
     case 32001: throw toDBError(ERROR_MAP.DUPLICATE_VALUE);
   }
   return data[0] as unknown as CodeGroupRow;
@@ -80,6 +83,7 @@ export async function getCodeGroup(
  * @param description 설명 (null=변경 없음)
  * @param status 상태 (null=변경 없음)
  * @param updatedBy 수정자 user_id
+ * @param callerRoleCode 수정자 역할 코드 (SUPER_ADMIN 외에는 SP 내부에서 대상 프로젝트 실제 DEVELOPER 권한을 원자적으로 재검증)
  * @returns 수정된 코드 그룹 정보
  */
 export async function updateCodeGroup(
@@ -88,10 +92,13 @@ export async function updateCodeGroup(
   description: string | null,
   status: number | null,
   updatedBy: number,
+  callerRoleCode: number,
 ): Promise<CodeGroupRow> {
-  const [spStatus, [data]] = await callSP('SP_UPDATE_CODE_GROUP', [codeGroupId, codeGroupName, description, status, updatedBy]);
-  if (spStatus[0].RESULT === 31004)
-    throw toDBError(ERROR_MAP.CODE_GROUP_NOT_FOUND);
+  const [spStatus, [data]] = await callSP('SP_UPDATE_CODE_GROUP', [codeGroupId, codeGroupName, description, status, updatedBy, callerRoleCode]);
+  switch (spStatus[0].RESULT) {
+    case 31004: throw toDBError(ERROR_MAP.CODE_GROUP_NOT_FOUND);
+    case 20001: throw toDBError(ERROR_MAP.FORBIDDEN);
+  }
   return data[0] as unknown as CodeGroupRow;
 }
 

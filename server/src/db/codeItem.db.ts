@@ -12,6 +12,7 @@ import { toDBError, ERROR_MAP } from '../constants/errors';
  * @param description 설명 (없으면 null)
  * @param displayOrder 화면 표시 순서
  * @param createdBy 생성자 user_id
+ * @param callerRoleCode 생성자 역할 코드 (SUPER_ADMIN 외에는 SP 내부에서 대상 코드 그룹 소속 프로젝트 실제 DEVELOPER 권한을 원자적으로 재검증)
  * @returns 생성된 코드 아이템 정보
  */
 export async function createCodeItem(
@@ -21,10 +22,12 @@ export async function createCodeItem(
   description: string | null,
   displayOrder: number,
   createdBy: number,
+  callerRoleCode: number,
 ): Promise<CodeItemRow> {
-  const [status, [data]] = await callSP('SP_CREATE_CODE_ITEM', [codeGroupId, codeValue, codeName, description, displayOrder, createdBy]);
+  const [status, [data]] = await callSP('SP_CREATE_CODE_ITEM', [codeGroupId, codeValue, codeName, description, displayOrder, createdBy, callerRoleCode]);
   switch (status[0].RESULT) {
     case 31004: throw toDBError(ERROR_MAP.CODE_GROUP_NOT_FOUND);
+    case 20001: throw toDBError(ERROR_MAP.FORBIDDEN);
     case 32001: throw toDBError(ERROR_MAP.DUPLICATE_VALUE);
   }
   return data[0] as unknown as CodeItemRow;
@@ -83,6 +86,7 @@ export async function getCodeItem(
  * @param displayOrder 화면 표시 순서 (null=변경 없음)
  * @param status 상태 (null=변경 없음)
  * @param updatedBy 수정자 user_id
+ * @param callerRoleCode 수정자 역할 코드 (SUPER_ADMIN 외에는 SP 내부에서 대상 코드 그룹 소속 프로젝트 실제 DEVELOPER 권한을 원자적으로 재검증)
  * @returns 수정된 코드 아이템 정보
  */
 export async function updateCodeItem(
@@ -92,9 +96,12 @@ export async function updateCodeItem(
   displayOrder: number | null,
   status: number | null,
   updatedBy: number,
+  callerRoleCode: number,
 ): Promise<CodeItemRow> {
-  const [spStatus, [data]] = await callSP('SP_UPDATE_CODE_ITEM', [codeItemId, codeName, description, displayOrder, status, updatedBy]);
-  if (spStatus[0].RESULT === 31005)
-    throw toDBError(ERROR_MAP.CODE_ITEM_NOT_FOUND);
+  const [spStatus, [data]] = await callSP('SP_UPDATE_CODE_ITEM', [codeItemId, codeName, description, displayOrder, status, updatedBy, callerRoleCode]);
+  switch (spStatus[0].RESULT) {
+    case 31005: throw toDBError(ERROR_MAP.CODE_ITEM_NOT_FOUND);
+    case 20001: throw toDBError(ERROR_MAP.FORBIDDEN);
+  }
   return data[0] as unknown as CodeItemRow;
 }

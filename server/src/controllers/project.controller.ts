@@ -195,7 +195,7 @@ export async function updateProject(req: Request, res: Response, next: NextFunct
 
 /**
  * PATCH /projects/:project_id/connection — 프로젝트 연결 정보(api_base_url) 수정 (SUPER_ADMIN, DEVELOPER)
- * DEVELOPER는 해당 project_id에 실제 활성 DEVELOPER 배정이 있어야 통과한다(assertProjectRole).
+ * DEVELOPER는 해당 project_id에 실제 활성 DEVELOPER 배정이 있어야 통과한다(SP 내부에서 FN_GET_PROJECT_ROLE_CODE로 원자적 재검증).
  * @author trisakion
  * @param req params: { project_id }, body: { api_base_url }
  * @param res 200 — 수정된 프로젝트 정보
@@ -232,7 +232,7 @@ export async function updateProjectConnection(req: Request, res: Response, next:
 
 /**
  * POST /projects/:project_id/api-key — 프로젝트 X-API-Key 발급/재발급 (SUPER_ADMIN, DEVELOPER)
- * DEVELOPER는 해당 project_id에 실제 활성 DEVELOPER 배정이 있어야 통과한다(assertProjectRole).
+ * DEVELOPER는 해당 project_id에 실제 활성 DEVELOPER 배정이 있어야 통과한다(SP 내부에서 FN_GET_PROJECT_ROLE_CODE로 원자적 재검증).
  * 응답에 평문 api_key가 이 호출 1회에만 포함된다 — 이후 GET /projects/:id는 has_api_key만 반환.
  * @author trisakion
  * @param req params: { project_id }

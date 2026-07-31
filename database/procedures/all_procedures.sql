@@ -305,18 +305,25 @@ CREATE PROCEDURE SP_CREATE_API(
     IN  i_is_required_approval   TINYINT,       -- 승인 필요 여부 (0:즉시실행, 1:승인필요)
     IN  i_response_view_type     TINYINT,       -- 응답 표시 방식 (1:KEY_VALUE, 2:GRID)
     IN  i_display_order          INT,           -- 화면 표시 순서
-    IN  i_created_by             BIGINT         -- 생성자 user_id
-) COMMENT 'API 등록 - api INSERT'
+    IN  i_created_by             BIGINT,        -- 생성자 user_id
+    IN  i_caller_role_code       INT            -- 생성자 역할 코드 (10=SUPER_ADMIN 외에는 대상 프로젝트 실제 DEVELOPER 권한 재검증)
+) COMMENT 'API 등록 - api INSERT, 프로젝트 DEVELOPER 권한 원자적 재검증'
 BEGIN
 -- --------------------------------- --
 -- 명칭 : SP_CREATE_API
 -- 작성 : 2026-06-30 trisakion
+-- 수정 : 2026-07-31 trisakion - i_caller_role_code 추가, FN_GET_PROJECT_ROLE_CODE로 DEVELOPER 권한을
+--        검증+INSERT 한 트랜잭션에서 처리(기존엔 서비스 레이어가 별도 SP 라운드트립인 assertProjectRole로
+--        먼저 검증한 뒤 이 SP를 호출해, 그 사이 권한이 회수되어도 통과하는 TOCTOU 창이 있었음)
 -- 내용 : API 등록
 --        project 존재 및 활성 검사 (31002)
+--        SUPER_ADMIN 외 대상 프로젝트에 DEVELOPER 활성 권한 없음 → 20001
 --        api_code 프로젝트 내 중복 검사 (32001)
 --        초기값 : api_stage=20(개발), status=1(사용)
 -- 테이블 적용 순서 : api
 -- --------------------------------- --
+
+    DECLARE v_actual_role_code  INT;
 
     DECLARE sql_state      CHAR(5)       DEFAULT '00000';
     DECLARE error_no       INT           DEFAULT 0;
@@ -336,6 +343,14 @@ BEGIN
         IF NOT EXISTS (SELECT 1 FROM `project` WHERE `project_id` = i_project_id AND `status` = 1) THEN
             SELECT 31002 AS RESULT;
             LEAVE transaction_block;
+        END IF;
+
+        IF i_caller_role_code != 10 THEN
+            SET v_actual_role_code = FN_GET_PROJECT_ROLE_CODE(i_created_by, i_project_id);
+            IF v_actual_role_code IS NULL OR v_actual_role_code != 20 THEN
+                SELECT 20001 AS RESULT;
+                LEAVE transaction_block;
+            END IF;
         END IF;
 
         IF EXISTS (SELECT 1 FROM `api` WHERE `project_id` = i_project_id AND `api_code` = i_api_code) THEN
@@ -512,19 +527,27 @@ CREATE PROCEDURE SP_CREATE_API_REQUEST(
     IN  i_is_required     TINYINT,       -- 필수 여부 (0:선택, 1:필수)
     IN  i_description     VARCHAR(1000), -- 설명 (NULL 허용)
     IN  i_display_order   INT,           -- 화면 표시 순서
-    IN  i_created_by      BIGINT         -- 생성자 user_id
-) COMMENT 'API Request 파라미터 등록 - api_request INSERT, api_stage 자동 롤백'
+    IN  i_created_by      BIGINT,        -- 생성자 user_id
+    IN  i_caller_role_code INT           -- 생성자 역할 코드 (10=SUPER_ADMIN 외에는 대상 API 소속 프로젝트 실제 DEVELOPER 권한 재검증)
+) COMMENT 'API Request 파라미터 등록 - api_request INSERT, api_stage 자동 롤백, 프로젝트 DEVELOPER 권한 원자적 재검증'
 BEGIN
 -- --------------------------------- --
 -- 명칭 : SP_CREATE_API_REQUEST
 -- 작성 : 2026-06-30 trisakion
+-- 수정 : 2026-07-31 trisakion - i_caller_role_code 추가, FN_GET_PROJECT_ROLE_CODE로 DEVELOPER 권한을
+--        검증+INSERT 한 트랜잭션에서 처리(TOCTOU 창 제거). api 존재 검사를 project_id도 함께
+--        얻도록 SELECT INTO로 변경.
 -- 내용 : API Request 파라미터 등록
 --        api 존재 검사 (31006)
+--        SUPER_ADMIN 외 대상 프로젝트에 DEVELOPER 활성 권한 없음 → 20001
 --        parameter_name API 내 중복 검사 (32001)
 --        component_type 5/6/7 이면 code_group_id > 0 필수 (30003)
 --        등록 시 api.api_stage = 20 자동 설정
 -- 테이블 적용 순서 : api_request → api
 -- --------------------------------- --
+
+    DECLARE v_project_id       BIGINT;
+    DECLARE v_actual_role_code INT;
 
     DECLARE sql_state      CHAR(5)       DEFAULT '00000';
     DECLARE error_no       INT           DEFAULT 0;
@@ -541,9 +564,19 @@ BEGIN
 
     transaction_block: BEGIN
 
-        IF NOT EXISTS (SELECT 1 FROM `api` WHERE `api_id` = i_api_id) THEN
+        SELECT `project_id` INTO v_project_id FROM `api` WHERE `api_id` = i_api_id;
+
+        IF v_project_id IS NULL THEN
             SELECT 31006 AS RESULT;
             LEAVE transaction_block;
+        END IF;
+
+        IF i_caller_role_code != 10 THEN
+            SET v_actual_role_code = FN_GET_PROJECT_ROLE_CODE(i_created_by, v_project_id);
+            IF v_actual_role_code IS NULL OR v_actual_role_code != 20 THEN
+                SELECT 20001 AS RESULT;
+                LEAVE transaction_block;
+            END IF;
         END IF;
 
         IF EXISTS (SELECT 1 FROM `api_request` WHERE `api_id` = i_api_id AND `parameter_name` = i_parameter_name) THEN
@@ -598,18 +631,26 @@ CREATE PROCEDURE SP_CREATE_API_RESPONSE(
     IN  i_code_group_id   INT,           -- 코드 그룹 ID (0:미사용)
     IN  i_description     VARCHAR(1000), -- 설명 (NULL 허용)
     IN  i_display_order   INT,           -- 화면 표시 순서
-    IN  i_created_by      BIGINT         -- 생성자 user_id
-) COMMENT 'API Response 파라미터 등록 - api_response INSERT, api_stage 자동 롤백'
+    IN  i_created_by      BIGINT,        -- 생성자 user_id
+    IN  i_caller_role_code INT           -- 생성자 역할 코드 (10=SUPER_ADMIN 외에는 대상 API 소속 프로젝트 실제 DEVELOPER 권한 재검증)
+) COMMENT 'API Response 파라미터 등록 - api_response INSERT, api_stage 자동 롤백, 프로젝트 DEVELOPER 권한 원자적 재검증'
 BEGIN
 -- --------------------------------- --
 -- 명칭 : SP_CREATE_API_RESPONSE
 -- 작성 : 2026-06-30 trisakion
+-- 수정 : 2026-07-31 trisakion - i_caller_role_code 추가, FN_GET_PROJECT_ROLE_CODE로 DEVELOPER 권한을
+--        검증+INSERT 한 트랜잭션에서 처리(TOCTOU 창 제거). api 존재 검사를 project_id도 함께
+--        얻도록 SELECT INTO로 변경.
 -- 내용 : API Response 파라미터 등록
 --        api 존재 검사 (31006)
+--        SUPER_ADMIN 외 대상 프로젝트에 DEVELOPER 활성 권한 없음 → 20001
 --        parameter_name API 내 중복 검사 (32001)
 --        등록 시 api.api_stage = 20 자동 설정
 -- 테이블 적용 순서 : api_response → api
 -- --------------------------------- --
+
+    DECLARE v_project_id       BIGINT;
+    DECLARE v_actual_role_code INT;
 
     DECLARE sql_state      CHAR(5)       DEFAULT '00000';
     DECLARE error_no       INT           DEFAULT 0;
@@ -626,9 +667,19 @@ BEGIN
 
     transaction_block: BEGIN
 
-        IF NOT EXISTS (SELECT 1 FROM `api` WHERE `api_id` = i_api_id) THEN
+        SELECT `project_id` INTO v_project_id FROM `api` WHERE `api_id` = i_api_id;
+
+        IF v_project_id IS NULL THEN
             SELECT 31006 AS RESULT;
             LEAVE transaction_block;
+        END IF;
+
+        IF i_caller_role_code != 10 THEN
+            SET v_actual_role_code = FN_GET_PROJECT_ROLE_CODE(i_created_by, v_project_id);
+            IF v_actual_role_code IS NULL OR v_actual_role_code != 20 THEN
+                SELECT 20001 AS RESULT;
+                LEAVE transaction_block;
+            END IF;
         END IF;
 
         IF EXISTS (SELECT 1 FROM `api_response` WHERE `api_id` = i_api_id AND `parameter_name` = i_parameter_name) THEN
@@ -672,17 +723,23 @@ CREATE PROCEDURE SP_CREATE_CODE_GROUP(
     IN  i_code_group_code   VARCHAR(100),  -- 코드 그룹 코드 (프로젝트 내 유일)
     IN  i_code_group_name   VARCHAR(200),  -- 코드 그룹명
     IN  i_description       VARCHAR(1000), -- 설명 (NULL 허용)
-    IN  i_created_by        BIGINT         -- 생성자 user_id
-) COMMENT '코드 그룹 등록 - code_group INSERT'
+    IN  i_created_by        BIGINT,        -- 생성자 user_id
+    IN  i_caller_role_code  INT            -- 생성자 역할 코드 (10=SUPER_ADMIN 외에는 대상 프로젝트 실제 DEVELOPER 권한 재검증)
+) COMMENT '코드 그룹 등록 - code_group INSERT, 프로젝트 DEVELOPER 권한 원자적 재검증'
 BEGIN
 -- --------------------------------- --
 -- 명칭 : SP_CREATE_CODE_GROUP
 -- 작성 : 2026-06-29 trisakion
+-- 수정 : 2026-07-31 trisakion - i_caller_role_code 추가, FN_GET_PROJECT_ROLE_CODE로 DEVELOPER 권한을
+--        검증+INSERT 한 트랜잭션에서 처리(TOCTOU 창 제거)
 -- 내용 : 코드 그룹 등록
 --        project 존재 검사 (31002)
+--        SUPER_ADMIN 외 대상 프로젝트에 DEVELOPER 활성 권한 없음 → 20001
 --        code_group_code 프로젝트 내 중복 검사 (32001)
 -- 테이블 적용 순서 : code_group
 -- --------------------------------- --
+
+    DECLARE v_actual_role_code  INT;
 
     DECLARE sql_state      CHAR(5)       DEFAULT '00000';
     DECLARE error_no       INT           DEFAULT 0;
@@ -702,6 +759,14 @@ BEGIN
         IF NOT EXISTS (SELECT 1 FROM `project` WHERE `project_id` = i_project_id AND `status` = 1) THEN
             SELECT 31002 AS RESULT;
             LEAVE transaction_block;
+        END IF;
+
+        IF i_caller_role_code != 10 THEN
+            SET v_actual_role_code = FN_GET_PROJECT_ROLE_CODE(i_created_by, i_project_id);
+            IF v_actual_role_code IS NULL OR v_actual_role_code != 20 THEN
+                SELECT 20001 AS RESULT;
+                LEAVE transaction_block;
+            END IF;
         END IF;
 
         IF EXISTS (SELECT 1 FROM `code_group` WHERE `project_id` = i_project_id AND `code_group_code` = i_code_group_code) THEN
@@ -735,17 +800,25 @@ CREATE PROCEDURE SP_CREATE_CODE_ITEM(
     IN  i_code_name      VARCHAR(200),   -- 코드명
     IN  i_description    VARCHAR(1000),  -- 설명 (NULL 허용)
     IN  i_display_order  INT,            -- 표시 순서
-    IN  i_created_by     BIGINT          -- 생성자 user_id
-) COMMENT '코드 아이템 등록 - code_item INSERT'
+    IN  i_created_by     BIGINT,         -- 생성자 user_id
+    IN  i_caller_role_code INT           -- 생성자 역할 코드 (10=SUPER_ADMIN 외에는 대상 코드 그룹 소속 프로젝트 실제 DEVELOPER 권한 재검증)
+) COMMENT '코드 아이템 등록 - code_item INSERT, 프로젝트 DEVELOPER 권한 원자적 재검증'
 BEGIN
 -- --------------------------------- --
 -- 명칭 : SP_CREATE_CODE_ITEM
 -- 작성 : 2026-06-29 trisakion
+-- 수정 : 2026-07-31 trisakion - i_caller_role_code 추가, FN_GET_PROJECT_ROLE_CODE로 DEVELOPER 권한을
+--        검증+INSERT 한 트랜잭션에서 처리(TOCTOU 창 제거). code_group 존재 검사를 project_id도
+--        함께 얻도록 SELECT INTO로 변경.
 -- 내용 : 코드 아이템 등록
 --        code_group 존재 검사 (31004)
+--        SUPER_ADMIN 외 대상 프로젝트에 DEVELOPER 활성 권한 없음 → 20001
 --        code_value 그룹 내 중복 검사 (32001)
 -- 테이블 적용 순서 : code_item
 -- --------------------------------- --
+
+    DECLARE v_project_id       BIGINT;
+    DECLARE v_actual_role_code INT;
 
     DECLARE sql_state      CHAR(5)       DEFAULT '00000';
     DECLARE error_no       INT           DEFAULT 0;
@@ -762,9 +835,19 @@ BEGIN
 
     transaction_block: BEGIN
 
-        IF NOT EXISTS (SELECT 1 FROM `code_group` WHERE `code_group_id` = i_code_group_id AND `status` = 1) THEN
+        SELECT `project_id` INTO v_project_id FROM `code_group` WHERE `code_group_id` = i_code_group_id AND `status` = 1;
+
+        IF v_project_id IS NULL THEN
             SELECT 31004 AS RESULT;
             LEAVE transaction_block;
+        END IF;
+
+        IF i_caller_role_code != 10 THEN
+            SET v_actual_role_code = FN_GET_PROJECT_ROLE_CODE(i_created_by, v_project_id);
+            IF v_actual_role_code IS NULL OR v_actual_role_code != 20 THEN
+                SELECT 20001 AS RESULT;
+                LEAVE transaction_block;
+            END IF;
         END IF;
 
         IF EXISTS (SELECT 1 FROM `code_item` WHERE `code_group_id` = i_code_group_id AND `code_value` = i_code_value) THEN
@@ -2693,8 +2776,10 @@ DELIMITER $
 CREATE PROCEDURE SP_ISSUE_PROJECT_API_KEY(
     IN  i_project_id             BIGINT,        -- 대상 프로젝트 ID
     IN  i_encrypted_key          VARCHAR(255),  -- 서비스 레이어에서 AES-256-CBC로 암호화한 api_key
-    IN  i_expected_api_base_url  VARCHAR(255)   -- 호출자가 조회 시점에 읽은 api_base_url (동시수정 감지용)
-) COMMENT '프로젝트 X-API-Key 발급/재발급 - api_base_url 동시변경 감지, project.api_key UPDATE'
+    IN  i_expected_api_base_url  VARCHAR(255),  -- 호출자가 조회 시점에 읽은 api_base_url (동시수정 감지용)
+    IN  i_caller_user_id         BIGINT,        -- 호출자 user_id (프로젝트별 역할 재검증용)
+    IN  i_caller_role_code       INT            -- 호출자 역할 코드 (10=SUPER_ADMIN 외에는 대상 프로젝트 실제 DEVELOPER 권한 재검증)
+) COMMENT '프로젝트 X-API-Key 발급/재발급 - api_base_url 동시변경 감지, project.api_key UPDATE, 프로젝트 DEVELOPER 권한 원자적 재검증'
 BEGIN
 -- --------------------------------- --
 -- 명칭 : SP_ISSUE_PROJECT_API_KEY
@@ -2706,13 +2791,20 @@ BEGIN
 --        나중에 커밋되어 "새 url + (변경 전 url 기준으로 발급된) 유효한 키"가 되는 레이스가
 --        있었음 — 발급 시점에 호출자가 읽었던 api_base_url이 그새 바뀌었으면 32002로 실패시켜
 --        재조회 후 재시도하도록 강제.
+-- 수정 : 2026-07-31 trisakion - i_caller_user_id/i_caller_role_code 추가(기존엔 호출자 정보 자체가
+--        없어 서비스 레이어가 별도 SP 라운드트립인 assertProjectRole로 먼저 검증했음), FN_GET_PROJECT_ROLE_CODE로
+--        DEVELOPER 권한을 검증+UPDATE 한 트랜잭션에서 처리(TOCTOU 창 제거)
 -- 내용 : GM Platform이 대상 서버 호출용 X-API-Key를 발급/재발급
---        project 존재 검사 후 api_key UPDATE (재발급 시 기존 암호문 덮어씀)
+--        project 존재 검사 (31002)
+--        SUPER_ADMIN 외 대상 프로젝트에 DEVELOPER 활성 권한 없음 → 20001
+--        api_key UPDATE (재발급 시 기존 암호문 덮어씀)
 --        평문은 서비스 레이어가 호출 직전에 생성해 응답에만 1회 실어보내고, 이 SP는 암호문만 다룬다
 --        api_base_url이 호출자가 읽은 값과 다르면(동시 변경됨) 갱신하지 않고 32002 반환
 --        수정된 project 전체 정보 반환 (company 정보 포함, has_api_key=1 확정)
 -- 테이블 적용 순서 : project
 -- --------------------------------- --
+
+    DECLARE v_actual_role_code  INT;
 
     DECLARE sql_state       CHAR(5)       DEFAULT '00000';
     DECLARE error_no        INT           DEFAULT 0;
@@ -2732,6 +2824,14 @@ BEGIN
         IF NOT EXISTS (SELECT 1 FROM `project` WHERE `project_id` = i_project_id) THEN
             SELECT 31002 AS RESULT;
             LEAVE transaction_block;
+        END IF;
+
+        IF i_caller_role_code != 10 THEN
+            SET v_actual_role_code = FN_GET_PROJECT_ROLE_CODE(i_caller_user_id, i_project_id);
+            IF v_actual_role_code IS NULL OR v_actual_role_code != 20 THEN
+                SELECT 20001 AS RESULT;
+                LEAVE transaction_block;
+            END IF;
         END IF;
 
         START TRANSACTION;
@@ -3177,14 +3277,18 @@ CREATE PROCEDURE SP_UPDATE_API(
     IN  i_response_view_type     TINYINT,       -- 응답 표시 방식 (NULL=변경 없음)
     IN  i_display_order          INT,           -- 표시 순서 (NULL=변경 없음)
     IN  i_status                 TINYINT,       -- 상태 (NULL=변경 없음)
-    IN  i_updated_by             BIGINT         -- 수정자 user_id
-) COMMENT 'API 수정 - api UPDATE, api_stage 자동 롤백 포함'
+    IN  i_updated_by             BIGINT,        -- 수정자 user_id
+    IN  i_caller_role_code       INT            -- 수정자 역할 코드 (10=SUPER_ADMIN 외에는 대상 프로젝트 실제 DEVELOPER 권한 재검증)
+) COMMENT 'API 수정 - api UPDATE, api_stage 자동 롤백 포함, 프로젝트 DEVELOPER 권한 원자적 재검증'
 BEGIN
 -- --------------------------------- --
 -- 명칭 : SP_UPDATE_API
 -- 작성 : 2026-06-30 trisakion
+-- 수정 : 2026-07-31 trisakion - i_caller_role_code 추가, FN_GET_PROJECT_ROLE_CODE로 DEVELOPER 권한을
+--        검증+UPDATE 한 트랜잭션에서 처리(TOCTOU 창 제거, SP_CREATE_API와 동일한 이유)
 -- 내용 : API 수정
 --        api 존재 검사 (31006)
+--        SUPER_ADMIN 외 대상 프로젝트에 DEVELOPER 활성 권한 없음 → 20001
 --        api_code 변경 시 프로젝트 내 중복 검사 (32001)
 --        롤백 트리거 필드(api_code/endpoint/is_required_approval/response_view_type) 변경 시
 --        api_stage 강제 20 (i_api_stage 무시)
@@ -3192,6 +3296,7 @@ BEGIN
 -- 테이블 적용 순서 : api
 -- --------------------------------- --
 
+    DECLARE v_actual_role_code        INT;
     DECLARE v_project_id              BIGINT;
     DECLARE v_old_api_code            VARCHAR(100);
     DECLARE v_old_endpoint            VARCHAR(500);
@@ -3224,6 +3329,14 @@ BEGIN
         IF v_project_id IS NULL THEN
             SELECT 31006 AS RESULT;
             LEAVE transaction_block;
+        END IF;
+
+        IF i_caller_role_code != 10 THEN
+            SET v_actual_role_code = FN_GET_PROJECT_ROLE_CODE(i_updated_by, v_project_id);
+            IF v_actual_role_code IS NULL OR v_actual_role_code != 20 THEN
+                SELECT 20001 AS RESULT;
+                LEAVE transaction_block;
+            END IF;
         END IF;
 
         -- api_code 변경 시 중복 검사
@@ -3359,14 +3472,18 @@ CREATE PROCEDURE SP_UPDATE_API_REQUEST(
     IN  i_description     VARCHAR(1000), -- 설명 (NULL=변경 없음)
     IN  i_display_order   INT,           -- 표시 순서 (NULL=변경 없음)
     IN  i_status          TINYINT,       -- 상태 (NULL=변경 없음)
-    IN  i_updated_by      BIGINT         -- 수정자 user_id
-) COMMENT 'API Request 파라미터 수정 - api_request UPDATE, api_stage 자동 롤백 포함'
+    IN  i_updated_by      BIGINT,        -- 수정자 user_id
+    IN  i_caller_role_code INT           -- 수정자 역할 코드 (10=SUPER_ADMIN 외에는 대상 API 소속 프로젝트 실제 DEVELOPER 권한 재검증)
+) COMMENT 'API Request 파라미터 수정 - api_request UPDATE, api_stage 자동 롤백 포함, 프로젝트 DEVELOPER 권한 원자적 재검증'
 BEGIN
 -- --------------------------------- --
 -- 명칭 : SP_UPDATE_API_REQUEST
 -- 작성 : 2026-06-30 trisakion
+-- 수정 : 2026-07-31 trisakion - i_caller_role_code 추가, FN_GET_PROJECT_ROLE_CODE로 DEVELOPER 권한을
+--        검증+UPDATE 한 트랜잭션에서 처리(TOCTOU 창 제거). api JOIN으로 project_id 함께 조회.
 -- 내용 : API Request 파라미터 수정
 --        api_request 존재 검사 (31007)
+--        SUPER_ADMIN 외 대상 프로젝트에 DEVELOPER 활성 권한 없음 → 20001
 --        parameter_name 변경 시 API 내 중복 검사 (32001)
 --        롤백 트리거 필드(parameter_name/parameter_type/component_type/code_group_id/is_required) 변경 시
 --        api.api_stage = 20 자동 설정
@@ -3374,6 +3491,8 @@ BEGIN
 -- --------------------------------- --
 
     DECLARE v_api_id               BIGINT;
+    DECLARE v_project_id           BIGINT;
+    DECLARE v_actual_role_code     INT;
     DECLARE v_old_parameter_name   VARCHAR(100);
     DECLARE v_old_parameter_type   TINYINT;
     DECLARE v_old_component_type   TINYINT;
@@ -3404,6 +3523,15 @@ BEGIN
         IF v_api_id IS NULL THEN
             SELECT 31007 AS RESULT;
             LEAVE transaction_block;
+        END IF;
+
+        IF i_caller_role_code != 10 THEN
+            SELECT `project_id` INTO v_project_id FROM `api` WHERE `api_id` = v_api_id;
+            SET v_actual_role_code = FN_GET_PROJECT_ROLE_CODE(i_updated_by, v_project_id);
+            IF v_actual_role_code IS NULL OR v_actual_role_code != 20 THEN
+                SELECT 20001 AS RESULT;
+                LEAVE transaction_block;
+            END IF;
         END IF;
 
         -- parameter_name 변경 시 중복 검사
@@ -3478,14 +3606,18 @@ CREATE PROCEDURE SP_UPDATE_API_RESPONSE(
     IN  i_description      VARCHAR(1000), -- 설명 (NULL=변경 없음)
     IN  i_display_order    INT,           -- 표시 순서 (NULL=변경 없음)
     IN  i_status           TINYINT,       -- 상태 (NULL=변경 없음)
-    IN  i_updated_by       BIGINT         -- 수정자 user_id
-) COMMENT 'API Response 파라미터 수정 - api_response UPDATE, api_stage 자동 롤백 포함'
+    IN  i_updated_by       BIGINT,        -- 수정자 user_id
+    IN  i_caller_role_code INT            -- 수정자 역할 코드 (10=SUPER_ADMIN 외에는 대상 API 소속 프로젝트 실제 DEVELOPER 권한 재검증)
+) COMMENT 'API Response 파라미터 수정 - api_response UPDATE, api_stage 자동 롤백 포함, 프로젝트 DEVELOPER 권한 원자적 재검증'
 BEGIN
 -- --------------------------------- --
 -- 명칭 : SP_UPDATE_API_RESPONSE
 -- 작성 : 2026-06-30 trisakion
+-- 수정 : 2026-07-31 trisakion - i_caller_role_code 추가, FN_GET_PROJECT_ROLE_CODE로 DEVELOPER 권한을
+--        검증+UPDATE 한 트랜잭션에서 처리(TOCTOU 창 제거). api JOIN으로 project_id 함께 조회.
 -- 내용 : API Response 파라미터 수정
 --        api_response 존재 검사 (31008)
+--        SUPER_ADMIN 외 대상 프로젝트에 DEVELOPER 활성 권한 없음 → 20001
 --        parameter_name 변경 시 API 내 중복 검사 (32001)
 --        롤백 트리거 필드(parameter_name/parameter_type/code_group_id) 변경 시
 --        api.api_stage = 20 자동 설정
@@ -3493,6 +3625,8 @@ BEGIN
 -- --------------------------------- --
 
     DECLARE v_api_id              BIGINT;
+    DECLARE v_project_id          BIGINT;
+    DECLARE v_actual_role_code    INT;
     DECLARE v_old_parameter_name  VARCHAR(100);
     DECLARE v_old_parameter_type  TINYINT;
     DECLARE v_old_code_group_id   INT;
@@ -3521,6 +3655,15 @@ BEGIN
         IF v_api_id IS NULL THEN
             SELECT 31008 AS RESULT;
             LEAVE transaction_block;
+        END IF;
+
+        IF i_caller_role_code != 10 THEN
+            SELECT `project_id` INTO v_project_id FROM `api` WHERE `api_id` = v_api_id;
+            SET v_actual_role_code = FN_GET_PROJECT_ROLE_CODE(i_updated_by, v_project_id);
+            IF v_actual_role_code IS NULL OR v_actual_role_code != 20 THEN
+                SELECT 20001 AS RESULT;
+                LEAVE transaction_block;
+            END IF;
         END IF;
 
         -- parameter_name 변경 시 중복 검사
@@ -3583,18 +3726,26 @@ CREATE PROCEDURE SP_UPDATE_CODE_GROUP(
     IN  i_code_group_name  VARCHAR(200),   -- 코드 그룹명 (NULL=변경 없음)
     IN  i_description      VARCHAR(1000),  -- 설명 (NULL=변경 없음)
     IN  i_status           TINYINT,        -- 상태 (NULL=변경 없음)
-    IN  i_updated_by       BIGINT          -- 수정자 user_id
-) COMMENT '코드 그룹 수정 - code_group UPDATE'
+    IN  i_updated_by       BIGINT,         -- 수정자 user_id
+    IN  i_caller_role_code INT             -- 수정자 역할 코드 (10=SUPER_ADMIN 외에는 대상 프로젝트 실제 DEVELOPER 권한 재검증)
+) COMMENT '코드 그룹 수정 - code_group UPDATE, 프로젝트 DEVELOPER 권한 원자적 재검증'
 BEGIN
 -- --------------------------------- --
 -- 명칭 : SP_UPDATE_CODE_GROUP
 -- 작성 : 2026-06-29 trisakion
+-- 수정 : 2026-07-31 trisakion - i_caller_role_code 추가, FN_GET_PROJECT_ROLE_CODE로 DEVELOPER 권한을
+--        검증+UPDATE 한 트랜잭션에서 처리(TOCTOU 창 제거). 존재 검사를 project_id도 함께
+--        얻도록 SELECT INTO로 변경.
 -- 내용 : 코드 그룹 수정
 --        code_group 존재 검사 (31004)
+--        SUPER_ADMIN 외 대상 프로젝트에 DEVELOPER 활성 권한 없음 → 20001
 --        NULL 입력 시 기존 값 유지 (COALESCE)
 --        code_group_code, project_id 수정 불가
 -- 테이블 적용 순서 : code_group
 -- --------------------------------- --
+
+    DECLARE v_project_id       BIGINT;
+    DECLARE v_actual_role_code INT;
 
     DECLARE sql_state      CHAR(5)       DEFAULT '00000';
     DECLARE error_no       INT           DEFAULT 0;
@@ -3611,9 +3762,19 @@ BEGIN
 
     transaction_block: BEGIN
 
-        IF NOT EXISTS (SELECT 1 FROM `code_group` WHERE `code_group_id` = i_code_group_id) THEN
+        SELECT `project_id` INTO v_project_id FROM `code_group` WHERE `code_group_id` = i_code_group_id;
+
+        IF v_project_id IS NULL THEN
             SELECT 31004 AS RESULT;
             LEAVE transaction_block;
+        END IF;
+
+        IF i_caller_role_code != 10 THEN
+            SET v_actual_role_code = FN_GET_PROJECT_ROLE_CODE(i_updated_by, v_project_id);
+            IF v_actual_role_code IS NULL OR v_actual_role_code != 20 THEN
+                SELECT 20001 AS RESULT;
+                LEAVE transaction_block;
+            END IF;
         END IF;
 
         START TRANSACTION;
@@ -3646,18 +3807,26 @@ CREATE PROCEDURE SP_UPDATE_CODE_ITEM(
     IN  i_description    VARCHAR(1000), -- 설명 (NULL=변경 없음)
     IN  i_display_order  INT,           -- 표시 순서 (NULL=변경 없음)
     IN  i_status         TINYINT,       -- 상태 (NULL=변경 없음)
-    IN  i_updated_by     BIGINT         -- 수정자 user_id
-) COMMENT '코드 아이템 수정 - code_item UPDATE'
+    IN  i_updated_by     BIGINT,        -- 수정자 user_id
+    IN  i_caller_role_code INT          -- 수정자 역할 코드 (10=SUPER_ADMIN 외에는 대상 코드 그룹 소속 프로젝트 실제 DEVELOPER 권한 재검증)
+) COMMENT '코드 아이템 수정 - code_item UPDATE, 프로젝트 DEVELOPER 권한 원자적 재검증'
 BEGIN
 -- --------------------------------- --
 -- 명칭 : SP_UPDATE_CODE_ITEM
 -- 작성 : 2026-06-29 trisakion
+-- 수정 : 2026-07-31 trisakion - i_caller_role_code 추가, FN_GET_PROJECT_ROLE_CODE로 DEVELOPER 권한을
+--        검증+UPDATE 한 트랜잭션에서 처리(TOCTOU 창 제거). code_group JOIN으로 project_id 함께 조회.
 -- 내용 : 코드 아이템 수정
 --        code_item 존재 검사 (31005)
+--        SUPER_ADMIN 외 대상 프로젝트에 DEVELOPER 활성 권한 없음 → 20001
 --        NULL 입력 시 기존 값 유지 (COALESCE)
 --        code_group_id, code_value 수정 불가
 -- 테이블 적용 순서 : code_item
 -- --------------------------------- --
+
+    DECLARE v_code_group_id    INT;
+    DECLARE v_project_id       BIGINT;
+    DECLARE v_actual_role_code INT;
 
     DECLARE sql_state      CHAR(5)       DEFAULT '00000';
     DECLARE error_no       INT           DEFAULT 0;
@@ -3674,9 +3843,20 @@ BEGIN
 
     transaction_block: BEGIN
 
-        IF NOT EXISTS (SELECT 1 FROM `code_item` WHERE `code_item_id` = i_code_item_id) THEN
+        SELECT `code_group_id` INTO v_code_group_id FROM `code_item` WHERE `code_item_id` = i_code_item_id;
+
+        IF v_code_group_id IS NULL THEN
             SELECT 31005 AS RESULT;
             LEAVE transaction_block;
+        END IF;
+
+        IF i_caller_role_code != 10 THEN
+            SELECT `project_id` INTO v_project_id FROM `code_group` WHERE `code_group_id` = v_code_group_id;
+            SET v_actual_role_code = FN_GET_PROJECT_ROLE_CODE(i_updated_by, v_project_id);
+            IF v_actual_role_code IS NULL OR v_actual_role_code != 20 THEN
+                SELECT 20001 AS RESULT;
+                LEAVE transaction_block;
+            END IF;
         END IF;
 
         START TRANSACTION;
@@ -3902,21 +4082,30 @@ DELIMITER ;
 DROP PROCEDURE IF EXISTS SP_UPDATE_PROJECT_CONNECTION;
 DELIMITER $
 CREATE PROCEDURE SP_UPDATE_PROJECT_CONNECTION(
-    IN  i_project_id    BIGINT,       -- 수정할 프로젝트 ID
-    IN  i_api_base_url  VARCHAR(255)  -- 변경할 API Base URL
-) COMMENT '프로젝트 연결 정보(api_base_url) 수정 - project 테이블 UPDATE'
+    IN  i_project_id        BIGINT,       -- 수정할 프로젝트 ID
+    IN  i_api_base_url      VARCHAR(255), -- 변경할 API Base URL
+    IN  i_caller_user_id    BIGINT,       -- 호출자 user_id (프로젝트별 역할 재검증용)
+    IN  i_caller_role_code  INT           -- 호출자 역할 코드 (10=SUPER_ADMIN 외에는 대상 프로젝트 실제 DEVELOPER 권한 재검증)
+) COMMENT '프로젝트 연결 정보(api_base_url) 수정 - project 테이블 UPDATE, 프로젝트 DEVELOPER 권한 원자적 재검증'
 BEGIN
 -- --------------------------------- --
 -- 명칭 : SP_UPDATE_PROJECT_CONNECTION
 -- 작성 : 2026-07-15 trisakion
 -- 수정 : 2026-07-15 trisakion - api_base_url 변경 시 저장된 api_key를 함께 NULL 폐기(대상 서버가 바뀌었는데
 --        옛 키를 그대로 보내는 조용한 실수 방지), has_api_key(발급 여부) 반환 추가
+-- 수정 : 2026-07-31 trisakion - i_caller_user_id/i_caller_role_code 추가(기존엔 호출자 정보 자체가
+--        없어 서비스 레이어가 별도 SP 라운드트립인 assertProjectRole로 먼저 검증했음), FN_GET_PROJECT_ROLE_CODE로
+--        DEVELOPER 권한을 검증+UPDATE 한 트랜잭션에서 처리(TOCTOU 창 제거)
 -- 내용 : 프로젝트의 api_base_url만 수정 (project_code/project_name/description/status는 SP_UPDATE_PROJECT 전용)
---        project 존재 검사 후 UPDATE (api_base_url 변경과 함께 api_key도 NULL로 폐기)
+--        project 존재 검사 (31002)
+--        SUPER_ADMIN 외 대상 프로젝트에 DEVELOPER 활성 권한 없음 → 20001
+--        UPDATE (api_base_url 변경과 함께 api_key도 NULL로 폐기)
 --        SUPER_ADMIN 외에 DEVELOPER도 호출 가능한 라우트라 project_code 등 정체성 필드와 SP 자체를 분리해둠
 --        수정된 project 전체 정보 반환 (company 정보 포함)
 -- 테이블 적용 순서 : project
 -- --------------------------------- --
+
+    DECLARE v_actual_role_code  INT;
 
     DECLARE sql_state       CHAR(5)       DEFAULT '00000';
     DECLARE error_no        INT           DEFAULT 0;
@@ -3936,6 +4125,14 @@ BEGIN
         IF NOT EXISTS (SELECT 1 FROM `project` WHERE `project_id` = i_project_id) THEN
             SELECT 31002 AS RESULT;
             LEAVE transaction_block;
+        END IF;
+
+        IF i_caller_role_code != 10 THEN
+            SET v_actual_role_code = FN_GET_PROJECT_ROLE_CODE(i_caller_user_id, i_project_id);
+            IF v_actual_role_code IS NULL OR v_actual_role_code != 20 THEN
+                SELECT 20001 AS RESULT;
+                LEAVE transaction_block;
+            END IF;
         END IF;
 
         START TRANSACTION;
