@@ -19,3 +19,6 @@ Thumbs.db
 # Local only
 CLAUDE.md
 .mcp.json
+
+# 임시 산출물 (설명용 HTML 등)
+tmp/
