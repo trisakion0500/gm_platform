@@ -22,3 +22,5 @@ CLAUDE.md
 
 # 임시 산출물 (설명용 HTML 등)
 tmp/
+
+.claude/
