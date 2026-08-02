@@ -4,7 +4,7 @@
 
 GM-Tool 데이터베이스 스키마 정의 문서
 
-본 문서는 운영 스키마 및 Audit Log 스키마를 정의한다.
+본 문서는 운영 스키마 및 Audit Log 스키마를 정의한다. 두 스키마는 물리적으로 분리된 별도 DB다 — 운영 스키마는 `gm_platform`(`database/`), Audit Log 스키마(§12 log_audit)는 `gm_platform_log`(`database_log/`)에 있으며 서로 FK/JOIN으로 참조할 수 없다.
 
 ---
 
@@ -452,11 +452,14 @@ ORDER BY status DESC,
 
 ### 특징
 
+- **메인 DB(`gm_platform`)가 아닌 별도 물리 DB(`gm_platform_log`)에 위치** (`database_log/`) — 다른 모든 테이블과 물리적으로 분리되어 있어 FK/JOIN/Stored Function 호출로 참조할 수 없다
 - Append-Only 테이블 (물리 수정 및 삭제 불가)
 - api_execution 은 실행 이력 테이블이므로 감사 대상에서 제외
 - 변경 전후 전체 Row 를 JSON 으로 저장
-- FK 없음 (로그 테이블 원칙)
+- FK 없음 (로그 테이블 원칙 — 물리적으로도 다른 DB라 FK 자체가 불가능)
 - company_id / project_id 는 스코핑용 (FK 없음)
+- `project_name` / `created_by_name` 컬럼에 조회 시점 JOIN 대신 적재 시점 값을 스냅샷으로 저장 — `project`/`user` 테이블이 다른 DB에 있어 조인이 불가능하므로 반드시 필요
+- 조회(`GET /log-audits`) 권한 판정에 필요한 "호출자가 role_code≤30으로 실제 배정된 project_id 목록"은 메인 DB를 먼저 조회해 계산한 뒤(`logAudit.service.ts`) `log_audit` DB 쪽 SP에 파라미터로 전달한다 — `log_audit` DB의 SP는 `user_role`(메인 DB) 테이블을 직접 참조하지 않는다
 
 ### 감사 대상 테이블
 

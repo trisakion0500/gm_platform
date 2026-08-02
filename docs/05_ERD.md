@@ -2,6 +2,8 @@
 
 ## GM-Tool Entity Relationship Diagram
 
+`log_audit`은 편의상 아래 다이어그램에 함께 그려져 있으나, 실제로는 메인 DB(`gm_platform`)가 아닌 별도 물리 DB(`gm_platform_log`)에 있다. 자세한 내용은 `06_DATABASE_SCHEMA.md` §12 참고.
+
 ---
 
 ```mermaid
@@ -166,10 +168,14 @@ erDiagram
         DATETIME    updated_at
     }
 
+    %% log_audit은 메인 DB(gm_platform)가 아닌 별도 물리 DB(gm_platform_log, database_log/)에 있다.
+    %% 다른 어떤 테이블과도 FK/JOIN으로 연결될 수 없어 아래 관계 목록에도 등장하지 않는다 — 이 다이어그램에
+    %% 함께 그려진 것은 표기 편의일 뿐, 실제로는 완전히 분리된 스키마다.
     log_audit {
         BIGINT      log_audit_id    PK
         BIGINT      company_id      "스코핑용(FK없음)"
         BIGINT      project_id      "스코핑용(FK없음)"
+        VARCHAR100  project_name    "스냅샷(적재 시점 값 고정)"
         VARCHAR100  table_name
         VARCHAR100  target_id
         VARCHAR200  target_name
@@ -177,6 +183,7 @@ erDiagram
         LONGTEXT    before_json
         LONGTEXT    after_json
         BIGINT      created_by      "FK없음(로그원칙)"
+        VARCHAR50   created_by_name "스냅샷(적재 시점 값 고정)"
         DATETIME    created_at
     }
 
@@ -214,7 +221,7 @@ erDiagram
 | `user_session` | `user_id` | MySQL → Redis 저장소 전환 시 인증 로직 수정 없이 확장 가능하도록 설계 |
 | `api_request` | `code_group_id` | 0(미사용) 허용, 선택적 참조 |
 | `api_response` | `code_group_id` | 0(미사용) 허용, 선택적 참조 |
-| `log_audit` | 전체 | Append-Only 로그 테이블 원칙 — FK 없음 |
+| `log_audit` | 전체 | Append-Only 로그 테이블 원칙 — FK 없음 (물리적으로도 별도 DB `gm_platform_log`라 FK 자체가 불가능) |
 
 ---
 

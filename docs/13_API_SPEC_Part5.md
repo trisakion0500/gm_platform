@@ -169,7 +169,7 @@ GET /log-audits
 ## Business Rules
 
 - SUPER_ADMIN : 전체 로그 반환
-- DEVELOPER/APPROVER : `project_id`가 있는 로그(프로젝트 소속 엔티티 변경)는 대상 프로젝트에 실제 DEVELOPER(20)/APPROVER(30)로 배정되어 있고 그 role_code가 세션 role_code와 일치하는 경우만 반환. `project_id`가 없는 로그(company/user 테이블 변경)는 본인 소속 회사 로그만 반환
+- DEVELOPER/APPROVER : `project_id`가 있는 로그(프로젝트 소속 엔티티 변경)는 대상 프로젝트에 role_code≤30(SUPER_ADMIN/DEVELOPER/APPROVER)으로 실제 배정되어 있으면 반환 — 세션 role_code(로그인 시 고정되는, 여러 프로젝트 중 최고 권한 하나)와 정확히 같을 필요는 없음. `project_id`가 없는 로그(company/user 테이블 변경)는 본인 소속 회사 로그만 반환
 
 ## 사용 패턴
 

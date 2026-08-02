@@ -7,7 +7,7 @@
 | Runtime         | Node.js 22 LTS                              |
 | Framework       | Express                                     |
 | Language        | TypeScript                                  |
-| Database        | MySQL 8.4                                   |
+| Database        | MySQL 8.4 — 메인(`gm_platform`) + 감사 로그 전용(`gm_platform_log`), 물리적으로 별도 DB로 분리 가능 |
 | Data Access     | mysql2 — Stored Procedure / Function 전용 (Native SQL 직접 작성 금지) |
 | Authentication  | JWT (HS256) + user_session                  |
 | Password Hash   | bcrypt (rounds=12)                          |
@@ -43,6 +43,12 @@
 | `DB_PASSWORD` | ✓ | — | MySQL 접속 비밀번호. |
 | `DB_NAME` | ✓ | — | 사용할 DB 스키마명. |
 | `DB_CONNECTION_LIMIT` | ✗ | `10` | `config/db.ts`의 mysql2 pool `connectionLimit`(인스턴스당). 스케일아웃 시 총 커넥션 = 이 값 × 인스턴스 수이므로 MySQL `max_connections`와 맞춰 배포 단위로 조정. |
+| `LOG_DB_HOST` | ✓ | — | 감사 로그 전용 DB(`gm_platform_log`) 접속 호스트. 메인 DB와 같은 VM/인스턴스라는 보장이 없어 완전히 별도로 관리(`config/db.ts`의 `logPool`). |
+| `LOG_DB_PORT` | ✓ | — | 감사 로그 전용 DB 접속 포트. |
+| `LOG_DB_USER` | ✓ | — | 감사 로그 전용 DB 접속 계정. |
+| `LOG_DB_PASSWORD` | ✓ | — | 감사 로그 전용 DB 접속 비밀번호. |
+| `LOG_DB_NAME` | ✓ | — | 감사 로그 전용 DB 스키마명. |
+| `LOG_DB_CONNECTION_LIMIT` | ✗ | `10` | `logPool`의 mysql2 pool `connectionLimit`(인스턴스당). `DB_CONNECTION_LIMIT`과 동일한 목적, 별도 값. |
 | `JWT_SECRET` | ✓ | — | Access/Refresh 관련 JWT 서명·검증 키(HS256). `utils/jwt.ts`에서 사용 — 유출 시 토큰 위조 가능하므로 배포 환경마다 별도 값 필요. |
 | `JWT_ACCESS_EXPIRES_IN` | ✗ | `15m` | Access Token 만료 기간(jsonwebtoken `expiresIn` 포맷). 로그인/refresh 시 발급되는 토큰의 유효 기간을 결정. |
 | `JWT_REFRESH_EXPIRES_IN` | ✗ | `7d` | Refresh Token(및 `user_session.expired_at`) 만료 기간. 이 값을 바꿔도 `SP_CLEANUP_EXPIRED_SESSIONS`는 `expired_at`과 `NOW()`만 비교하므로 SP 수정 없이 반영됨. |
