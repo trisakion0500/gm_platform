@@ -175,5 +175,5 @@ npm install
 npm run dev     # tsx watch, 기본 포트 3100
 ```
 
-DB는 별도로 준비해야 한다 — `database/tables/all_tables.sql` → `database/functions/*.sql` → `database/procedures/all_procedures.sql` 순서로 실행 (자세한 절차는 `03_DEV_SETUP.md` §3 참고).
+DB는 별도로 준비해야 한다 — `test_game_server/database/tables/*.sql`(user/currency/card 3개) 적용 후 `test_game_server/database/procedures/*.sql`(SP 7개) 적용. GM Platform 본체(`03_DEV_SETUP.md` §3)와 달리 통합 스크립트(`all_*.sql`)나 함수(`FN_*`)가 없어 개별 파일을 테이블 → SP 순서로 그대로 적용하면 된다.
 `.env`에 `API_KEY`를 설정하면 GM Platform이 발급한 X-API-Key 검증이 활성화된다(§6 참고, 미설정 시 검증 스킵).

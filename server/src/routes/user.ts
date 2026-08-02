@@ -243,7 +243,7 @@ router.post('/:user_id/reject',         authenticate, requireRole(ROLE.SUPER_ADM
  *   post:
  *     tags: [User]
  *     summary: 비밀번호 강제 초기화
- *     description: 비밀번호를 초기화하고 모든 세션을 종료한다. 초기화된 비밀번호는 응답으로 반환된다.
+ *     description: 관리자가 지정한 비밀번호로 즉시 변경하고 모든 세션을 종료한다(현재 비밀번호 검증 없음, 자동 생성 아님 — new_password를 요청 본문으로 직접 전달).
  *     security:
  *       - bearerAuth: []
  *     x-required-roles: SUPER_ADMIN
@@ -252,6 +252,15 @@ router.post('/:user_id/reject',         authenticate, requireRole(ROLE.SUPER_ADM
  *         name: user_id
  *         required: true
  *         schema: { type: integer, example: 5 }
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [new_password]
+ *             properties:
+ *               new_password: { type: string, example: NewP@ssw0rd }
  *     responses:
  *       200:
  *         description: 초기화 성공
@@ -259,8 +268,7 @@ router.post('/:user_id/reject',         authenticate, requireRole(ROLE.SUPER_ADM
  *           application/json:
  *             example:
  *               result: 0
- *               data:
- *                 temp_password: Ab3!xY9z
+ *               data: null
  *       401:
  *         $ref: '#/components/responses/Unauthorized'
  *       403:

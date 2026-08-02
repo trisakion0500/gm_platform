@@ -726,7 +726,7 @@ POST /users/{user_id}/approve
 
 ### Response
 
-저장 후 최종 데이터 반환
+`data: null` (반환할 갱신 데이터 없음 — 성공 여부만 `result: 0`으로 확인)
 
 ---
 
@@ -760,7 +760,7 @@ POST /users/{user_id}/reject
 
 ### Response
 
-저장 후 최종 데이터 반환
+`data: null` (반환할 갱신 데이터 없음 — 성공 여부만 `result: 0`으로 확인)
 
 ---
 
@@ -858,7 +858,7 @@ POST /users/{user_id}/reset-password
 
 ### Response
 
-저장 후 최종 데이터 반환
+`data: null` (반환할 갱신 데이터 없음 — 성공 여부만 `result: 0`으로 확인)
 
 ---
 
@@ -1052,7 +1052,7 @@ GET /user-roles/me
 
 ## 일반 사용자
 
-자신의 company_id 에 속한 프로젝트만 접근 가능
+리소스 성격에 따라 스코핑 기준이 다르다 — 프로젝트 관리 목록(`GET /projects`, §3.2)은 실제 DEVELOPER(20) role로 배정된 프로젝트만, 그 외 회사/사용자 목록형 리소스는 본인 소속 company_id 기준으로 스코핑된다. 세부 규칙은 각 API의 Business Rules를 따른다.
 
 ## 프로젝트 접근 권한
 

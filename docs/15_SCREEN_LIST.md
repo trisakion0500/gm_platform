@@ -195,7 +195,7 @@ GM-Tool 프론트엔드 화면 목록 및 역할별 접근 권한 정의.
 ### SCR-040. 감사 로그 목록
 
 - **Route:** `/admin/audit-logs`
-- **접근:** SUPER_ADMIN, DEVELOPER, APPROVER (SUPER_ADMIN 외: 프로젝트 로그는 대상 프로젝트에 실제 배정된 role_code가 세션과 일치해야 하고, company·user 로그는 자사만)
+- **접근:** SUPER_ADMIN, DEVELOPER, APPROVER (SUPER_ADMIN 외: 프로젝트 로그는 대상 프로젝트에 role_code≤30으로 실제 배정만 되어 있으면 세션 role_code와 무관하게 조회 가능, company·user 로그는 자사만)
 - **주요 기능:** 감사 로그 목록 조회. 회사·프로젝트 필터는 화면 자체가 아닌 헤더의 전역 회사/프로젝트 선택을 그대로 사용(SUPER_ADMIN만 "전체" 선택 가능), 화면에는 테이블 / 작업 유형 / 기간 필터·페이지네이션 존재(작업자 필터는 없음 — 대신 목록·상세 모두 프로젝트/작업자를 원시 ID가 아닌 이름으로 표시), 상세 이동
 - **연관 API:**
 

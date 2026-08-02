@@ -76,7 +76,7 @@
 | 감사 로그 상세 조회 | O          | O (동일)   | O (동일)   | -        |
 
 > APPROVER 의 감사 로그 조회는 관리 목적이 아니라 API 승인·반려 판단 시 변경 이력을 참조하기 위한 목적으로 오픈된 것이다.
-> `project_id`가 있는 로그(api/api_request/api_response/code_group/code_item/project 등 프로젝트 소속 엔티티 변경)는 "자사 소속"이 아니라 "해당 프로젝트에 실제 DEVELOPER(20)/APPROVER(30)로 배정되어 있고 그 role_code가 세션 role_code와 일치"해야 조회 가능하다. `project_id`가 없는 로그(company/user 테이블 변경)는 기존대로 회사 스코핑만 적용된다.
+> `project_id`가 있는 로그(api/api_request/api_response/code_group/code_item/project 등 프로젝트 소속 엔티티 변경)는 "자사 소속"이 아니라 "해당 프로젝트에 role_code≤30(SUPER_ADMIN/DEVELOPER/APPROVER)으로 실제 배정"되어 있어야 조회 가능하다 — 세션 role_code(로그인 시 고정되는, 여러 프로젝트 중 최고 권한 하나)와 정확히 같을 필요는 없다. `project_id`가 없는 로그(company/user 테이블 변경)는 기존대로 회사 스코핑만 적용된다.
 
 ---
 

@@ -10,10 +10,13 @@
 gm_platform/
 ├── client/              # Frontend (React + Vite)
 ├── server/              # Backend (Express + TypeScript)
-├── database/
+├── database/            # 메인 DB(gm_platform) 스크립트
 │   ├── tables/          # DDL SQL 파일
 │   ├── procedures/      # Stored Procedure SQL 파일
 │   └── functions/       # Function SQL 파일
+├── database_log/        # 감사 로그 전용 DB(gm_platform_log) 스크립트 — 메인 DB와 물리적으로 분리
+│   ├── tables/          # log_audit DDL + 통합 스크립트
+│   └── procedures/      # log_audit 관련 SP + 통합 스크립트
 └── docs/                # 설계 문서
 ```
 
@@ -25,7 +28,7 @@ gm_platform/
 server/
 ├── src/
 │   ├── config/
-│   │   ├── db.ts            # mysql2 커넥션 풀 설정, callSP() 래퍼, runExclusive()(MySQL advisory lock, 스케일아웃 시 크론 잡 중복 실행 방지)
+│   │   ├── db.ts            # mysql2 커넥션 풀 설정(메인 pool + 감사로그 전용 logPool), callSP() 래퍼(pool 선택 가능), runExclusive()(MySQL advisory lock, 스케일아웃 시 크론 잡 중복 실행 방지)
 │   │   ├── env.ts           # 환경변수 로드 및 검증
 │   │   └── swagger.ts       # Swagger UI 설정 및 공통 컴포넌트 스키마 (SWAGGER_ENABLED=true 시에만 require)
 │   │
