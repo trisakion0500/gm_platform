@@ -1,11 +1,11 @@
-import { callSP } from '../config/db';
+import { callSP, logPool } from '../config/db';
 import { LogAuditRow } from '../types';
 import { toDBError, ERROR_MAP } from '../constants/errors';
 
 /**
- * 감사 로그를 INSERT한다.
+ * 감사 로그를 INSERT한다. log_audit 전용 DB(logPool)에서 실행된다.
  * project_name/created_by_name은 조회 시점 JOIN 대신 적재 시점 스냅샷으로 저장한다
- * (log_audit를 별도 DB로 분리해도 project/user 테이블 조인 없이 조회 가능하도록).
+ * (log_audit가 별도 DB이므로 project/user 테이블 조인 자체가 불가능해 반드시 필요).
  * @author trisakion
  * @param companyId 회사 ID
  * @param projectId 프로젝트 ID (없으면 null)
@@ -36,12 +36,14 @@ export async function insertLogAudit(
   await callSP('SP_INSERT_LOG_AUDIT', [
     companyId, projectId, projectName, tableName, targetId, targetName,
     actionType, beforeJson, afterJson, createdBy, createdByName,
-  ]);
+  ], logPool);
 }
 
 /**
- * 감사 로그 목록을 페이지네이션으로 조회한다.
- * SUPER_ADMIN은 전체, 그 외는 project_id가 있는 로그는 해당 프로젝트에 실제 caller_role_code로 배정된 경우만,
+ * 감사 로그 목록을 페이지네이션으로 조회한다. log_audit 전용 DB(logPool)에서 실행되며,
+ * 스코핑 판정에 필요한 project_id 목록(allowedProjectIds)은 메인 DB 조회 결과를 호출부(logAudit.service.ts)가
+ * 이미 계산해 넘긴 값이다 — 이 DB는 메인 DB의 user_role 테이블에 물리적으로 접근할 수 없다.
+ * SUPER_ADMIN은 전체, 그 외는 project_id가 있는 로그는 allowedProjectIds에 포함된 프로젝트만,
  * project_id가 없는 로그(company/user 테이블)는 본인 회사 로그만 조회 가능하다.
  * @author trisakion
  * @param companyId 회사 ID 필터 (null=전체)
@@ -54,7 +56,7 @@ export async function insertLogAudit(
  * @param page 페이지 번호 (1부터)
  * @param pageSize 페이지 크기 (20/30/50/100)
  * @param callerRoleCode 요청자 역할 코드
- * @param callerUserId 요청자 user_id (project_id 있는 로그의 실제 role 재검증용)
+ * @param allowedProjectIds 요청자가 role_code<=30으로 실제 배정된 project_id 콤마 문자열 (SUPER_ADMIN이면 무시됨)
  * @param callerCompanyId 요청자 company_id (project_id 없는 로그의 회사 스코핑용)
  * @returns { total_count, items }
  */
@@ -69,13 +71,13 @@ export async function getLogAuditList(
   page: number,
   pageSize: number,
   callerRoleCode: number,
-  callerUserId: number,
+  allowedProjectIds: string,
   callerCompanyId: number,
 ): Promise<{ total_count: number; items: LogAuditRow[] }> {
   const [, [countRows, itemRows]] = await callSP('SP_GET_LOG_AUDIT_LIST', [
     companyId, projectId, tableName, targetId, actionType,
-    fromCreatedAt, toCreatedAt, page, pageSize, callerRoleCode, callerUserId, callerCompanyId,
-  ]);
+    fromCreatedAt, toCreatedAt, page, pageSize, callerRoleCode, allowedProjectIds, callerCompanyId,
+  ], logPool);
   return {
     total_count: (countRows[0] as unknown as { total_count: number }).total_count,
     items: itemRows as unknown as LogAuditRow[],
@@ -83,22 +85,22 @@ export async function getLogAuditList(
 }
 
 /**
- * 감사 로그 단건을 조회한다.
+ * 감사 로그 단건을 조회한다. log_audit 전용 DB(logPool)에서 실행된다.
  * 미존재 또는 접근 불가 시 DBError(31010)를 던진다.
  * @author trisakion
  * @param logAuditId 조회할 감사 로그 ID
  * @param callerRoleCode 요청자 역할 코드
- * @param callerUserId 요청자 user_id (project_id 있는 로그의 실제 role 재검증용)
+ * @param allowedProjectIds 요청자가 role_code<=30으로 실제 배정된 project_id 콤마 문자열 (SUPER_ADMIN이면 무시됨)
  * @param callerCompanyId 요청자 company_id (project_id 없는 로그의 회사 스코핑용)
  * @returns 감사 로그 상세 (before_json, after_json 포함)
  */
 export async function getLogAudit(
   logAuditId: number,
   callerRoleCode: number,
-  callerUserId: number,
+  allowedProjectIds: string,
   callerCompanyId: number,
 ): Promise<LogAuditRow> {
-  const [status, [data]] = await callSP('SP_GET_LOG_AUDIT', [logAuditId, callerRoleCode, callerUserId, callerCompanyId]);
+  const [status, [data]] = await callSP('SP_GET_LOG_AUDIT', [logAuditId, callerRoleCode, allowedProjectIds, callerCompanyId], logPool);
   if (status[0].RESULT === 31010)
     throw toDBError(ERROR_MAP.LOG_AUDIT_NOT_FOUND);
   return data[0] as unknown as LogAuditRow;

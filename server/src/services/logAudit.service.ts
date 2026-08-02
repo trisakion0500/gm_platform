@@ -560,6 +560,24 @@ export function logUpdateCodeItem(
 }
 
 /**
+ * 호출자가 role_code<=30(SUPER_ADMIN/DEVELOPER/APPROVER)으로 실제 활성 배정된 project_id 목록을
+ * 콤마 문자열로 반환한다. log_audit 조회 SP가 더 이상 user_role(메인 DB) 테이블을 직접 참조하지
+ * 않도록, 스코핑에 필요한 프로젝트 목록을 여기서 메인 DB 기준으로 미리 계산해 넘긴다 — log_audit
+ * SP는 이 문자열을 FIND_IN_SET으로만 사용하고 log_audit DB만 본다.
+ * OPERATOR(40)로만 배정된 프로젝트는 제외한다(감사로그 라우트 자체가 OPERATOR를 차단하는 것과 동일 기준).
+ * @author trisakion
+ * @param callerUserId 요청자 user_id
+ * @returns 콤마로 구분된 project_id 문자열 (배정된 프로젝트가 없으면 빈 문자열)
+ */
+async function resolveAllowedProjectIds(callerUserId: number): Promise<string> {
+  const [, [rows]] = await callSP('SP_GET_USER_ROLE_LIST', [callerUserId, null, null, 1, null]);
+  return rows
+    .filter(r => (r as any).role_code <= 30)
+    .map(r => (r as any).project_id)
+    .join(',');
+}
+
+/**
  * 감사 로그 목록을 조회한다.
  * @author trisakion
  * @param companyId 회사 ID 필터 (null=전체)
@@ -572,7 +590,7 @@ export function logUpdateCodeItem(
  * @param page 페이지 번호
  * @param pageSize 페이지 크기
  * @param callerRoleCode 요청자 역할 코드
- * @param callerUserId 요청자 user_id (project_id 있는 로그의 실제 role 재검증용)
+ * @param callerUserId 요청자 user_id (allowedProjectIds 계산용, SUPER_ADMIN이면 조회 생략)
  * @param callerCompanyId 요청자 company_id (project_id 없는 로그의 회사 스코핑용)
  * @returns 페이지네이션 응답
  */
@@ -590,9 +608,10 @@ export async function getLogAuditList(
   callerUserId: number,
   callerCompanyId: number,
 ): Promise<{ page: number; page_size: number; total_count: number; items: LogAuditRow[] }> {
+  const allowedProjectIds = callerRoleCode === 10 ? '' : await resolveAllowedProjectIds(callerUserId);
   const result = await db.getLogAuditList(
     companyId, projectId, tableName, targetId, actionType,
-    fromCreatedAt, toCreatedAt, page, pageSize, callerRoleCode, callerUserId, callerCompanyId,
+    fromCreatedAt, toCreatedAt, page, pageSize, callerRoleCode, allowedProjectIds, callerCompanyId,
   );
   return { page, page_size: pageSize, ...result };
 }
@@ -602,7 +621,7 @@ export async function getLogAuditList(
  * @author trisakion
  * @param logAuditId 조회할 감사 로그 ID
  * @param callerRoleCode 요청자 역할 코드
- * @param callerUserId 요청자 user_id (project_id 있는 로그의 실제 role 재검증용)
+ * @param callerUserId 요청자 user_id (allowedProjectIds 계산용, SUPER_ADMIN이면 조회 생략)
  * @param callerCompanyId 요청자 company_id (project_id 없는 로그의 회사 스코핑용)
  * @returns 감사 로그 상세
  */
@@ -613,7 +632,8 @@ export async function getLogAudit(
   callerCompanyId: number,
 ): Promise<LogAuditRow> {
   try {
-    return await db.getLogAudit(logAuditId, callerRoleCode, callerUserId, callerCompanyId);
+    const allowedProjectIds = callerRoleCode === 10 ? '' : await resolveAllowedProjectIds(callerUserId);
+    return await db.getLogAudit(logAuditId, callerRoleCode, allowedProjectIds, callerCompanyId);
   } catch {
     throw toAppError(ERROR_MAP.LOG_AUDIT_NOT_FOUND);
   }

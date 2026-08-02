@@ -7,6 +7,11 @@ const required = [
   "DB_USER",
   "DB_PASSWORD",
   "DB_NAME",
+  "LOG_DB_HOST",
+  "LOG_DB_PORT",
+  "LOG_DB_USER",
+  "LOG_DB_PASSWORD",
+  "LOG_DB_NAME",
   "JWT_SECRET",
   "CORS_ALLOWED_ORIGINS",
   "ENCRYPTION_KEY",
@@ -28,6 +33,15 @@ export const env = {
     password: process.env.DB_PASSWORD!,
     name: process.env.DB_NAME!, // 이 값은 절대 null/undefined가 아님
     connectionLimit: Number(process.env.DB_CONNECTION_LIMIT ?? 10), // 인스턴스당 풀 크기, 기본 10 (스케일아웃 시 총 커넥션 = 이 값 × 인스턴스 수)
+  },
+  // log_audit 전용 DB — 메인 DB와 같은 VM/인스턴스라는 보장이 없어 완전히 별도인 pool로 관리 (server/src/config/db.ts의 logPool)
+  logDb: {
+    host: process.env.LOG_DB_HOST!, // 이 값은 절대 null/undefined가 아님
+    port: Number(process.env.LOG_DB_PORT),
+    user: process.env.LOG_DB_USER!, // 이 값은 절대 null/undefined가 아님
+    password: process.env.LOG_DB_PASSWORD!,
+    name: process.env.LOG_DB_NAME!, // 이 값은 절대 null/undefined가 아님
+    connectionLimit: Number(process.env.LOG_DB_CONNECTION_LIMIT ?? 10),
   },
   jwt: {
     secret: process.env.JWT_SECRET!,

@@ -1,4 +1,4 @@
-import mysql, { RowDataPacket, PoolConnection } from "mysql2/promise";
+import mysql, { RowDataPacket, PoolConnection, Pool } from "mysql2/promise";
 import { env } from "./env";
 import { DBError } from "../types";
 import { ERROR_MAP } from "../constants/errors";
@@ -21,6 +21,21 @@ const pool = mysql.createPool({
   charset: "utf8mb4",
 });
 
+// log_audit 전용 pool. 메인 DB와 물리적으로 다른 VM/인스턴스일 수 있어 완전히 독립된 커넥션 풀로 관리한다
+// (logAudit.db.ts만 이 pool을 쓴다 — 다른 도메인 db 파일은 여전히 기본 pool을 통해 callSP를 호출).
+export const logPool = mysql.createPool({
+  host: env.logDb.host,
+  port: env.logDb.port,
+  user: env.logDb.user,
+  password: env.logDb.password,
+  database: env.logDb.name,
+  waitForConnections: true,
+  connectionLimit: env.logDb.connectionLimit,
+  queueLimit: 0,
+  timezone: "local",
+  charset: "utf8mb4",
+});
+
 /**
  * SP를 호출하고 결과셋 튜플을 반환한다.
  * 첫 번째 결과셋은 항상 RESULT 코드 행이며, 이후 결과셋은 데이터 배열로 반환한다.
@@ -29,16 +44,18 @@ const pool = mysql.createPool({
  * @author trisakion
  * @param sp 호출할 SP 이름 (예: 'SP_GET_USER_BY_ID')
  * @param params SP에 전달할 파라미터 배열
+ * @param targetPool 호출에 사용할 pool (기본값: 메인 DB pool, log_audit 계열은 logPool을 명시 전달)
  * @returns [statusRows, dataSets] — statusRows[0].RESULT로 결과 코드 확인, dataSets는 데이터 결과셋 배열
  */
 export async function callSP(
   sp: string,
   params: unknown[],
+  targetPool: Pool = pool,
 ): Promise<[RowDataPacket[], RowDataPacket[][]]> {
   const placeholders = params.map(() => "?").join(", ");
   let results;
   try {
-    [results] = await pool.query(`CALL ${sp}(${placeholders})`, params);
+    [results] = await targetPool.query(`CALL ${sp}(${placeholders})`, params);
   } catch (err) {
     throw new DBError(
       50001,

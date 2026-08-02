@@ -1098,10 +1098,13 @@ Check "로그 단건 OP 차단 #3" (Req GET /log-audits/$LOG_ID $null $TOKEN_OP)
 # ============================================================
 # 14A. AUDIT LOG 프로젝트 스코핑 검증
 # ============================================================
-# project_id가 있는 로그(company/user 제외)는 기존 회사 스코핑 대신 대상 프로젝트에 대한
-# 실제 role_code가 세션 role_code와 일치해야 조회 가능하도록 강화. 13A에서 만든 스코프 사용자 재사용:
-# apv=A에서만 실제 APPROVER(30)·B에는 role 없음, exec=A에서 실제 DEVELOPER(20)·B에서 실제 APPROVER(30)이지만
-# 세션 role_code는 MIN(20,30)=20(DEVELOPER)로 고정되어 B에서는 실제 role(APPROVER)과 세션이 불일치.
+# project_id가 있는 로그(company/user 제외)는 대상 프로젝트에 role_code<=30(SA/DEV/APV)으로
+# 실제 배정되어 있으면 조회 가능(2026-08-02 log_audit DB 분리 작업 중 완화 — 세션 role_code와
+# 정확히 일치할 필요는 없음). 13A에서 만든 스코프 사용자 재사용:
+# apv=A에서만 실제 APPROVER(30)·B에는 role 자체가 없어 B는 여전히 차단.
+# exec=A에서 실제 DEVELOPER(20)·B에서 실제 APPROVER(30) — 세션 role_code는 MIN(20,30)=20(DEVELOPER)로
+# 고정되지만, B에 role_code<=30(APPROVER=30)로 실제 배정돼 있으므로 B도 조회 가능(구 로직에서는 세션
+# role_code(20)와 B의 실제 role_code(30)가 달라 차단됐던 케이스 — 완화 후 정상 동작으로 전환).
 Section "14A. AUDIT LOG 프로젝트 스코핑 검증"
 
 $laApvA = Req GET "/log-audits?project_id=$SCOPE_PID_A&table_name=api&page=1&page_size=20" $null $TOKEN_SCOPE_APV
@@ -1114,7 +1117,7 @@ $laExecA = Req GET "/log-audits?project_id=$SCOPE_PID_A&table_name=api&page=1&pa
 if ($laExecA.data.total_count -lt 1) { $script:FAIL++; Write-Host "  [FAIL] 감사로그 목록 exec 본인프로젝트(A) 조회 실패 (total_count=$($laExecA.data.total_count))" -ForegroundColor Red } else { $script:PASS++; Write-Host "  [PASS] 감사로그 목록 exec 본인프로젝트(A) 조회 확인 (total_count=$($laExecA.data.total_count))" -ForegroundColor Green }
 
 $laExecB = Req GET "/log-audits?project_id=$SCOPE_PID_B&table_name=api&page=1&page_size=20" $null $TOKEN_SCOPE_EXEC
-if ($laExecB.data.total_count -ne 0) { $script:FAIL++; Write-Host "  [FAIL] 감사로그 목록 exec 교차프로젝트(B) 노출됨 (세션 DEVELOPER≠실제 APPROVER인데 total_count=$($laExecB.data.total_count))" -ForegroundColor Red } else { $script:PASS++; Write-Host "  [PASS] 감사로그 목록 exec 교차프로젝트(B) 제외 확인 (세션 role_code 불일치)" -ForegroundColor Green }
+if ($laExecB.data.total_count -lt 1) { $script:FAIL++; Write-Host "  [FAIL] 감사로그 목록 exec 교차프로젝트(B) 조회 실패 (세션 DEVELOPER, B는 실제 APPROVER(30)로 배정돼 있어 조회 가능해야 함, total_count=$($laExecB.data.total_count))" -ForegroundColor Red } else { $script:PASS++; Write-Host "  [PASS] 감사로그 목록 exec 교차프로젝트(B) 조회 확인 (role_code<=30 실제 배정 기준, total_count=$($laExecB.data.total_count))" -ForegroundColor Green }
 
 $laListA = Req GET "/log-audits?project_id=$SCOPE_PID_A&table_name=api&target_id=$EA_STG20_A&page=1&page_size=20" $null $TOKEN
 $LOG_A_ID = $laListA.data.items[0].log_audit_id

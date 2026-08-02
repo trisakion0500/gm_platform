@@ -27,10 +27,14 @@ cd gm_platform
 
 ## 3.1 DB 생성
 
-MySQL 클라이언트에서 실행한다.
+MySQL 클라이언트에서 실행한다. `gm_platform`(메인)과 `gm_platform_log`(감사 로그 전용) 두 개를 만든다 — 두 DB는 물리적으로 다른 MySQL 인스턴스/서버에 있어도 되도록 설계돼 있다(로컬 개발에서는 같은 인스턴스에 스키마만 분리해도 무방).
 
 ```sql
 CREATE DATABASE gm_platform
+  CHARACTER SET utf8mb4
+  COLLATE utf8mb4_0900_ai_ci;
+
+CREATE DATABASE gm_platform_log
   CHARACTER SET utf8mb4
   COLLATE utf8mb4_0900_ai_ci;
 
@@ -64,9 +68,22 @@ mysql -u root -p gm_platform < database/functions/FN_GET_PROJECT_ROLE_CODE.sql
 mysql -u root -p gm_platform < database/procedures/all_procedures.sql
 ```
 
-`database/procedures/all_procedures.sql`은 `database/procedures/*.sql`(SP 68개)을 알파벳순으로 이어붙인 통합 스크립트다(`all_tables.sql`과 동일 패턴). 프로시저가 내부에서 참조하므로 함수(FN_*)를 먼저 생성한다.
+`database/procedures/all_procedures.sql`은 `database/procedures/*.sql`(SP 65개)을 알파벳순으로 이어붙인 통합 스크립트다(`all_tables.sql`과 동일 패턴). 프로시저가 내부에서 참조하므로 함수(FN_*)를 먼저 생성한다.
 
 이 단계를 건너뛰면 테이블만 있고 SP가 없는 상태가 되어, `callSP()`를 거치는 모든 API 호출이 `Table/Procedure doesn't exist` 오류로 실패한다.
+
+## 3.4 로그 DB 초기화 (`gm_platform_log`)
+
+감사 로그(`log_audit`)는 메인 DB가 아닌 별도 DB에 산다 — `database_log/`가 그 전용 스크립트 모음이다. 3.1에서 만든 `gm_platform_log`에 실행한다.
+
+```bash
+mysql -u root -p gm_platform_log < database_log/tables/all_log_tables.sql
+mysql -u root -p gm_platform_log < database_log/procedures/all_procedures_log.sql
+```
+
+`database_log/procedures/*.sql`은 메인 DB의 어떤 테이블·함수(`FN_HAS_PROJECT_ROLE` 등)도 참조하지 않는다 — 물리적으로 접근할 수 없는 DB이기 때문이다. 대신 조회 권한 판정(호출자가 어떤 프로젝트의 로그를 볼 수 있는지)은 서버(`logAudit.service.ts`)가 메인 DB를 먼저 조회해 계산한 뒤 파라미터로 넘긴다. 함수 생성 단계가 없으므로 3.3과 순서를 바꿔도 무방하다.
+
+이 단계를 건너뛰면 `log_audit` 테이블 자체가 없어 감사 로그 기록(`POST`/`PATCH` 계열 API 전체)과 조회(`GET /log-audits`)가 모두 실패한다 — 단, 감사 로그 기록은 fire-and-forget(`logAudit.service.ts`)이라 이 실패가 원래 API 응답 자체를 막지는 않는다.
 
 ---
 
@@ -94,6 +111,14 @@ DB_NAME=gm_platform
 
 # mysql2 풀 커넥션 수(인스턴스당) — 생략 시 기본값 10. 스케일아웃 시 총 커넥션 = 이 값 × 인스턴스 수이므로 MySQL max_connections와 맞춰 조정
 DB_CONNECTION_LIMIT=10
+
+# log_audit 전용 DB(3.4에서 만든 gm_platform_log) — 메인 DB와 같은 VM/인스턴스라는 보장이 없어 완전히 별도 설정으로 관리
+LOG_DB_HOST=127.0.0.1
+LOG_DB_PORT=3306
+LOG_DB_USER=root
+LOG_DB_PASSWORD=your_log_db_password
+LOG_DB_NAME=gm_platform_log
+LOG_DB_CONNECTION_LIMIT=10
 
 JWT_SECRET=your_jwt_secret_key
 JWT_ACCESS_EXPIRES_IN=30m
