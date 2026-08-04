@@ -143,6 +143,13 @@ LOGIN_RATE_LIMIT_MAX=10
 
 # 만료된 user_session 정리 크론 표현식 — 생략 시 기본값 매일 새벽 4시(0 4 * * *)
 SESSION_CLEANUP_CRON=0 4 * * *
+
+# 로그인 리미터 등 캐시성 기능의 Redis 사용 여부 — false(기본)면 인메모리로 폴백(스케일아웃 시 인스턴스별로 분리됨)
+REDIS_ENABLED=false
+REDIS_HOST=127.0.0.1
+REDIS_PORT=6379
+REDIS_PASSWORD=your_redis_password
+REDIS_KEY_PREFIX=gm:
 ```
 
 `ENCRYPTION_KEY`는 `phone_number` 등 개인정보를 AES-256-CBC로 암호화하는 데 사용하는 32바이트 hex 키다. 아래 명령으로 생성한다.
