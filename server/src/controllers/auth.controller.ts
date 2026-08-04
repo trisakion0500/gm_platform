@@ -83,7 +83,7 @@ export async function login(req: Request, res: Response, next: NextFunction): Pr
  */
 export async function logout(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
-    await authService.logout(req.user!.session_id);
+    await authService.logout(req.user!.user_id, req.user!.session_id);
     success(res, null);
   } catch (err) {
     next(err);

@@ -29,4 +29,6 @@ export const redisKeys = {
     `${REDIS_KEY_PREFIX}apis:active:${projectId}:${callerRoleCode}:${callerUserId}`,
   activeCodeGroups: (projectId: number, callerRoleCode: number, callerUserId: number) =>
     `${REDIS_KEY_PREFIX}codegroups:active:${projectId}:${callerRoleCode}:${callerUserId}`,
+  sessionEntry: (jti: string) => `${REDIS_KEY_PREFIX}session:jti:${jti}`,
+  sessionGeneration: (userId: number) => `${REDIS_KEY_PREFIX}session:gen:${userId}`,
 };

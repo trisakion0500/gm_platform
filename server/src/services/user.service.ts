@@ -5,6 +5,7 @@ import { encrypt, decrypt } from '../utils/crypto';
 import * as db from '../db/user.db';
 import * as audit from './logAudit.service';
 import { assertCompanyScope } from './companyScope.service';
+import { invalidateUserSessionCache } from '../config/sessionCache';
 
 /**
  * 사용자 목록을 페이지네이션으로 조회한다.
@@ -82,6 +83,9 @@ export async function updateUser(
   if (before)
     assertCompanyScope(callerRoleCode, callerCompanyId, before.company_id);
   const after  = await db.updateUser(userId, userName, email, phoneNumber ? encrypt(phoneNumber) : null, department, position, status);
+  // status 변경(사용중지 등)은 인증 미들웨어가 매 요청 재확인해야 하는 값이라, 세션 캐시가 있으면 즉시 무효화해야 한다.
+  if (status !== null)
+    await invalidateUserSessionCache(userId);
   audit.logUpdate('user', String(after.user_id), after.user_name,
     after.company_id, null, null,
     before! as unknown as Record<string, unknown>,
@@ -162,6 +166,7 @@ export async function resetPassword(
   assertCompanyScope(callerRoleCode, callerCompanyId, before.company_id);
   const passwordHash = await bcrypt.hash(newPassword, 12);
   await db.resetPassword(userId, passwordHash);
+  await invalidateUserSessionCache(userId);
   const after = await db.getUser(userId);
   audit.logUpdate('user', String(userId), before.user_name,
     before.company_id, null, null,

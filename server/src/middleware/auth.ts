@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { verifyAccessToken } from '../utils/jwt';
 import { fail } from '../utils/response';
-import { getSessionByJti } from '../db/auth.db';
+import { getCachedSession } from '../config/sessionCache';
 import { ERROR_MAP, ErrorEntry } from '../constants/errors';
 
 /**
@@ -37,9 +37,9 @@ export async function authenticate(req: Request, res: Response, next: NextFuncti
     return;
   }
 
-  let session: Awaited<ReturnType<typeof getSessionByJti>>;
+  let session: Awaited<ReturnType<typeof getCachedSession>>;
   try {
-    session = await getSessionByJti(payload.jti);
+    session = await getCachedSession(payload.jti, payload.user_id);
   } catch (err) {
     next(err);
     return;

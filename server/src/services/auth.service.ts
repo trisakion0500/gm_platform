@@ -9,6 +9,7 @@ import { env } from "../config/env";
 import { toAppError, ERROR_MAP } from "../constants/errors";
 import * as db from "../db/auth.db";
 import * as audit from "./logAudit.service";
+import { invalidateUserSessionCache } from "../config/sessionCache";
 
 /**
  * "7d", "24h", "30m" 형태의 TTL 문자열을 밀리초로 변환한다.
@@ -139,11 +140,13 @@ export async function login(loginId: string, password: string) {
 /**
  * 로그아웃 처리 — 해당 세션을 종료한다 (status → 0).
  * @author trisakion
+ * @param userId 로그아웃하는 사용자 ID (세션 캐시 무효화용)
  * @param sessionId 종료할 세션 ID
  * @returns void
  */
-export async function logout(sessionId: number): Promise<void> {
+export async function logout(userId: number, sessionId: number): Promise<void> {
   await db.logoutSession(sessionId);
+  await invalidateUserSessionCache(userId);
 }
 
 /**
@@ -226,6 +229,7 @@ export async function changePassword(
 
   const newHash = await hashPassword(newPassword);
   await db.updatePassword(userId, newHash);
+  await invalidateUserSessionCache(userId);
 
   const after = await db.getUserById(userId);
   if (before && after)
