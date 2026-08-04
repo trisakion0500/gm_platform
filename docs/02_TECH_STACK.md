@@ -36,7 +36,8 @@
 
 | 변수 | 필수 | 기본값 | 용도 / 활용처 |
 | --- | --- | --- | --- |
-| `NODE_ENV` | ✗ | — | `production`일 때만 로그 레벨을 낮춤(`config/logger.ts`) — `info` 이상만 기록, 그 외(로컬 개발 등)엔 `debug`까지 기록. `env.ts`가 검증하는 필수 목록엔 없어 값이 없어도 서버는 정상 기동(비프로덕션으로 간주). |
+| `NODE_ENV` | ✗ | — | `production`일 때만 로그 레벨을 낮춤(`env.ts`가 `nodeEnv`로 집계, `config/logger.ts`가 판정) — `info` 이상만 기록, 그 외(로컬 개발 등)엔 `debug`까지 기록. `env.ts`가 검증하는 필수 목록엔 없어 값이 없어도 서버는 정상 기동(비프로덕션으로 간주). |
+| `NODE_APP_INSTANCE` | ✗ | — | 사용자가 `.env`에 직접 설정하는 값이 아니라 PM2 fork mode가 인스턴스마다 런타임에 주입하는 값. 같은 VM에 여러 인스턴스를 fork mode로 띄울 때 로그 파일명 접미사(`logs/app-{N}.log`)로 써서 파일 충돌을 방지(`config/logger.ts`) — Node `cluster`/PM2 cluster mode는 log4js가 자체적으로 IPC 병합하므로 대상 아님. |
 | `DB_HOST` | ✓ | — | MySQL 접속 호스트. `config/db.ts`의 mysql2 pool 생성 시 사용. |
 | `DB_PORT` | ✓ | — | MySQL 접속 포트. `Number()` 변환 후 pool에 전달. |
 | `DB_USER` | ✓ | — | MySQL 접속 계정. |
@@ -61,3 +62,11 @@
 | `LOGIN_RATE_LIMIT_WINDOW_MS` | ✗ | `900000`(15분) | `/auth/login`·`/auth/signup`에 적용되는 `loginLimiter`(express-rate-limit)의 카운트 윈도우. 브루트포스 방지 목적. |
 | `LOGIN_RATE_LIMIT_MAX` | ✗ | `10` | 위 윈도우 동안 IP당 허용되는 최대 요청 수. 초과 시 `40001`(HTTP 429). |
 | `SESSION_CLEANUP_CRON` | ✗ | `0 4 * * *`(매일 새벽 4시) | `jobs/sessionCleanup.job.ts`가 `node-cron`으로 등록하는 만료 세션 정리 주기. `user_session`에서 `expired_at`이 지난 행을 삭제(`SP_CLEANUP_EXPIRED_SESSIONS`)해 테이블 무한 누적을 방지. 스케일아웃 시 인스턴스마다 각자 등록되므로 `config/db.ts`의 `runExclusive`(MySQL advisory lock)로 감싸 한 시점에 한 인스턴스만 실행되도록 함(§6.4 참고). |
+| `REDIS_ENABLED` | ✗ | `false` | 로그인 리미터·참조 데이터 캐시·세션 캐시의 Redis 사용 여부. `false`면 리미터·참조데이터는 인메모리로, 세션 캐시는 캐시 없이 매 요청 MySQL 조회로 폴백(`config/redis.ts`가 이 값으로 `redisClient` 생성 여부 결정). |
+| `REDIS_HOST` | ✗ | `127.0.0.1` | Redis 접속 호스트. |
+| `REDIS_PORT` | ✗ | `6379` | Redis 접속 포트. |
+| `REDIS_PASSWORD` | ✗ | — | Redis 접속 비밀번호. |
+| `REDIS_KEY_PREFIX` | ✗ | `gm:` | 이 프로젝트가 쓰는 모든 Redis 키의 공통 프리픽스(`config/redis.ts`의 `redisKeys`에서 일괄 적용). |
+| `REDIS_COMMAND_TIMEOUT_MS` | ✗ | `1000` | Redis 명령 타임아웃(ms). Redis 장애 시 ioredis 기본 재시도(최대 20회, 누적 최대 수십 초)를 기다리지 않고 이 시간 안에 실패로 확정시켜 API 응답 지연으로 전이되지 않게 함. 200ms처럼 너무 짧게 잡으면 부팅 시점 `rate-limit-redis`의 `SCRIPT LOAD`가 커넥션 수립과 경합해 타임아웃되고 그 실패가 캐싱돼 로그인이 프로세스 재기동 전까지 계속 실패하는 문제가 실측으로 확인돼 1000ms을 기본값으로 둠. |
+| `SESSION_CACHE_TTL_SECONDS` | ✗ | `JWT_ACCESS_EXPIRES_IN`(초 환산) | 세션(jti) Redis 캐시 TTL. generation 불일치로 통상 그 즉시 무효화되지만 만약을 대비한 안전판 — Access Token 자체가 이 TTL 지나면 거부되므로 그보다 짧게 잡아도 이득이 없어 기본값을 여기 맞춤. |
+| `SESSION_GEN_TTL_SECONDS` | ✗ | 위 값의 2배 | 세션 generation 카운터(무효화 시마다 갱신)의 TTL. 반드시 `SESSION_CACHE_TTL_SECONDS`보다 커야 하며, 아니면 `env.ts`가 기동 시점에 예외를 던짐(짧으면 generation 만료로 "예전 값과 우연히 일치"하는 캐시가 살아남는 구멍이 생기기 때문). |

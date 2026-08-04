@@ -190,9 +190,9 @@ GM-Tool은 Access Token + Refresh Token 기반 인증을 사용한다.
 
 로그인 성공 시 Session을 생성한다.
 
-Session은 MySQL 기반으로 관리한다.
+Session은 MySQL(`user_session`)에 저장하며, 이 저장소가 유일한 source of truth다.
 
-향후 인증 트래픽 증가 시 Redis 기반 Session 저장소로 변경 가능하도록 설계한다.
+`REDIS_ENABLED=true`일 때는 인증 미들웨어의 세션 조회(인증이 필요한 모든 요청)에 Redis 캐시가 앞단에 붙는다 — user 단위 generation 카운터로 버저닝해 로그아웃·비밀번호 변경·계정 상태 변경 시 해당 사용자의 캐시된 세션 전체를 즉시 무효화한다. `REDIS_ENABLED=false`면 캐시 없이 매 요청 MySQL을 조회한다(기존 동작과 동일). 자세한 설계는 `CLAUDE.md`의 "Redis 세션 캐시" 결정사항 참고.
 
 ---
 
@@ -283,23 +283,16 @@ WHERE user_id = ?
 
 ---
 
-## 향후 확장 정책
-
-현재 버전
+## 세션 저장소 구성
 
 ```text
-MySQL Session 저장소 사용
-```
-
-향후 버전
-
-```text
-Redis Session 저장소 사용 가능
+MySQL(user_session) — source of truth, 항상 사용
+Redis — REDIS_ENABLED=true 시 조회 캐시로 추가(생략 시 MySQL만 사용, 기존과 동일)
 ```
 
 Session 조회 기준은 access_token_jti를 사용한다.
 
-이를 통해 Session 저장소를 MySQL에서 Redis로 변경하더라도 인증 로직 수정 없이 확장 가능하도록 설계한다.
+이 기준 덕분에 Redis 캐시 계층을 추가할 때도 위 "Session 검증 정책" 자체는 수정 없이 그대로 유지됐다.
 
 ---
 
