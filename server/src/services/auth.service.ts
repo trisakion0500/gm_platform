@@ -5,31 +5,12 @@ import { hashPassword, comparePassword } from "../utils/bcrypt";
 import { encrypt, decrypt } from "../utils/crypto";
 import { signAccessToken } from "../utils/jwt";
 import { formatDatetime } from "../utils/response";
+import { parseDurationMs } from "../utils/duration";
 import { env } from "../config/env";
 import { toAppError, ERROR_MAP } from "../constants/errors";
 import * as db from "../db/auth.db";
 import * as audit from "./logAudit.service";
 import { invalidateUserSessionCache } from "../config/sessionCache";
-
-/**
- * "7d", "24h", "30m" 형태의 TTL 문자열을 밀리초로 변환한다.
- * 파싱 실패 시 기본값 7일을 반환한다.
- * @author trisakion
- * @param ttl 변환할 TTL 문자열 (d=일, h=시간, m=분)
- * @returns 밀리초 단위의 TTL
- */
-function parseRefreshExpiry(ttl: string): number {
-  const match = /^(\d+)([dhm])$/.exec(ttl);
-  if (!match)
-    return 7 * 24 * 60 * 60 * 1000;
-  const n = parseInt(match[1], 10);
-  const unit = match[2];
-  if (unit === "d")
-    return n * 24 * 60 * 60 * 1000;
-  if (unit === "h")
-    return n * 60 * 60 * 1000;
-  return n * 60 * 1000;
-}
 
 /**
  * Refresh Token 원문을 SHA-256으로 해시한다.
@@ -119,7 +100,7 @@ export async function login(loginId: string, password: string) {
   const refreshToken = uuidv4();
   const refreshTokenHash = hashRefreshToken(refreshToken);
   const sessionExpiredAt = new Date(
-    Date.now() + parseRefreshExpiry(env.jwt.refreshExpiresIn),
+    Date.now() + parseDurationMs(env.jwt.refreshExpiresIn),
   );
 
   await db.createLoginSession(

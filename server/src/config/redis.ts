@@ -11,6 +11,7 @@ export const redisClient = env.redis.enabled
       host: env.redis.host,
       port: env.redis.port,
       password: env.redis.password,
+      commandTimeout: env.redis.commandTimeoutMs,
     })
   : null;
 

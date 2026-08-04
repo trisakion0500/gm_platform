@@ -1,6 +1,7 @@
 import log4js from 'log4js';
+import { env } from './env';
 
-const isProd = process.env.NODE_ENV === 'production';
+const isProd = env.nodeEnv === 'production';
 
 // 같은 VM/컨테이너에서 여러 인스턴스를 띄우면 cwd가 같아 상대경로 'logs/app.log'가 물리적으로
 // 겹친다(다른 VM/컨테이너는 파일시스템 자체가 분리돼 원래도 안 겹침). Node의 cluster 모듈(및 이를
@@ -13,7 +14,7 @@ const isProd = process.env.NODE_ENV === 'production';
 // (Node cluster 워커가 아님) 위 IPC 병합이 적용되지 않아 그대로 파일이 겹친다 — 이 경우만
 // PM2가 인스턴스마다 심어주는 NODE_APP_INSTANCE 환경변수로 접미사를 붙여 분리한다. 둘 다 없으면
 // (일반 단일 프로세스 — 개발 환경, 단일 인스턴스 배포) 접미사 없이 기존과 동일한 파일명을 쓴다.
-const instanceId = process.env.NODE_APP_INSTANCE;
+const instanceId = env.nodeAppInstance;
 const instanceSuffix = instanceId !== undefined ? `-${instanceId}` : '';
 
 const layout = {

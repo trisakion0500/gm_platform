@@ -1,5 +1,10 @@
 import dotenv from "dotenv";
+import { parseDurationMs } from "../utils/duration";
 dotenv.config();
+
+// jwt.accessExpiresIn과 redis.sessionCacheTtlSeconds 기본값 산출 양쪽에서 쓰여 미리 변수로 뺀다.
+const jwtAccessExpiresIn = process.env.JWT_ACCESS_EXPIRES_IN ?? "15m";
+const jwtAccessExpiresInSeconds = Math.floor(parseDurationMs(jwtAccessExpiresIn) / 1000);
 
 const required = [
   "DB_HOST",
@@ -25,6 +30,8 @@ for (const key of required) {
 
 // 위 루프에서 required 항목 전체 검증 완료
 export const env = {
+  nodeEnv: process.env.NODE_ENV ?? 'development',
+  nodeAppInstance: process.env.NODE_APP_INSTANCE, // PM2 fork mode가 인스턴스마다 주입하는 값, 없으면 undefined
   port: Number(process.env.PORT ?? 3000), // 좌측이 null 또는 undefined 일 때만
   db: {
     host: process.env.DB_HOST!, // 이 값은 절대 null/undefined가 아님
@@ -45,7 +52,7 @@ export const env = {
   },
   jwt: {
     secret: process.env.JWT_SECRET!,
-    accessExpiresIn: process.env.JWT_ACCESS_EXPIRES_IN ?? "15m", // 기본 TTL 15분
+    accessExpiresIn: jwtAccessExpiresIn, // 기본 TTL 15분
     refreshExpiresIn: process.env.JWT_REFRESH_EXPIRES_IN ?? "7d", // 기본 TTL 7일
   },
   encryptionKey: process.env.ENCRYPTION_KEY!, // phone_number 등 AES-256-CBC 암호화 키 (32바이트 hex)
@@ -68,5 +75,25 @@ export const env = {
     port: Number(process.env.REDIS_PORT ?? 6379),
     password: process.env.REDIS_PASSWORD,
     keyPrefix: process.env.REDIS_KEY_PREFIX ?? 'gm:', // 이 프로젝트가 쓰는 모든 Redis 키에 공통으로 붙는 프리픽스
+    // Redis 명령 타임아웃(ms) — Redis가 응답 불가 상태(장애 등)일 때 ioredis 기본 재시도(최대 20회, 누적 최대 수십초)를
+    // 기다리지 않고 이 시간 안에 실패로 확정시켜, Redis 장애가 API 응답 지연으로 그대로 전이되지 않도록 한다.
+    // 너무 짧게(예: 200ms) 잡으면 서버 부팅 시점 rate-limit-redis의 최초 SCRIPT LOAD 호출이 ioredis 커넥션
+    // 수립과 경합하다 타임아웃될 수 있고, 그 실패가 Promise로 캐싱돼 이후 Redis가 멀쩡해도 로그인이 프로세스
+    // 재기동 전까지 계속 500이 되는 게 실측으로 확인됨(200ms 3/3 재현, 1000ms 3/3 정상) — 1000ms을 기본값으로 둔다.
+    commandTimeoutMs: Number(process.env.REDIS_COMMAND_TIMEOUT_MS ?? 1000),
+    // 세션(jti) 캐시 TTL — generation 불일치로 통상 그 즉시 무효화되지만 만약을 대비한 안전판.
+    // Access Token 자체가 JWT_ACCESS_EXPIRES_IN이 지나면 세션 캐시를 보기도 전에 거부되므로,
+    // 그보다 짧게 잡아봤자 유효한 토큰인데도 불필요하게 DB를 더 자주 타게 만들 뿐이라 기본값을 여기서 맞춘다.
+    sessionCacheTtlSeconds: Number(process.env.SESSION_CACHE_TTL_SECONDS ?? jwtAccessExpiresInSeconds),
+    // 세션 generation 카운터 TTL — 무효화 시마다 갱신, 반드시 sessionCacheTtlSeconds보다 커야 함(아래 검증). 기본값은 그 2배.
+    sessionGenTtlSeconds: Number(process.env.SESSION_GEN_TTL_SECONDS ?? jwtAccessExpiresInSeconds * 2),
   },
 };
+
+// sessionGenTtlSeconds가 sessionCacheTtlSeconds보다 짧거나 같으면, generation 키가 먼저 만료돼
+// "예전 값과 우연히 일치"하는 캐시 항목이 살아남을 수 있어 세션 무효화가 뚫리는 구멍이 생긴다.
+if (env.redis.sessionGenTtlSeconds <= env.redis.sessionCacheTtlSeconds) {
+  throw new Error(
+    `SESSION_GEN_TTL_SECONDS(${env.redis.sessionGenTtlSeconds})는 SESSION_CACHE_TTL_SECONDS(${env.redis.sessionCacheTtlSeconds})보다 커야 합니다`,
+  );
+}
