@@ -62,4 +62,11 @@ export const env = {
     max: Number(process.env.LOGIN_RATE_LIMIT_MAX ?? 10), // 기본 IP당 10회
   },
   sessionCleanupCron: process.env.SESSION_CLEANUP_CRON ?? '0 4 * * *', // 만료 세션 정리 크론 표현식, 기본 매일 새벽 4시
+  redis: {
+    enabled: process.env.REDIS_ENABLED === 'true', // false(기본)면 각 기능이 인메모리/DB로 폴백 — host 값 존재 여부가 아닌 명시적 플래그로 분기
+    host: process.env.REDIS_HOST ?? '127.0.0.1',
+    port: Number(process.env.REDIS_PORT ?? 6379),
+    password: process.env.REDIS_PASSWORD,
+    keyPrefix: process.env.REDIS_KEY_PREFIX ?? 'gm:', // 이 프로젝트가 쓰는 모든 Redis 키에 공통으로 붙는 프리픽스
+  },
 };

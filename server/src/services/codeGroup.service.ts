@@ -2,6 +2,8 @@ import { CodeGroupRow, ActiveCodeItemRow, ActiveCodeGroupWithItems } from '../ty
 import { toAppError, ERROR_MAP } from '../constants/errors';
 import * as db from '../db/codeGroup.db';
 import * as audit from './logAudit.service';
+import { getOrSetCache, REFERENCE_DATA_CACHE_TTL_SECONDS } from '../config/cache';
+import { redisKeys } from '../config/redis';
 
 /**
  * 코드 그룹을 생성한다.
@@ -125,19 +127,25 @@ export async function getActiveCodeGroupsWithItems(
   callerRoleCode: number,
   callerUserId: number,
 ): Promise<ActiveCodeGroupWithItems[]> {
-  const rows = await db.getActiveCodeGroupsWithItems(projectId, callerRoleCode, callerUserId);
-  const groups = new Map<number, ActiveCodeGroupWithItems>();
-  for (const row of rows) {
-    if (!groups.has(row.code_group_id)) {
-      groups.set(row.code_group_id, {
-        code_group_id: row.code_group_id,
-        code_group_code: row.code_group_code,
-        code_group_name: row.code_group_name,
-        items: [],
-      });
-    }
-    if (row.code_value !== null)
-      groups.get(row.code_group_id)!.items.push({ code_value: row.code_value, code_name: row.code_name! });
-  }
-  return Array.from(groups.values());
+  return getOrSetCache(
+    redisKeys.activeCodeGroups(projectId, callerRoleCode, callerUserId),
+    REFERENCE_DATA_CACHE_TTL_SECONDS,
+    async () => {
+      const rows = await db.getActiveCodeGroupsWithItems(projectId, callerRoleCode, callerUserId);
+      const groups = new Map<number, ActiveCodeGroupWithItems>();
+      for (const row of rows) {
+        if (!groups.has(row.code_group_id)) {
+          groups.set(row.code_group_id, {
+            code_group_id: row.code_group_id,
+            code_group_code: row.code_group_code,
+            code_group_name: row.code_group_name,
+            items: [],
+          });
+        }
+        if (row.code_value !== null)
+          groups.get(row.code_group_id)!.items.push({ code_value: row.code_value, code_name: row.code_name! });
+      }
+      return Array.from(groups.values());
+    },
+  );
 }

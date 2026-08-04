@@ -2,6 +2,8 @@ import { APIRow, APIRequestRow, APIResponseRow, ActiveApiRow } from '../types';
 import { toAppError, ERROR_MAP } from '../constants/errors';
 import * as db from '../db/api.db';
 import * as audit from './logAudit.service';
+import { getOrSetCache, REFERENCE_DATA_CACHE_TTL_SECONDS } from '../config/cache';
+import { redisKeys } from '../config/redis';
 
 /**
  * API를 생성한다.
@@ -72,7 +74,11 @@ export async function getActiveApis(
   callerRoleCode: number,
   callerUserId: number,
 ): Promise<ActiveApiRow[]> {
-  return db.getActiveApis(projectId, callerRoleCode, callerUserId);
+  return getOrSetCache(
+    redisKeys.activeApis(projectId, callerRoleCode, callerUserId),
+    REFERENCE_DATA_CACHE_TTL_SECONDS,
+    () => db.getActiveApis(projectId, callerRoleCode, callerUserId),
+  );
 }
 
 /**

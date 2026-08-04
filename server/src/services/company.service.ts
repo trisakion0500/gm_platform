@@ -3,6 +3,8 @@ import { toAppError, ERROR_MAP } from '../constants/errors';
 import * as db from '../db/company.db';
 import * as audit from './logAudit.service';
 import { assertCompanyScope } from './companyScope.service';
+import { getOrSetCache, REFERENCE_DATA_CACHE_TTL_SECONDS } from '../config/cache';
+import { redisKeys } from '../config/redis';
 
 /**
  * 회사코드로 활성 회사를 조회한다 (회원가입 화면 전용, 인증 불필요).
@@ -88,7 +90,11 @@ export async function getActiveHeaderData(
   companyId: number,
   userId: number,
 ): Promise<{ companies: CompanyLookupRow[]; projects: ActiveProjectRow[] }> {
-  return db.getActiveHeaderData(roleCode, companyId, userId);
+  return getOrSetCache(
+    redisKeys.headerData(roleCode, companyId, userId),
+    REFERENCE_DATA_CACHE_TTL_SECONDS,
+    () => db.getActiveHeaderData(roleCode, companyId, userId),
+  );
 }
 
 /**
