@@ -23,4 +23,7 @@ CLAUDE.md
 # 임시 산출물 (설명용 HTML 등)
 tmp/
 
+# rag_server 인덱스 매니페스트 (로컬 재인덱싱 판단용, 재생성 가능)
+rag_server/data/
+
 .claude/

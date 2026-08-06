@@ -55,7 +55,7 @@ GM Platform은 **회사 → 프로젝트 → API** 계층 구조로 데이터 �
 
 ## 향후 확장 아이디어
 
-API 정의(요청/응답 파라미터)와 감사로그·실행이력 같은 운영 데이터가 구조화된 형태로 축적되기 때문에, 이 데이터를 자연어로 조회할 수 있는 RAG 기반 확장도 아이디어 차원에서 고려하고 있다. 다만 현재는 구현 계획에 포함되어 있지 않으며, 데이터 구조상 나중에 시도해볼 수 있는 방향 정도로 남겨둔 것이다.
+설계 문서(`docs/`)를 자연어로 검색하는 RAG 서버(`rag_server/`, Phase 1)는 아이디어에서 그치지 않고 실제로 구현해 아래 "현재 상태"에 반영했다. API 정의(요청/응답 파라미터)·감사로그·실행이력 같은 구조화된 운영 데이터까지 자연어로 조회하는 확장(Phase 2/3)은 프로젝트·회사 단위 접근제어를 검색 경로에도 이식해야 해서 아직 아이디어 차원이다 — 현재는 구현 계획에 포함되어 있지 않으며, 데이터 구조상 나중에 시도해볼 수 있는 방향 정도로 남겨둔 것이다.
 
 ---
 
@@ -141,6 +141,7 @@ API 정의(요청/응답 파라미터)와 감사로그·실행이력 같은 운�
 | [18_TEST_GAME_SERVER.md](docs/18_TEST_GAME_SERVER.md) | API 실행 검증용 테스트 게임서버            |
 | [19_MCP_SERVER_DEV.md](docs/19_MCP_SERVER_DEV.md)   | GM Platform을 LLM이 조작하는 MCP 서버       |
 | [20_MCP_SERVER_PC.md](docs/20_MCP_SERVER_PC.md)     | 회사/프로젝트/사용자 admin 관리까지 포함한 MCP 서버 |
+| [21_RAG_SERVER.md](docs/21_RAG_SERVER.md)           | 설계 문서 자연어 검색 RAG 서버 (Qdrant + 로컬 임베딩) |
 
 ---
 
@@ -153,6 +154,7 @@ gm_platform/
 ├── test_game_server/  # GM Platform API 실행 검증용 테스트 게임서버 (별도 DB/서버, 포트 3100)
 ├── mcp_server_dev/    # GM Platform을 LLM(Claude Code)이 조작하는 MCP 서버 (stdio, 개발자 자동화)
 ├── mcp_server_pc/     # mcp_server_dev + 회사/프로젝트/사용자/역할배정 admin 관리 MCP 서버 (stdio)
+├── rag_server/        # 설계 문서(docs/) 자연어 검색 RAG 서버 (Qdrant + 로컬 임베딩, 포트 3200)
 ├── database/
 │   ├── tables/        # DDL SQL 파일 (all_tables.sql 포함)
 │   └── procedures/    # Stored Procedure SQL 파일
@@ -209,6 +211,7 @@ AI는 문서 초안 작성과 반복적인 코드 작업의 속도를 높이는 
 - ✅ MCP 서버 — GM Platform REST API를 tool로 감싸 Claude Code가 직접 조회·실행·승인할 수 있도록 하는 독립 stdio MCP 서버 구축, 로그인 계정의 role_code에 따라 노출 tool을 동적으로 게이팅(승인/반려는 SUPER_ADMIN/DEVELOPER/APPROVER만), OP→APPROVER 계정 전환 실행·승인 end-to-end 라이브 검증 완료 ([19_MCP_SERVER_DEV.md](docs/19_MCP_SERVER_DEV.md))
 - ✅ GM Platform → 외부 API(게임서버) 호출 인증(X-API-Key) — 외부 서버가 아닌 **GM Platform이 키를 발급**하는 구조로 구현 완료. `POST /projects/:project_id/api-key`(SUPER_ADMIN + DEVELOPER, SP 내부 원자적 재검증)가 `crypto.randomBytes(32).toString('hex')`(64자 hex) 키를 생성해 AES-256-CBC로 암호화 저장하고, 평문은 발급 응답에만 1회 노출(GitHub PAT류 one-time-reveal, 프론트는 복사 가능한 모달로 표시)한 뒤 이후 조회는 `has_api_key`만 반환. `PATCH /projects/:project_id/connection`으로 `api_base_url`이 바뀌면 같은 트랜잭션에서 저장된 키를 자동 NULL 폐기하고 화면에 재발급 안내 배너를 띄운다. `callExternalApi`(`apiExecution.service.ts`)가 호출 직전에만 복호화해 `X-API-Key` 헤더로 붙이고 바로 버리며, 키 미발급 프로젝트는 헤더 없이 기존 동작 그대로(nullable, 하위호환) 호출된다. test_game_server 쪽은 `middleware/apiKeyAuth.ts`가 `crypto.timingSafeEqual`로 상수 시간 비교하며 `.env`의 `API_KEY`가 없으면 검증을 건너뛴다(로컬 개발용, 시작 시 경고 로그). 실제로 키를 발급해 test_game_server에 설정한 뒤 정상 통과(status=40 SUCCESS)와 키 불일치 시 차단(status=50, 401)까지 라이브로 검증 완료, 전체 API 테스트 3회 반복 589/589 PASS.
 - ✅ MCP 서버(mcp_server_pc 확장) — mcp_server_dev의 tool 10개(실행/승인)에 회사·프로젝트·사용자·역할배정 admin CRUD 20개를 더한 상위 호환 stdio MCP 서버. 계정 role_code별 노출 tool 게이팅(SUPER_ADMIN 30개/DEVELOPER 20개/APPROVER 13개/OPERATOR 10개) 및 Claude Code·Claude Desktop 앱 양쪽 등록·연결까지 검증 완료 ([20_MCP_SERVER_PC.md](docs/20_MCP_SERVER_PC.md))
+- ✅ RAG 서버(`rag_server/`) Stage A — 설계 문서(`docs/`+`README.md`)를 자연어로 검색하는 독립 서비스(포트 3200)의 인덱스 빌드+검색 API 구현 완료. 로컬 임베딩 모델(`@xenova/transformers`, 다국어 지원)로 외부 API 키·비용 없이 벡터를 생성해 Qdrant에 저장하며, 재인덱싱은 collection alias 원자적 스왑(재구축 도중에도 검색이 깨진 중간 상태를 절대 보지 않음)과 GM Platform 본체가 이미 쓰는 MySQL advisory lock 재사용(동시 재인덱싱 상호배제, 새 인프라 도입 없음)으로 안전하게 처리하도록 구현·라이브 검증했다. Claude(MCP)와 GM Platform 자체 양쪽에서 재사용하는 Stage B/C는 진행 중 ([21_RAG_SERVER.md](docs/21_RAG_SERVER.md))
 
 ---
 
