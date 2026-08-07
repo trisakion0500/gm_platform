@@ -18,11 +18,11 @@ export function requestLogger(
   const body = req.body && Object.keys(req.body).length > 0
     ? ` body=${JSON.stringify(maskBody(req.body))}`
     : "";
-  logger.info(`${req.method} ${req.originalUrl}${body}`);
+  logger.debug(`${req.method} ${req.originalUrl}${body}`);
 
   res.on("finish", () => {
     const ms = Date.now() - start;
-    logger.info(`${req.method} ${req.originalUrl} ${res.statusCode} - ${ms}ms`);
+    logger.debug(`${req.method} ${req.originalUrl} ${res.statusCode} - ${ms}ms`);
   });
 
   next();
