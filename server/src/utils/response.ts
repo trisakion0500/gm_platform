@@ -13,7 +13,7 @@ import { maskBody } from './mask';
  */
 export const success = (res: Response, data: unknown, status = 200): void => {
   const body = { result: 0, data };
-  logger.info(`res: ${JSON.stringify({ result: 0, data: maskBody(data) })}`);
+  logger.debug(`res: ${JSON.stringify({ result: 0, data: maskBody(data) })}`);
   res.status(status).json(body);
 };
 
