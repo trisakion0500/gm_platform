@@ -36,6 +36,7 @@ GM-Tool 프론트엔드 화면 목록 및 역할별 접근 권한 정의.
 | SCR-111 | API 실행 이력 상세  | `/executions/:api_execution_id` | O           | O         | O        | O        |                                                         |
 | SCR-120 | 승인 대기 목록      | `/executions/pending`           | O           | O         | O        | -        | project_id 선택 필요, 조회 전용(승인/반려 버튼 없음)     |
 | SCR-121 | 승인 대기 상세      | `/executions/pending/:api_execution_id` | O   | O         | O        | -        | 승인/반려는 이 화면에서만 처리(파라미터 확인 없이 처리 못 하도록 목록에서 액션 제거) |
+| SCR-150 | 문서 검색           | `/doc-search`                   | O           | O         | O        | O        | `RAG_ENABLED`/`VITE_RAG_ENABLED`가 둘 다 true일 때만 메뉴 노출·라우트 등록(`21_RAG_SERVER.md` 참고) |
 | **내 계정** |
 | SCR-200 | 내 계정             | `/my-account`                   | O           | O         | O        | O        | 내 정보 조회 + 비밀번호 변경 + 로그아웃                 |
 
@@ -359,6 +360,20 @@ GM-Tool 프론트엔드 화면 목록 및 역할별 접근 권한 정의.
   | GET    | /api-executions/{api_execution_id}  | 실행 이력 상세 |
   | POST   | /api-executions/{id}/approve        | 실행 승인      |
   | POST   | /api-executions/{id}/reject         | 실행 반려      |
+
+---
+
+### SCR-150. 문서 검색
+
+- **Route:** `/doc-search`
+- **접근:** 전 역할 (SUPER_ADMIN, DEVELOPER, APPROVER, OPERATOR)
+- **주요 기능:** 질의어 입력 → 설계 문서(`docs/*.md`, `README.md`) 검색 결과 목록(파일명/헤딩/본문 스니펫/유사도) 표시
+- **노출 조건:** 서버 `RAG_ENABLED`와 클라이언트 `VITE_RAG_ENABLED`가 둘 다 `true`일 때만 사이드바 메뉴에 노출되고 라우트가 등록된다 — 하나라도 `false`면 메뉴 항목이 빠지고, 직접 URL로 진입해도 404(`NotFoundPage`)로 처리된다. 두 값은 각자 서버·클라이언트 빌드타임에 독립적으로 읽히므로 반드시 같은 값으로 맞춰야 한다(`21_RAG_SERVER.md` 참고).
+- **연관 API:**
+
+  | Method | Endpoint      | 설명                  |
+  | ------ | ------------- | --------------------- |
+  | GET    | /doc-search   | 문서 검색(rag_server 프록시) |
 
 ---
 
