@@ -1136,6 +1136,27 @@ Check "감사로그 단건 - SUPER_ADMIN B 정상 #2" (Req GET /log-audits/$LOG_
 Check "감사로그 단건 - SUPER_ADMIN B 정상 #3" (Req GET /log-audits/$LOG_B_ID $null $TOKEN)
 
 # ============================================================
+# 14B. DOC SEARCH (rag_server 연동 — rag_server(3200) 기동 + server RAG_ENABLED=true 전제)
+# ============================================================
+Section "14B. DOC SEARCH"
+
+Check "문서 검색 성공 #1" (Req GET "/doc-search?q=password" $null $TOKEN)
+Check "문서 검색 성공 #2" (Req GET "/doc-search?q=password" $null $TOKEN)
+Check "문서 검색 성공 #3" (Req GET "/doc-search?q=password" $null $TOKEN)
+
+Check "문서 검색 - q 누락 #1" (Req GET "/doc-search" $null $TOKEN) 30001
+Check "문서 검색 - q 누락 #2" (Req GET "/doc-search" $null $TOKEN) 30001
+Check "문서 검색 - q 누락 #3" (Req GET "/doc-search" $null $TOKEN) 30001
+
+Check "문서 검색 - top_k 범위 초과 #1" (Req GET "/doc-search?q=password&top_k=21"  $null $TOKEN) 30003
+Check "문서 검색 - top_k 범위 초과 #2" (Req GET "/doc-search?q=password&top_k=0"   $null $TOKEN) 30003
+Check "문서 검색 - top_k 형식 오류 #3"  (Req GET "/doc-search?q=password&top_k=abc" $null $TOKEN) 30003
+
+Check "문서 검색 - 인증 없음 #1" (Req GET "/doc-search?q=password" $null $null) 10004
+Check "문서 검색 - 인증 없음 #2" (Req GET "/doc-search?q=password" $null $null) 10004
+Check "문서 검색 - 인증 없음 #3" (Req GET "/doc-search?q=password" $null $null) 10004
+
+# ============================================================
 # 15. AUTH - 비밀번호 변경 / 로그아웃
 # ============================================================
 Section "15. AUTH / 비밀번호 변경 · 로그아웃"

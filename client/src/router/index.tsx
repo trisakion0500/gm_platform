@@ -33,6 +33,7 @@ const ExecutionDetailPage = lazy(() => import('../pages/main/executions/Executio
 const ExecutionPendingListPage = lazy(() => import('../pages/main/executions/ExecutionPendingListPage'));
 const ExecutionPendingDetailPage = lazy(() => import('../pages/main/executions/ExecutionPendingDetailPage'));
 const MyAccountPage = lazy(() => import('../pages/main/my-account/MyAccountPage'));
+const DocSearchPage = lazy(() => import('../pages/main/doc-search/DocSearchPage'));
 const ForbiddenPage = lazy(() => import('../pages/errors/ForbiddenPage'));
 const NotFoundPage = lazy(() => import('../pages/errors/NotFoundPage'));
 
@@ -76,6 +77,7 @@ function AppRouter() {
                 <Route path="/executions/pending/:api_execution_id" element={<ExecutionPendingDetailPage />} />
               </Route>
               <Route path="/executions/:api_execution_id" element={<ExecutionDetailPage />} />
+              <Route path="/doc-search" element={<DocSearchPage />} />
               <Route path="/my-account" element={<MyAccountPage />} />
             </Route>
 

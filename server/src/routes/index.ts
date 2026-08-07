@@ -1,4 +1,5 @@
 import { Router, Request, Response } from 'express';
+import { env } from '../config/env';
 import authRouter from './auth';
 import companyRouter from './company';
 import projectRouter from './project';
@@ -11,6 +12,7 @@ import apiRequestRouter from './apiRequest';
 import apiResponseRouter from './apiResponse';
 import apiExecutionRouter from './apiExecution';
 import logAuditRouter from './logAudit';
+import docSearchRouter from './docSearch';
 
 const router = Router();
 
@@ -46,5 +48,9 @@ router.use('/api-requests',   apiRequestRouter);
 router.use('/api-responses',  apiResponseRouter);
 router.use('/api-executions', apiExecutionRouter);
 router.use('/log-audits',    logAuditRouter);
+// RAG_ENABLED=false면 rag_server를 쓰지 않는 환경으로 간주해 라우트 자체를 등록하지 않는다(SWAGGER_ENABLED 조건부 로드와 동일 패턴, app.ts 참고)
+if (env.rag.enabled) {
+  router.use('/doc-search', docSearchRouter);
+}
 
 export default router;

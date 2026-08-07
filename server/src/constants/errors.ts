@@ -68,6 +68,8 @@ export const ERROR_MAP = {
   SERVER_ERROR:          { code: 50000, message: '서버 오류가 발생했습니다.',             httpStatus: 500 },
   /** SP 내부 SQLEXCEPTION 발생 (RESULT=99) */
   DB_ERROR:              { code: 50001, message: 'DB 오류',                            httpStatus: 500 },
+  /** rag_server 연동 실패 (네트워크 오류·타임아웃·모델 로딩 중 등) */
+  RAG_SERVICE_UNAVAILABLE: { code: 50002, message: '문서 검색 서비스를 사용할 수 없습니다. 잠시 후 다시 시도해주세요.', httpStatus: 503 },
 } as const;
 
 /** ERROR_MAP의 키 타입 */

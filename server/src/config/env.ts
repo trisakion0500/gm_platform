@@ -88,6 +88,13 @@ export const env = {
     // 세션 generation 카운터 TTL — 무효화 시마다 갱신, 반드시 sessionCacheTtlSeconds보다 커야 함(아래 검증). 기본값은 그 2배.
     sessionGenTtlSeconds: Number(process.env.SESSION_GEN_TTL_SECONDS ?? jwtAccessExpiresInSeconds * 2),
   },
+  // rag_server(문서 검색) 연동 — mcp_server_dev/pc의 RAG_ENABLED 폴백 패턴과 동일. false(기본)면
+  // GET /doc-search 라우트 자체를 등록하지 않는다(routes/index.ts, SWAGGER_ENABLED 조건부 마운트와 동일 방식).
+  rag: {
+    enabled: process.env.RAG_ENABLED === 'true',
+    baseUrl: process.env.RAG_BASE_URL ?? 'http://127.0.0.1:3200',
+    apiKey: process.env.RAG_API_KEY, // rag_server의 RAG_API_KEY와 동일 값. 미설정 시 헤더 없이 호출(로컬 개발용)
+  },
 };
 
 // sessionGenTtlSeconds가 sessionCacheTtlSeconds보다 짧거나 같으면, generation 키가 먼저 만료돼

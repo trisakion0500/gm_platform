@@ -29,6 +29,7 @@ const options: swaggerJsdoc.Options = {
       { name: 'ApiResponse',  description: 'API 응답 파라미터' },
       { name: 'ApiExecution', description: 'API 실행 및 승인 워크플로우' },
       { name: 'LogAudit',     description: '감사 로그' },
+      { name: 'DocSearch',    description: '설계 문서 자연어 검색 (rag_server 연동)' },
     ],
     components: {
       securitySchemes: {

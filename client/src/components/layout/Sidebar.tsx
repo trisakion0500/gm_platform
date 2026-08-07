@@ -21,6 +21,7 @@ interface MenuDef {
 const MAIN_MENU: MenuDef[] = [
   { key: '/executions', label: '실행이력', allow: [ROLE.SUPER_ADMIN, ROLE.DEVELOPER, ROLE.APPROVER, ROLE.OPERATOR] },
   { key: '/executions/pending', label: '승인대기', allow: [ROLE.SUPER_ADMIN, ROLE.DEVELOPER, ROLE.APPROVER] },
+  { key: '/doc-search', label: '문서 검색', allow: [ROLE.SUPER_ADMIN, ROLE.DEVELOPER, ROLE.APPROVER, ROLE.OPERATOR] },
 ];
 
 // 16_LAYOUT.md §4.1

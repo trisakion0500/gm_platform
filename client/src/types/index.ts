@@ -232,3 +232,10 @@ export interface LogAuditRow {
   created_by_name: string | null;
   created_at: string;
 }
+
+export interface DocSearchResult {
+  file: string;
+  heading: string;
+  text: string;
+  score: number;
+}

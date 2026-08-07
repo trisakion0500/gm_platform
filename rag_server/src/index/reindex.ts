@@ -1,6 +1,6 @@
 import fs from "fs";
 import path from "path";
-import { chunkMarkdown } from "../embedding/chunker";
+import { chunkMarkdown, flattenTablesForEmbedding } from "../embedding/chunker";
 import { embed } from "../embedding/embedder";
 import { rebuildAndSwap } from "./store";
 import { Manifest, hashContent, readManifest, writeManifest, isSameManifest } from "./manifest";
@@ -68,7 +68,9 @@ async function rebuild(): Promise<{ fileCount: number; chunkCount: number }> {
   for (const chunk of chunks)
     // heading을 함께 임베딩 — 본문이 짧은 의사코드/표 위주라 정작 검색 키워드는 heading에만
     // 있는 청크(예: "9. 비밀번호 변경 > ... > 처리 정책")가 본문만으로는 유사도가 낮게 잡히는 문제가 있었다.
-    vectors.push(await embed(`${chunk.heading}\n${chunk.text}`));
+    // 표만으로 이루어진 본문(예: 02_TECH_STACK.md)은 파이프·구분행을 제거한 평문으로 바꿔서 임베딩한다
+    // (flattenTablesForEmbedding, chunker.ts) — 실제 Qdrant에 저장되는 chunk.text(표시용)는 원본 그대로 둔다.
+    vectors.push(await embed(`${chunk.heading}\n${flattenTablesForEmbedding(chunk.text)}`));
 
   await rebuildAndSwap(chunks, vectors);
   writeManifest(computeManifest(files));

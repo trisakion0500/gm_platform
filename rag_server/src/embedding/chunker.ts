@@ -118,6 +118,62 @@ function splitByLength(text: string, maxLength: number): string[] {
   return parts;
 }
 
+/** 마크다운 표의 행("| a | b |" 형식) 여부 판정 */
+function isTableRow(line: string): boolean {
+  const trimmed = line.trim();
+  return trimmed.startsWith("|") && trimmed.endsWith("|");
+}
+
+/** 마크다운 표의 헤더 구분행("| --- | --- |" 형식, 대시·콜론·파이프·공백만으로 구성) 여부 판정 */
+function isTableSeparator(line: string): boolean {
+  const trimmed = line.trim();
+  return isTableRow(trimmed) && /^[|:\-\s]+$/.test(trimmed) && trimmed.includes("-");
+}
+
+/** 표 행 하나를 셀 배열로 분해한다(앞뒤 파이프 제거 후 "|" 기준 분할, 각 셀 trim) */
+function splitTableRow(line: string): string[] {
+  return line
+    .trim()
+    .replace(/^\|/, "")
+    .replace(/\|$/, "")
+    .split("|")
+    .map((cell) => cell.trim())
+    .filter(Boolean);
+}
+
+/**
+ * 임베딩 전용 전처리 — 청크 본문(text)에 포함된 마크다운 표를 파이프·구분행이 없는 평문(셀을
+ * 공백으로 이어붙인 줄)으로 변환한다. `02_TECH_STACK.md`처럼 표만으로 이루어진 섹션은 원본 그대로
+ * 임베딩하면 "| 항목 | 결정 |\n| --- | --- |\n| Runtime | Node.js 22 LTS |" 같은 파이프투성이
+ * 텍스트가 되어, 자연어 문장 위주로 학습된 임베딩 모델이 의미를 거의 못 잡는 문제가 있었다(실측:
+ * "Express"/"bcrypt"/"mysql2"를 그대로 검색해도 이 표를 담은 청크가 top_k=20 밖으로 밀려남).
+ * Qdrant에 저장하는 `chunk.text`(검색 결과로 그대로 노출되는 원본)는 건드리지 않고, 임베딩 호출
+ * 직전에만(`reindex.ts`) 이 함수를 거친 텍스트를 사용한다 — 표시용/임베딩용 텍스트를 분리한다.
+ * @param text 청크 원문(마크다운)
+ * @returns 표 구간이 평문으로 치환된 텍스트(표가 없으면 원문과 동일)
+ */
+export function flattenTablesForEmbedding(text: string): string {
+  const lines = text.split("\n");
+  const out: string[] = [];
+  let i = 0;
+
+  while (i < lines.length) {
+    if (isTableRow(lines[i]) && i + 1 < lines.length && isTableSeparator(lines[i + 1])) {
+      out.push(splitTableRow(lines[i]).join(" "));
+      i += 2;
+      while (i < lines.length && isTableRow(lines[i])) {
+        out.push(splitTableRow(lines[i]).join(" "));
+        i++;
+      }
+      continue;
+    }
+    out.push(lines[i]);
+    i++;
+  }
+
+  return out.join("\n");
+}
+
 /**
  * 줄바꿈 단위로 이어붙이며 maxLength를 넘지 않는 조각으로 나눈다. splitByLength가 문단째로는
  * 못 쪼갤 때(빈 줄 없는 긴 마크다운 표 등)의 fallback. 줄 하나가 그 자체로 maxLength를 넘으면

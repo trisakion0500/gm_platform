@@ -83,6 +83,8 @@ rag_server/
 
 청크 임베딩에는 본문(`text`)뿐 아니라 heading(breadcrumb, `heading + "\n" + text`)도 함께 포함한다 — 표·의사코드 위주라 본문에 실제 검색 키워드가 거의 없는 청크도(예: "9. 비밀번호 변경 > ... > 처리 정책") 정확히 검색되게 하기 위함. Qdrant payload의 `heading`/`text` 필드와 질의 쪽 임베딩(`embed(query)`)은 이와 무관하게 그대로다.
 
+본문이 마크다운 표로만 이루어진 청크는 임베딩 직전에 표를 파이프·구분행 없는 평문(`embedding/chunker.ts`의 `flattenTablesForEmbedding`)으로 바꿔서 넣는다 — 파이프투성이 원문 그대로는 자연어 문장 위주로 학습된 모델이 의미를 잘 못 잡기 때문. Qdrant에 저장·응답으로 노출되는 `text`는 원본 마크다운 그대로다(표시용/임베딩용 분리).
+
 ## 3.2 청킹 (`embedding/chunker.ts`)
 
 문서를 `#`~`####`(레벨 1~4) 헤딩 단위로 분할하고, 상위 헤딩까지 `" > "`로 이어붙인 breadcrumb을 `heading` 필드에 담는다(예: "6. 보안 정책 > 6.4 세션 정리 정책 > 6.4.1 인스턴스 간 중복 실행 방지"). 본문이 30자 미만인 섹션(제목만 있는 헤딩 등)은 독립 청크로 만들지 않고 다음 섹션에 흡수시키며, 1200자를 넘는 섹션은 문단(빈 줄) 단위로, 빈 줄 없이 그 자체로 넘치는 문단(긴 마크다운 표 등)은 줄 단위로 한 번 더 재분할한다.
@@ -123,6 +125,12 @@ rag_server/
 ## `GET /health`
 
 `{ result: 0, data: [{ status: "ok" | "loading" }] }` — `loading`은 §3.5의 준비 상태가 아직 안 끝난 경우.
+
+## `GET /doc-search` (GM Platform `server/` 경유, §7 Stage C)
+
+rag_server가 아니라 GM Platform `server/`가 노출하는 별도 엔드포인트다 — `authenticate`(JWT)만 요구하며 역할 제한은 없다. 내부적으로 위 `POST /search`를 그대로 호출하는 얇은 프록시.
+
+요청: `?q=<string>&top_k=<1~20, 선택>` — 응답 형식은 `{ result: 0, data: [...] }`(GM Platform 공통 관례), `data`의 각 원소 구조는 `POST /search`와 동일.
 
 ---
 
@@ -166,9 +174,11 @@ rag_server/
 
 Claude Code CLI뿐 아니라 Claude 데스크탑 앱의 MCP 커넥터로도 동일하게 동작한다(표준 MCP stdio 서버) — 데스크탑 앱 등록과 `search_docs` 실시간 호출까지 end-to-end로 검증 완료.
 
-## Stage C — GM Platform `server/` 프록시 (예정)
+## Stage C — GM Platform `server/` 프록시 (완료)
 
-`server/`에 `GET /api/doc-search?q=...`(`authenticate`만 요구, 역할 제한 없음)를 신설해 이 서버의 `/search`를 대신 호출한다. GM Platform 자체(향후 `client/` 검색 UI 포함)가 이 프록시를 통해 재사용한다. 세부 항목은 §10 참고.
+`server/`에 `GET /api/doc-search?q=...`(`authenticate`만 요구, 역할 제한 없음)를 신설해 이 서버의 `/search`를 대신 호출한다(§4). GM Platform 자체(향후 `client/` 검색 UI 포함)가 이 프록시를 통해 재사용한다.
+
+`RAG_ENABLED`(true/false, 기본 `false`) — Stage B와 동일한 이름·의미의 토글을 `server/`에도 두었다. `false`면 `/doc-search` 라우트 자체를 등록하지 않는다(`routes/index.ts`, `SWAGGER_ENABLED` 조건부 로드와 동일 패턴) — rag_server 없이도 GM Platform 본체는 정상 기동한다. rag_server 연동 실패(네트워크 오류·타임아웃·모델 로딩 중·rag_server 자체 오류)는 사유를 구분하지 않고 전부 503(`result: 50002`)으로 통일한다.
 
 ---
 
@@ -201,7 +211,7 @@ Qdrant가 로컬에서 먼저 떠있어야 한다(`http://127.0.0.1:6333`). 재�
 
 # 10. 개발 계획 (진행 상황)
 
-Stage A → B → C 순으로 진행하며, 각 Stage 완료 시 실제 동작 검증 후 다음으로 넘어간다.
+Stage A → B → C → D 순으로 진행하며, 각 Stage 완료 시 실제 동작 검증 후 다음으로 넘어간다.
 
 ## Stage A — `rag_server/` 코어 (완료)
 
@@ -219,17 +229,23 @@ Stage A → B → C 순으로 진행하며, 각 Stage 완료 시 실제 동작 �
 - [x] `tsc` 빌드 통과(양쪽), rag_server 실 인스턴스 상대 end-to-end 검증
 - [x] Claude 데스크탑 앱 연동, `search_docs` 실시간 호출 검증
 
-## Stage C — GM Platform `server/` 프록시 (예정)
+## Stage C — GM Platform `server/` 프록시 (완료)
 
-- [ ] `server/src/config/env.ts`에 `ragServer` 그룹 추가
-- [ ] `server/src/services/docSearch.service.ts` 신설
-- [ ] `server/src/routes/docSearch.ts` (`GET /api/doc-search`, `authenticate`만 요구)
-- [ ] `tests/api_test.ps1` 케이스 추가
-- [ ] Swagger 문서 반영
-- [ ] 검증 (JWT로 `GET /api/doc-search` 호출)
+- [x] `server/src/config/env.ts`에 `rag` 그룹 추가(`RAG_ENABLED`/`RAG_BASE_URL`/`RAG_API_KEY`)
+- [x] `server/src/services/docSearch.service.ts` 신설
+- [x] `server/src/routes/docSearch.ts` (`GET /api/doc-search`, `authenticate`만 요구), `RAG_ENABLED=false`면 라우트 자체 미등록
+- [x] `tests/api_test.ps1` 14B 섹션 추가(rag_server 기동 전제 스모크 테스트)
+- [x] Swagger 문서 반영(`DocSearch` 태그)
+- [x] 검증 (JWT로 `GET /api/doc-search` 호출, `tests/api_test.ps1` 전체 회귀)
+
+## Stage D — `client/` 검색 UI (완료)
+
+- [x] `client/src/api/docSearch.api.ts` — `GET /doc-search` 호출 함수
+- [x] `pages/main/doc-search/DocSearchPage.tsx` — 검색창 + 결과 리스트(파일/헤딩/본문 스니펫/유사도)
+- [x] `router/index.tsx`/`Sidebar.tsx` — `/doc-search` 라우트·메뉴 등록(전 역할 공용, `MAIN_MENU`)
 
 ## 범위 밖 (후속 논의)
 
-- `client/` 프론트엔드 검색 UI — 위 세 Stage 검증 후 별도 Stage로 진행
 - Phase 2(API 정의)/Phase 3(감사로그) RAG — 프로젝트/회사 단위 접근제어 스코핑 이식 필요, 별도 설계
 - `CLAUDE.md` 인덱싱(보류) — §1-1 참고, 신뢰 경계 검토 후 착수
+- **긴/이질적 청크의 검색 품질 한계** — 짧고 헤딩이 지배적인 청크에 비해, 서로 다른 소주제(예: 기술 스택 표 + 별개의 설명 문단)를 한 청크에 같이 담은 긴 섹션은 mean pooling 특성상 헤딩의 강한 의미 신호가 본문 평균에 희석되어 관련 질의로도 잘 안 올라오는 경우가 있다(실측: 헤딩만 임베딩 시 코사인 유사도 0.54 → 헤딩+긴 본문 함께 임베딩 시 0.18로 하락). 표 평문화(위 §3.1)로 일부 개선했지만 근본 해결은 아님 — 필요해지면 섹션 내 소주제 단위로 청크를 더 잘게 쪼개는 전략을 검토.
