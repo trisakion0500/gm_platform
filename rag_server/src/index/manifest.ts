@@ -38,11 +38,17 @@ export function readManifest(): Manifest | null {
 /**
  * data/index-manifest.json에 매니페스트를 기록한다. Qdrant upsert가 완전히 끝난 뒤에만 호출해야 한다
  * — 재인덱싱 도중 프로세스가 죽어도 다음 부팅 때 매니페스트가 갱신 전 상태로 남아 안전하게 재시도된다(§3).
+ * tmp 파일에 먼저 쓴 뒤 rename하는 이유: writeFileSync로 대상 경로에 직접 쓰면 쓰기 도중 프로세스가
+ * 죽었을 때 파일이 잘려 남을 수 있다 — readManifest()가 JSON 파싱 실패를 잡아 null로 처리해 결과적으로
+ * "재인덱싱 한 번 더 도는" fail-safe이긴 했지만, 같은 파일시스템 내 rename은 원자적이라 애초에 그 잘린
+ * 상태 자체가 관측되지 않도록 한다.
  * @param manifest 저장할 매니페스트
  */
 export function writeManifest(manifest: Manifest): void {
   fs.mkdirSync(path.dirname(MANIFEST_PATH), { recursive: true });
-  fs.writeFileSync(MANIFEST_PATH, JSON.stringify(manifest, null, 2), "utf8");
+  const tmpPath = `${MANIFEST_PATH}.tmp`;
+  fs.writeFileSync(tmpPath, JSON.stringify(manifest, null, 2), "utf8");
+  fs.renameSync(tmpPath, MANIFEST_PATH);
 }
 
 /**

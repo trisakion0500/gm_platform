@@ -1,5 +1,6 @@
 import { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { GmApiError } from "../gmClient";
+import { RagApiError } from "../ragClient";
 
 /**
  * 성공한 tool 호출 결과를 만든다. data는 JSON 텍스트로 직렬화해 담는다.
@@ -19,6 +20,8 @@ export function ok(data: unknown): CallToolResult {
 export function toToolError(err: unknown): CallToolResult {
   if (err instanceof GmApiError)
     return { content: [{ type: "text", text: `GM Platform 오류 ${err.code}: ${err.message}` }], isError: true };
+  if (err instanceof RagApiError)
+    return { content: [{ type: "text", text: `rag_server 오류 ${err.code}: ${err.message}` }], isError: true };
   const message = err instanceof Error ? err.message : String(err);
   return { content: [{ type: "text", text: `MCP 서버 오류: ${message}` }], isError: true };
 }

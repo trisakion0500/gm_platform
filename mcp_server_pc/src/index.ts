@@ -1,6 +1,7 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { getRoleCode } from "./gmClient";
+import { env } from "./config/env";
 import logger from "./utils/logger";
 import { registerListProjectsTool } from "./tools/listProjects";
 import { registerListApisTool } from "./tools/listApis";
@@ -12,6 +13,7 @@ import { registerCancelExecutionTool } from "./tools/cancelExecution";
 import { registerListPendingExecutionsTool } from "./tools/listPendingExecutions";
 import { registerApproveExecutionTool } from "./tools/approveExecution";
 import { registerRejectExecutionTool } from "./tools/rejectExecution";
+import { registerSearchDocsTool } from "./tools/searchDocs";
 import { registerAdminListCompaniesTool } from "./tools/adminListCompanies";
 import { registerAdminGetCompanyTool } from "./tools/adminGetCompany";
 import { registerAdminCreateCompanyTool } from "./tools/adminCreateCompany";
@@ -61,6 +63,8 @@ async function main(): Promise<void> {
   registerAdminListCompaniesTool(server);
   registerAdminGetCompanyTool(server);
   registerAdminGetMyRoleTool(server);
+  if (env.ragEnabled)
+    registerSearchDocsTool(server); // 문서 검색은 역할과 무관하게 전 역할 공용 — 게이팅 없음. RAG_ENABLED=false면 tool 자체를 등록하지 않음
 
   if (APPROVAL_CAPABLE_ROLES.includes(roleCode)) {
     registerListPendingExecutionsTool(server);

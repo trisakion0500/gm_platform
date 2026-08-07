@@ -51,10 +51,15 @@ export async function rebuildAndSwap(chunks: Chunk[], vectors: number[][]): Prom
 
   // alias 도입 이전 버전이 ALIAS와 같은 이름의 물리 컬렉션을 만들어뒀을 수 있다 — 이름이 겹치면
   // 그 이름으로 alias를 만들 수 없으니 1회성으로 정리한다(이 마이그레이션 구간에서만 잠깐 검색 불가 창이 남음).
-  const { collections } = await qdrantClient.getCollections();
-  if (collections.some((c) => c.name === ALIAS)) {
-    await qdrantClient.deleteCollection(ALIAS);
-    logger.warn(`레거시(alias 도입 이전) 물리 컬렉션 '${ALIAS}'을 삭제했습니다(1회성 마이그레이션).`);
+  // oldTarget이 있다는 건 ALIAS가 이미 정상적인 alias로 존재한다는 뜻이라, Qdrant는 alias와 같은
+  // 이름의 물리 컬렉션을 동시에 허용하지 않으므로 이 경우 레거시 컬렉션은 절대 있을 수 없다 —
+  // 매 재구축마다 getCollections()를 반복 호출하지 않도록 마이그레이션이 필요할 때(oldTarget=null)만 확인한다.
+  if (!oldTarget) {
+    const { collections } = await qdrantClient.getCollections();
+    if (collections.some((c) => c.name === ALIAS)) {
+      await qdrantClient.deleteCollection(ALIAS);
+      logger.warn(`레거시(alias 도입 이전) 물리 컬렉션 '${ALIAS}'을 삭제했습니다(1회성 마이그레이션).`);
+    }
   }
 
   const actions = oldTarget

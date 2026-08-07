@@ -66,7 +66,9 @@ async function rebuild(): Promise<{ fileCount: number; chunkCount: number }> {
 
   const vectors: number[][] = [];
   for (const chunk of chunks)
-    vectors.push(await embed(chunk.text));
+    // heading을 함께 임베딩 — 본문이 짧은 의사코드/표 위주라 정작 검색 키워드는 heading에만
+    // 있는 청크(예: "9. 비밀번호 변경 > ... > 처리 정책")가 본문만으로는 유사도가 낮게 잡히는 문제가 있었다.
+    vectors.push(await embed(`${chunk.heading}\n${chunk.text}`));
 
   await rebuildAndSwap(chunks, vectors);
   writeManifest(computeManifest(files));
