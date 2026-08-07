@@ -37,6 +37,10 @@ const DocSearchPage = lazy(() => import('../pages/main/doc-search/DocSearchPage'
 const ForbiddenPage = lazy(() => import('../pages/errors/ForbiddenPage'));
 const NotFoundPage = lazy(() => import('../pages/errors/NotFoundPage'));
 
+// RAG_ENABLED=false인 서버와 반드시 짝을 맞춰야 하는 빌드타임 값 — client/.env.example 참고.
+// false면 라우트 자체를 등록하지 않아 직접 URL 진입도 catch-all(*)로 떨어져 NotFoundPage로 처리된다.
+const RAG_ENABLED = import.meta.env.VITE_RAG_ENABLED === 'true';
+
 // /admin 진입 시 역할별 첫 메뉴로 리다이렉트 (16_LAYOUT.md §4.1) — APPROVER는 감사로그만 접근 가능
 function AdminIndexRedirect() {
   const roleCode = useAuthStore((state) => state.roleCode);
@@ -77,7 +81,7 @@ function AppRouter() {
                 <Route path="/executions/pending/:api_execution_id" element={<ExecutionPendingDetailPage />} />
               </Route>
               <Route path="/executions/:api_execution_id" element={<ExecutionDetailPage />} />
-              <Route path="/doc-search" element={<DocSearchPage />} />
+              {RAG_ENABLED && <Route path="/doc-search" element={<DocSearchPage />} />}
               <Route path="/my-account" element={<MyAccountPage />} />
             </Route>
 

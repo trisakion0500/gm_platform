@@ -15,13 +15,18 @@ interface MenuDef {
   allow: RoleCode[];
 }
 
+// RAG_ENABLED=false인 서버와 반드시 짝을 맞춰야 하는 빌드타임 값 — client/.env.example 참고.
+const RAG_ENABLED = import.meta.env.VITE_RAG_ENABLED === 'true';
+
 // 16_LAYOUT.md §3.1
 // 내 계정은 헤더 우측 아바타 드롭다운에서 이미 접근 가능해 사이드바에는 중복 등록하지 않는다.
 // API는 아래 ApiMenuSection이 담당하므로(체크박스 목록으로 확장) 이 배열에는 두지 않는다.
 const MAIN_MENU: MenuDef[] = [
   { key: '/executions', label: '실행이력', allow: [ROLE.SUPER_ADMIN, ROLE.DEVELOPER, ROLE.APPROVER, ROLE.OPERATOR] },
   { key: '/executions/pending', label: '승인대기', allow: [ROLE.SUPER_ADMIN, ROLE.DEVELOPER, ROLE.APPROVER] },
-  { key: '/doc-search', label: '문서 검색', allow: [ROLE.SUPER_ADMIN, ROLE.DEVELOPER, ROLE.APPROVER, ROLE.OPERATOR] },
+  ...(RAG_ENABLED
+    ? [{ key: '/doc-search', label: '문서 검색', allow: [ROLE.SUPER_ADMIN, ROLE.DEVELOPER, ROLE.APPROVER, ROLE.OPERATOR] }]
+    : []),
 ];
 
 // 16_LAYOUT.md §4.1

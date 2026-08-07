@@ -14,8 +14,11 @@ interface RawSection {
  * 마크다운 문서를 헤딩(#~####) 단위로 분할한다.
  * 헤딩은 상위 헤딩까지 " > "로 이어붙인 breadcrumb 형태로 heading 필드에 담는다
  * (예: "4. Tool 목록 > 전 역할 공통 (10개)"). 본문이 거의 없는 섹션(제목만 있는 헤딩,
- * 파일 앞부분의 제목 중복 등)은 독립 청크로 만들지 않고 다음 섹션 본문에 이어붙이며,
- * 반대로 너무 긴 섹션은 문단(빈 줄) 단위로 재분할한다.
+ * 파일 앞부분의 제목 중복 등)은 독립 청크로 만들지 않고 다음 섹션 본문에 이어붙인다.
+ * 섹션 본문은 길이와 무관하게 항상 문단(빈 줄) 단위로 소주제별 청크로 쪼갠다(splitBySubtopic) —
+ * 표+설명 인용문처럼 서로 무관한 소주제가 한 헤딩 아래 섞여 있으면(예: README "기술 스택"의
+ * Backend 표/세션무효화 설명/Frontend 표), mean pooling이 청크 전체를 평균 내면서 특정 소주제
+ * 질의에 대한 신호가 희석되는 문제가 실측으로 확인됐다(§21_RAG_SERVER.md 참고).
  * @param file 표시용 파일 경로 (예: "docs/07_API_COMMON.md", "README.md")
  * @param content 마크다운 원문
  * @returns 청크 목록
@@ -36,7 +39,7 @@ export function chunkMarkdown(file: string, content: string): Chunk[] {
     }
 
     pendingText = "";
-    for (const part of splitByLength(body, MAX_CHUNK_LENGTH))
+    for (const part of splitBySubtopic(body, MIN_CHUNK_LENGTH, MAX_CHUNK_LENGTH))
       chunks.push({ file, heading: section.headingPath || file, text: part });
   }
 
@@ -80,17 +83,19 @@ function splitByHeading(content: string, file: string): RawSection[] {
 }
 
 /**
- * 문단(빈 줄 기준)을 순서대로 이어붙이며 maxLength를 넘지 않는 조각으로 나눈다.
- * 마크다운 표처럼 빈 줄 없이 긴 문단 하나가 그 자체로 maxLength를 넘으면 줄 단위로 재분할한다(packByLine).
+ * 문단(빈 줄 기준)을 소주제 단위로 분리한다 — 이전엔 maxLength를 넘을 때만 쪼갰지만(짧은 섹션은
+ * 여러 문단이 한 청크로 뭉침), 이제는 문단 하나하나를 기본적으로 별도 청크 후보로 취급하고
+ * minLength 미만인 조각만 다음 문단과 합쳐 최소 길이를 채운다 — "표+설명+표"처럼 무관한 소주제가
+ * 뭉쳐 있던 짧은 섹션도 문단 경계에서 갈라지게 하기 위함(위 chunkMarkdown 주석 참고).
+ * 문단 하나가 그 자체로 maxLength를 넘으면(빈 줄 없는 긴 마크다운 표 등) 줄 단위로 재분할한다(packByLine).
+ * 마지막에 minLength를 못 채우고 남은 조각은 버리지 않고 직전 청크에 이어붙인다.
  * @param text 원문
+ * @param minLength 조각당 최소 길이(미만이면 다음 문단과 합침)
  * @param maxLength 조각당 최대 길이
- * @returns 분할된 텍스트 조각 목록 (길이 초과 없으면 원문 그대로 1개)
+ * @returns 분할된 텍스트 조각 목록
  */
-function splitByLength(text: string, maxLength: number): string[] {
-  if (text.length <= maxLength)
-    return [text];
-
-  const paragraphs = text.split(/\n{2,}/);
+function splitBySubtopic(text: string, minLength: number, maxLength: number): string[] {
+  const paragraphs = text.split(/\n{2,}/).filter((p) => p.trim().length > 0);
   const parts: string[] = [];
   let buffer = "";
 
@@ -104,16 +109,19 @@ function splitByLength(text: string, maxLength: number): string[] {
       continue;
     }
 
-    const candidate = buffer ? `${buffer}\n\n${paragraph}` : paragraph;
-    if (candidate.length > maxLength && buffer) {
+    buffer = buffer ? `${buffer}\n\n${paragraph}` : paragraph;
+    if (buffer.length >= minLength) {
       parts.push(buffer);
-      buffer = paragraph;
-    } else {
-      buffer = candidate;
+      buffer = "";
     }
   }
-  if (buffer)
-    parts.push(buffer);
+
+  if (buffer) {
+    if (parts.length > 0)
+      parts[parts.length - 1] += `\n\n${buffer}`;
+    else
+      parts.push(buffer);
+  }
 
   return parts;
 }

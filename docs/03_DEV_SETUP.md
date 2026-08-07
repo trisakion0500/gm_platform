@@ -210,7 +210,10 @@ VITE_APP_NAME=GM Platform
 VITE_FOOTER_COPYRIGHT=© 2026 GM Platform
 VITE_APP_VERSION=v1.0.0
 VITE_SUPPORT_EMAIL=trisakion@gmail.com
+VITE_RAG_ENABLED=false
 ```
+
+`VITE_RAG_ENABLED`은 서버 `RAG_ENABLED`와 반드시 같은 값으로 맞춘다 — 빌드타임 값이라 서버 설정이 나중에 바뀌어도 자동 반영되지 않는다(불일치 시 `true`/`false`인 쪽에 따라 메뉴는 보이는데 클릭하면 404가 나거나, 반대로 기능은 켜져 있는데 메뉴가 안 보이는 상태가 될 수 있다). `false`면 사이드바 메뉴에서 "문서 검색"이 빠지고 `/doc-search` 라우트 자체가 등록되지 않아 직접 URL로 접근해도 404 페이지로 처리된다.
 
 ## 6.3 실행
 
