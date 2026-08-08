@@ -12,6 +12,10 @@ for (const key of required) {
 
 export const env = {
   port: Number(process.env.PORT ?? 3200),
+  // 바인딩할 인터페이스 — 기본값(127.0.0.1)은 "신뢰된 내부망 전용" 설계 전제(§ CLAUDE.md)를 강제한다.
+  // 여러 원격 호출자를 허용해야 하는 분리 배포 시나리오에서만 값을 바꾸고, 그 경우 IP 화이트리스트
+  // 미들웨어 등 별도 방어를 추가로 검토해야 한다(RAG_API_KEY만으로는 네트워크 노출 자체를 막지 못함).
+  host: process.env.HOST || "127.0.0.1",
   embeddingModel: process.env.EMBEDDING_MODEL || "Xenova/paraphrase-multilingual-MiniLM-L12-v2",
   qdrant: {
     url: process.env.QDRANT_URL!,

@@ -19,8 +19,10 @@ if (!env.apiKey) {
   logger.warn("RAG_API_KEY 미설정 - X-API-Key 검증을 건너뜁니다. MCP 경로의 유일한 방어선이므로 실사용 전 반드시 설정하세요.");
 }
 
-app.listen(env.port, () => {
-  logger.info(`rag_server running on port ${env.port}`);
+// "신뢰된 내부망 전용" 설계 전제(§ CLAUDE.md)를 코드 레벨에서 강제 — env.host 기본값(127.0.0.1)이 없으면
+// 모든 인터페이스에 바인딩되어 RAG_API_KEY 하나만으로 외부 네트워크 노출을 막던 상태였다.
+app.listen(env.port, env.host, () => {
+  logger.info(`rag_server running on ${env.host}:${env.port}`);
 });
 
 /**

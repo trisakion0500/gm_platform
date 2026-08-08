@@ -189,6 +189,7 @@ Claude Code CLI뿐 아니라 Claude 데스크탑 앱의 MCP 커넥터로도 동�
 | 변수 | 설명 | 기본값 |
 |------|------|--------|
 | `PORT` | 서버 포트 | `3200` |
+| `HOST` | 바인딩할 인터페이스 — 신뢰된 내부망 전용 설계 전제(§3)를 강제하기 위해 기본값을 루프백으로 고정. 분리 배포 등으로 원격 호출자를 허용해야 하면 값을 바꾸되, `RAG_API_KEY`만으로는 네트워크 노출 자체를 막지 못하므로 IP 화이트리스트 등 별도 방어를 함께 검토해야 한다 | `127.0.0.1` |
 | `EMBEDDING_MODEL` | `@xenova/transformers` 모델 이름 | `Xenova/paraphrase-multilingual-MiniLM-L12-v2` |
 | `QDRANT_URL` | Qdrant 접속 주소 | `http://127.0.0.1:6333` |
 | `QDRANT_API_KEY` | Qdrant API 키 | — |
