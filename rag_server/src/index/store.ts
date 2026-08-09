@@ -3,8 +3,9 @@ import { env } from "../config/env";
 import { Chunk, SearchResult } from "../types";
 import logger from "../utils/logger";
 
-// 모델 출력 차원(Xenova/paraphrase-multilingual-MiniLM-L12-v2)과 일치해야 한다.
-const VECTOR_SIZE = 384;
+// 모델 출력 차원(Xenova/multilingual-e5-base)과 일치해야 한다 — 모델 교체 시 반드시 함께 바꾸고 재인덱싱해야 한다
+// (차원이 다르면 rebuildAndSwap이 새 물리 컬렉션을 만들어 자동으로 맞춰주지만, 이 상수 자체는 수동 동기화 필요).
+const VECTOR_SIZE = 768;
 
 // env.qdrant.collection("gm_docs")은 물리 컬렉션이 아니라 항상 이 이름의 alias를 가리킨다(아래 rebuildAndSwap 참고).
 const ALIAS = env.qdrant.collection;

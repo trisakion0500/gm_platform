@@ -79,9 +79,11 @@ rag_server/
 
 ## 3.1 임베딩
 
-로컬 모델(`@xenova/transformers`, `Xenova/paraphrase-multilingual-MiniLM-L12-v2`, 384차원)로 Node 프로세스 안에서 직접 임베딩을 생성한다 — 외부 API 키·과금 없이 완전 오프라인으로 동작(최초 실행 시 모델 파일만 1회 다운로드). 영어 위주로 학습된 경량 모델(`all-MiniLM-L6-v2`) 대신 다국어 모델을 쓰는 이유는 한국어 질의·문서 간 의미 유사도를 잡기 위함이다.
+로컬 모델(`@xenova/transformers`, `Xenova/multilingual-e5-base`, 768차원)로 Node 프로세스 안에서 직접 임베딩을 생성한다 — 외부 API 키·과금 없이 완전 오프라인으로 동작(최초 실행 시 모델 파일만 1회 다운로드, ~283MB). 원래는 경량 다국어 모델(`Xenova/paraphrase-multilingual-MiniLM-L12-v2`, 384차원)을 썼으나, "기술 스택"/"테크스택"처럼 짧고 일반적인 질의에서 실제로 무관한 청크가 상위권을 차지하는 anisotropy(hubness) 현상이 실측으로 확인돼(§10 참고) 검색(retrieval) 목적으로 학습된 이 모델로 교체했다. 재검증 결과 실패하던 두 질의가 각각 1~2위로 올라섰고, 기존에 잘 되던 질의도 회귀 없이 스코어가 더 견고해졌다(0.2~0.7의 넓은 분포 → 0.77~0.88의 좁은 분포).
 
-청크 임베딩에는 본문(`text`)뿐 아니라 heading(breadcrumb, `heading + "\n" + text`)도 함께 포함한다 — 표·의사코드 위주라 본문에 실제 검색 키워드가 거의 없는 청크도(예: "9. 비밀번호 변경 > ... > 처리 정책") 정확히 검색되게 하기 위함. Qdrant payload의 `heading`/`text` 필드와 질의 쪽 임베딩(`embed(query)`)은 이와 무관하게 그대로다.
+`multilingual-e5` 계열은 문서(passage)와 질의(query)를 비대칭으로 인코딩하도록 학습돼 있어, 임베딩 직전에 반드시 프리픽스를 붙여야 한다 — 청크 쪽은 `reindex.ts`가 `"passage: "`, 질의 쪽은 `search.service.ts`가 `"query: "`를 붙인다. 다른 계열 모델로 바꾸면 이 프리픽스 로직도 함께 재검토해야 한다. 모델을 바꿀 때는 `store.ts`의 `VECTOR_SIZE`도 실제 출력 차원과 맞춰야 하며(다르면 Qdrant `createCollection` 자체가 실패), 차원이 바뀌었어도 `rebuildAndSwap()`이 매번 새 물리 컬렉션을 만드는 구조라 기존 컬렉션을 수동으로 지울 필요는 없다 — `npm run build-index` 한 번이면 충분하다.
+
+청크 임베딩에는 본문(`text`)뿐 아니라 heading(breadcrumb, `heading + "\n" + text`)도 함께 포함한다 — 표·의사코드 위주라 본문에 실제 검색 키워드가 거의 없는 청크도(예: "9. 비밀번호 변경 > ... > 처리 정책") 정확히 검색되게 하기 위함. Qdrant payload의 `heading`/`text` 필드는 이와 무관하게 원본 그대로다.
 
 본문이 마크다운 표로만 이루어진 청크는 임베딩 직전에 표를 파이프·구분행 없는 평문(`embedding/chunker.ts`의 `flattenTablesForEmbedding`)으로 바꿔서 넣는다 — 파이프투성이 원문 그대로는 자연어 문장 위주로 학습된 모델이 의미를 잘 못 잡기 때문. Qdrant에 저장·응답으로 노출되는 `text`는 원본 마크다운 그대로다(표시용/임베딩용 분리).
 
@@ -190,7 +192,7 @@ Claude Code CLI뿐 아니라 Claude 데스크탑 앱의 MCP 커넥터로도 동�
 |------|------|--------|
 | `PORT` | 서버 포트 | `3200` |
 | `HOST` | 바인딩할 인터페이스 — 신뢰된 내부망 전용 설계 전제(§3)를 강제하기 위해 기본값을 루프백으로 고정. 분리 배포 등으로 원격 호출자를 허용해야 하면 값을 바꾸되, `RAG_API_KEY`만으로는 네트워크 노출 자체를 막지 못하므로 IP 화이트리스트 등 별도 방어를 함께 검토해야 한다 | `127.0.0.1` |
-| `EMBEDDING_MODEL` | `@xenova/transformers` 모델 이름 | `Xenova/paraphrase-multilingual-MiniLM-L12-v2` |
+| `EMBEDDING_MODEL` | `@xenova/transformers` 모델 이름(§3.1) — `multilingual-e5` 계열 외 모델로 바꾸면 `query:`/`passage:` 프리픽스 로직과 `store.ts`의 `VECTOR_SIZE`도 함께 재검토 필요 | `Xenova/multilingual-e5-base` |
 | `QDRANT_URL` | Qdrant 접속 주소 | `http://127.0.0.1:6333` |
 | `QDRANT_API_KEY` | Qdrant API 키 | — |
 | `QDRANT_COLLECTION` | 사용할 컬렉션명(alias) | `gm_docs` |
@@ -251,4 +253,4 @@ Stage A → B → C → D 순으로 진행하며, 각 Stage 완료 시 실제 �
 
 - Phase 2(API 정의)/Phase 3(감사로그) RAG — 프로젝트/회사 단위 접근제어 스코핑 이식 필요, 별도 설계
 - `CLAUDE.md` 인덱싱(보류) — §1-1 참고, 신뢰 경계 검토 후 착수
-- **(부분 해결) 긴/이질적 청크의 검색 품질 한계** — 서로 다른 소주제(예: 기술 스택 표 + 별개의 설명 문단)가 한 청크에 섞이면 mean pooling으로 신호가 희석되는 문제가 있었다. 섹션 내 문단 단위로 항상 소주제별 청크를 분리하도록 청킹 전략을 바꿔(§3.2) 완화했다 — 실측상 관련 없는 질의 대비 상대 순위가 크게 개선됨. 다만 임베딩 모델 자체의 한계(짧고 일반적인 문장이 무관한 질의에도 고르게 높은 유사도를 보이는 현상)까지 해결하진 못해, 여전히 일부 질의에서 최상위권엔 못 오르는 경우가 남아있다 — 근본 해결은 더 큰/파인튜닝된 모델 도입 수준의 별도 검토가 필요.
+- **(해결됨) 긴/이질적 청크·임베딩 모델의 검색 품질 한계** — 서로 다른 소주제(예: 기술 스택 표 + 별개의 설명 문단)가 한 청크에 섞이면 mean pooling으로 신호가 희석되는 문제가 있었다. 섹션 내 문단 단위로 항상 소주제별 청크를 분리하도록 청킹 전략을 바꿔(§3.2) 우선 완화했으나, 그래도 "기술 스택"/"테크스택" 질의는 여전히 실패했다 — 원인을 더 파보니 짧고 일반적인 문장이 무관한 질의에도 고르게 높은 유사도를 보이는 임베딩 모델(`paraphrase-multilingual-MiniLM-L12-v2`) 자체의 anisotropy(hubness) 한계였다. 검색(retrieval) 목적으로 학습되고 query/passage를 비대칭 인코딩하는 `multilingual-e5-base`로 교체(§3.1)한 뒤 재검증한 결과, 실패하던 두 질의가 각각 1~2위로 올라섰고 기존에 잘 되던 질의도 회귀 없이 스코어가 더 견고해져 hubness 현상 자체가 관측되지 않았다 — 이 항목은 해결됨으로 종료.
