@@ -13,6 +13,8 @@ BEGIN
 -- 작성 : 2026-06-29 trisakion
 -- 수정 : 2026-07-15 trisakion - api_base_url을 SP_UPDATE_PROJECT_CONNECTION으로 분리(DEVELOPER도 수정 가능하게 열 예정이라 프로젝트 정체성 필드와 쓰기 권한을 나눔)
 -- 수정 : 2026-07-15 trisakion - has_api_key(발급 여부) 반환 추가
+-- 수정 : 2026-08-09 trisakion - UNIQUE 제약 위반(MySQL 1062)을 32001로 매핑하는 전용 핸들러 추가
+--        (사전 중복검사 이후 동시 요청이 끼어드는 TOCTOU 레이스 시 50001 대신 32001로 정확히 응답)
 -- 내용 : 프로젝트 정보 수정 (project_code/project_name/description/status만, api_base_url은 SP_UPDATE_PROJECT_CONNECTION 전용)
 --        project 존재 검사 후 UPDATE
 --        project_code 변경 시 동일 company 내 중복 검사 (본인 제외)
@@ -24,6 +26,12 @@ BEGIN
     DECLARE sql_state       CHAR(5)       DEFAULT '00000';
     DECLARE error_no        INT           DEFAULT 0;
     DECLARE error_message   VARCHAR(255)  DEFAULT '';
+    DECLARE EXIT HANDLER FOR 1062
+    BEGIN
+        ROLLBACK;
+        SELECT 32001 AS RESULT;
+    END;
+
     DECLARE EXIT HANDLER FOR SQLEXCEPTION
     BEGIN
         GET DIAGNOSTICS CONDITION 1
