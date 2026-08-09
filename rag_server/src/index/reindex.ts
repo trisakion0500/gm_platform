@@ -2,7 +2,7 @@ import fs from "fs";
 import path from "path";
 import { chunkMarkdown, flattenTablesForEmbedding } from "../embedding/chunker";
 import { embed } from "../embedding/embedder";
-import { rebuildAndSwap, VECTOR_SIZE } from "./store";
+import { rebuildAndSwap, VECTOR_SIZE, isIndexHealthy } from "./store";
 import { Manifest, hashContent, readManifest, writeManifest, isSameManifest } from "./manifest";
 import { runExclusive } from "../config/db";
 import { env } from "../config/env";
@@ -101,9 +101,18 @@ export async function forceReindex(): Promise<{ fileCount: number; chunkCount: n
  * app.ts(부팅 시) 전용 — 락을 잡은 뒤(대기 포함) 매니페스트를 다시 비교해 실제로 변경된 경우에만
  * 재구축한다. 락 대기 중 다른 프로세스(build.ts 등)가 이미 최신 상태로 재구축을 끝냈다면, 락을
  * 잡은 시점의 재비교에서 "변경 없음"으로 판정되어 중복 작업 없이 그냥 넘어간다(§3).
+ * 매니페스트 비교보다 먼저 Qdrant의 실제 인덱스 상태를 확인한다 — 문서 내용이 그대로여도 Qdrant
+ * 쪽에서 컬렉션/alias가 직접 삭제됐다면 매니페스트만으로는 이를 감지할 수 없으므로, 비어있으면
+ * 매니페스트 일치 여부와 무관하게 강제로 재구축한다(자가 치유).
  */
 export async function reindexIfChanged(): Promise<void> {
   await runExclusive(LOCK_NAME, LOCK_TIMEOUT_MS, async () => {
+    if (!(await isIndexHealthy())) {
+      logger.warn("Qdrant 인덱스가 없거나 비어 있음 — 매니페스트와 무관하게 강제 재인덱싱합니다.");
+      await rebuild();
+      return;
+    }
+
     const files = loadTargetFiles();
     const currentManifest = computeManifest(files);
     const storedManifest = readManifest();

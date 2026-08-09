@@ -13,7 +13,7 @@ GM Platform의 설계 문서(`docs/`)와 프로젝트 소개(`README.md`)를 자
 | 위치 | `rag_server/` (모노레포 내부) |
 | 포트 | `3200` (3000/3100 다음 번호) |
 | 벡터 DB | Qdrant(로컬, `http://127.0.0.1:6333`) — 별도 설치 없이 이미 떠있는 인스턴스 사용 |
-| 임베딩 | 로컬 모델(`@xenova/transformers`, `Xenova/paraphrase-multilingual-MiniLM-L12-v2`, 384차원) — 외부 API 키·비용 없음 |
+| 임베딩 | 로컬 모델(`@xenova/transformers`, `Xenova/multilingual-e5-base`, 768차원) — 외부 API 키·비용 없음 |
 | 스택 | Express + TypeScript, `server/`/`test_game_server/`와 동일 패턴(config/routes/controllers/services/middleware) |
 | 대상(Phase 1) | `docs/` 폴더 하위 모든 `.md` + 저장소 루트 `README.md`. `CLAUDE.md`는 보류(§1-1) |
 | 사용 주체 | Claude(MCP, `mcp_server_dev`/`mcp_server_pc`를 통해) + GM Platform 자체(`server/` 프록시 경유) 양쪽 |
@@ -79,7 +79,7 @@ rag_server/
 
 ## 3.1 임베딩
 
-로컬 모델(`@xenova/transformers`, `Xenova/multilingual-e5-base`, 768차원)로 Node 프로세스 안에서 직접 임베딩을 생성한다 — 외부 API 키·과금 없이 완전 오프라인으로 동작(최초 실행 시 모델 파일만 1회 다운로드, ~283MB). 원래는 경량 다국어 모델(`Xenova/paraphrase-multilingual-MiniLM-L12-v2`, 384차원)을 썼으나, "기술 스택"/"테크스택"처럼 짧고 일반적인 질의에서 실제로 무관한 청크가 상위권을 차지하는 anisotropy(hubness) 현상이 실측으로 확인돼(§10 참고) 검색(retrieval) 목적으로 학습된 이 모델로 교체했다. 재검증 결과 실패하던 두 질의가 각각 1~2위로 올라섰고, 기존에 잘 되던 질의도 회귀 없이 스코어가 더 견고해졌다(0.2~0.7의 넓은 분포 → 0.77~0.88의 좁은 분포).
+로컬 모델(`@xenova/transformers`, `Xenova/multilingual-e5-base`, 768차원)로 Node 프로세스 안에서 직접 임베딩을 생성한다 — 외부 API 키·과금 없이 완전 오프라인으로 동작(최초 실행 시 모델 파일만 1회 다운로드, ~283MB). 원래는 경량 다국어 모델(`Xenova/paraphrase-multilingual-MiniLM-L12-v2`, 384차원)을 썼으나, "기술 스택"/"테크스택"처럼 짧고 일반적인 질의에서 실제로 무관한 청크가 상위권을 차지하는 anisotropy(hubness) 현상이 실측으로 확인돼 검색(retrieval) 목적으로 학습된 이 모델로 교체했다. 재검증 결과 실패하던 두 질의가 각각 1~2위로 올라섰고, 기존에 잘 되던 질의도 회귀 없이 스코어가 더 견고해졌다(0.2~0.7의 넓은 분포 → 0.77~0.88의 좁은 분포).
 
 `multilingual-e5` 계열은 문서(passage)와 질의(query)를 비대칭으로 인코딩하도록 학습돼 있어, 임베딩 직전에 반드시 프리픽스를 붙여야 한다 — 청크 쪽은 `reindex.ts`가 `"passage: "`, 질의 쪽은 `search.service.ts`가 `"query: "`를 붙인다. 다른 계열 모델로 바꾸면 이 프리픽스 로직도 함께 재검토해야 한다. 모델을 바꿀 때는 `store.ts`의 `VECTOR_SIZE`도 실제 출력 차원과 맞춰야 하며(다르면 Qdrant `createCollection` 자체가 실패), 차원이 바뀌었어도 `rebuildAndSwap()`이 매번 새 물리 컬렉션을 만드는 구조라 기존 컬렉션을 수동으로 지울 필요는 없다 — `npm run build-index` 한 번이면 충분하다.
 
@@ -91,7 +91,7 @@ rag_server/
 
 문서를 `#`~`####`(레벨 1~4) 헤딩 단위로 분할하고, 상위 헤딩까지 `" > "`로 이어붙인 breadcrumb을 `heading` 필드에 담는다(예: "6. 보안 정책 > 6.4 세션 정리 정책 > 6.4.1 인스턴스 간 중복 실행 방지"). 본문이 30자 미만인 섹션(제목만 있는 헤딩 등)은 독립 청크로 만들지 않고 다음 섹션에 흡수시킨다.
 
-섹션 본문은 길이와 무관하게 항상 문단(빈 줄) 단위로 소주제별 청크로 나눈다(30자 미만인 조각만 인접 조각과 합침) — 표+설명 문단처럼 서로 무관한 소주제가 한 헤딩 아래 섞여 있으면 mean pooling으로 특정 소주제 질의 신호가 희석되는 문제가 있었기 때문(아래 "긴/이질적 청크" 항목 참고). 빈 줄 없이 문단 하나가 그 자체로 1200자를 넘으면(긴 마크다운 표 등) 줄 단위로 한 번 더 재분할한다.
+섹션 본문은 길이와 무관하게 항상 문단(빈 줄) 단위로 소주제별 청크로 나눈다(30자 미만인 조각만 인접 조각과 합침) — 표+설명 문단처럼 서로 무관한 소주제가 한 헤딩 아래 섞여 있으면 mean pooling으로 특정 소주제 질의 신호가 희석되는 문제가 있었기 때문. 빈 줄 없이 문단 하나가 그 자체로 1200자를 넘으면(긴 마크다운 표 등) 줄 단위로 한 번 더 재분할한다.
 
 ## 3.3 인덱스 저장 (Qdrant)
 
@@ -101,8 +101,8 @@ rag_server/
 
 ## 3.4 재인덱싱 트리거
 
-- **부팅 시 자동** — `data/index-manifest.json`(파일별 SHA-256 해시 + `EMBEDDING_MODEL`명·차원)과 현재 `docs/*.md`+`README.md`, 현재 설정값을 비교해, 변경이 있을 때만 재구축한다. 모델명·차원도 매니페스트에 포함시킨 이유: 문서 내용은 그대로여도 `EMBEDDING_MODEL`을 바꾸면 기존 Qdrant 컬렉션의 벡터가 새 모델과 차원이 달라 호환되지 않는데, 문서 해시만 비교하면 이를 "변경 없음"으로 오판해 옛 컬렉션을 그대로 alias에 남겨두게 된다(다음 검색 요청이 벡터 크기 불일치로 실패).
-- **수동** — `npm run build-index`. 서버가 이미 떠있는 상태에서 실행해도 무방하다.
+- **부팅 시 자동** — 매니페스트 비교보다 먼저 `store.ts`의 `isIndexHealthy()`로 Qdrant의 실제 인덱스 상태(alias가 존재하고 `points_count > 0`인지)를 확인한다. 비어있으면(alias/컬렉션을 콘솔 등으로 직접 삭제한 경우 등) 매니페스트 일치 여부와 무관하게 즉시 강제 재구축한다(자가 치유) — 매니페스트는 어디까지나 로컬 파일이라 Qdrant 쪽 상태 변화를 전혀 알 수 없기 때문에, 문서 내용이 그대로면 재인덱싱을 스킵하고도 `markReady()`가 호출돼 실제로는 존재하지 않는 alias를 검색이 조회하려다 실패하는 결함이 있었다. 인덱스가 정상이면 그 다음 `data/index-manifest.json`(파일별 SHA-256 해시 + `EMBEDDING_MODEL`명·차원)과 현재 `docs/*.md`+`README.md`, 현재 설정값을 비교해 변경이 있을 때만 재구축한다. 모델명·차원도 매니페스트에 포함시킨 이유: 문서 내용은 그대로여도 `EMBEDDING_MODEL`을 바꾸면 기존 Qdrant 컬렉션의 벡터가 새 모델과 차원이 달라 호환되지 않는데, 문서 해시만 비교하면 이를 "변경 없음"으로 오판해 옛 컬렉션을 그대로 alias에 남겨두게 된다(다음 검색 요청이 벡터 크기 불일치로 실패).
+- **수동** — `npm run build-index`. 서버가 이미 떠있는 상태에서 실행해도 무방하다. 매니페스트 비교 없이 항상 무조건 재구축이라 `isIndexHealthy()` 확인 대상이 아니다.
 
 두 경로 모두 `config/db.ts`의 `runExclusive()`(MySQL advisory lock, `SP_LOCK_ACQUIRE`/`SP_LOCK_RELEASE` 재사용)로 감싸져 있어 여러 재구축이 동시에 겹치지 않는다. 락 획득 후 매니페스트를 한 번 더 비교하므로, 대기 중 다른 프로세스가 이미 최신으로 재구축을 끝냈다면 중복 작업 없이 넘어간다.
 
@@ -146,7 +146,7 @@ rag_server가 아니라 GM Platform `server/`가 노출하는 별도 엔드포�
 
 1. 저장소 루트 기준 `docs/` 폴더 하위의 모든 `.md` 파일과 저장소 루트의 `README.md`를 읽는다 — `__dirname` 기준 절대경로로 접근한다(`process.cwd()` 상대경로 금지, cwd가 달라지는 실행 환경에서도 안전하도록).
 2. `embedding/chunker.ts`로 파일별 청크를 만든다(§3.2).
-3. `embedding/embedder.ts`로 각 청크를 384차원 벡터로 변환한다(§3.1).
+3. `embedding/embedder.ts`로 각 청크를 768차원 벡터로 변환한다(§3.1).
 4. `index/store.ts`의 `rebuildAndSwap()`으로 새 물리 컬렉션을 만들어 전체 청크를 순번 정수 ID로 upsert하고, `gm_docs` alias를 원자적으로 스왑한다(§3.3).
 
 전체 과정은 `forceReindex()`를 통해 MySQL advisory lock으로 감싸져 있어(§3.4), `app.ts`가 이미 떠서 자체 재인덱싱 중이어도 서로 겹치지 않고 순서대로 실행된다.
@@ -158,7 +158,7 @@ rag_server가 아니라 GM Platform `server/`가 노출하는 별도 엔드포�
 # 6. Qdrant 연동
 
 - 접속: `QDRANT_URL`(기본 `http://127.0.0.1:6333`), `QDRANT_API_KEY`(필수 — 이 환경의 Qdrant는 API 키 인증이 걸려 있다) 헤더로 인증.
-- `QDRANT_COLLECTION`(기본 `gm_docs`)은 물리 컬렉션이 아니라 **alias**다. 실제 데이터는 `gm_docs_<timestamp>` 형식의 물리 컬렉션에 있고, alias가 그중 "현재 유효한" 컬렉션 하나를 가리킨다(§3.3). 벡터 크기 384, distance `Cosine`은 물리 컬렉션 생성 시 동일하게 적용.
+- `QDRANT_COLLECTION`(기본 `gm_docs`)은 물리 컬렉션이 아니라 **alias**다. 실제 데이터는 `gm_docs_<timestamp>` 형식의 물리 컬렉션에 있고, alias가 그중 "현재 유효한" 컬렉션 하나를 가리킨다(§3.3). 벡터 크기 768, distance `Cosine`은 물리 컬렉션 생성 시 동일하게 적용.
 - `@qdrant/js-client-rest`의 `QdrantClient`를 `config/qdrant.ts`에서 싱글톤으로 생성해 `index/store.ts`(인덱싱·alias 스왑)와 `services/search.service.ts`(검색 질의, alias로 조회) 양쪽이 공유한다.
 - 이 Qdrant 인스턴스는 rag_server 전용이 아니라 이미 다른 용도로도 떠있는 공용 인스턴스다 — `gm_docs` alias 및 그 물리 컬렉션(`gm_docs_*`)이라는 명확한 이름만 사용해 다른 컬렉션과 섞이지 않게 한다.
 
@@ -223,37 +223,36 @@ Stage A → B → C → D 순으로 진행하며, 각 Stage 완료 시 실제 �
 
 ## Stage A — `rag_server/` 코어 (완료)
 
-- [x] 프로젝트 스캐폴딩
-- [x] 청킹 모듈 (`embedding/chunker.ts`)
-- [x] 임베딩 래퍼 (`embedding/embedder.ts`)
-- [x] 인덱스 저장소 + 재구축 로직 (`index/store.ts`, `manifest.ts`, `reindex.ts`, `build.ts`, `config/qdrant.ts`, `config/db.ts`)
-- [x] 검색 API 라우트 (`routes/`, `controllers/`, `services/`, `middleware/`)
-- [x] 검증 — `npm run build-index` 실행 후 Qdrant 포인트 개수 확인, `RAG_API_KEY` 설정 상태로 401/400/200 응답 확인
+- ✅ 프로젝트 스캐폴딩
+- ✅ 청킹 모듈 (`embedding/chunker.ts`)
+- ✅ 임베딩 래퍼 (`embedding/embedder.ts`)
+- ✅ 인덱스 저장소 + 재구축 로직 (`index/store.ts`, `manifest.ts`, `reindex.ts`, `build.ts`, `config/qdrant.ts`, `config/db.ts`)
+- ✅ 검색 API 라우트 (`routes/`, `controllers/`, `services/`, `middleware/`)
+- ✅ 검증 — `npm run build-index` 실행 후 Qdrant 포인트 개수 확인, `RAG_API_KEY` 설정 상태로 401/400/200 응답 확인
 
 ## Stage B — MCP 통합 (완료)
 
-- [x] `ragClient.ts`/`search_docs` tool 추가 (양쪽 프로젝트 동일)
-- [x] `RAG_ENABLED`(true/false) 토글 추가
-- [x] `tsc` 빌드 통과(양쪽), rag_server 실 인스턴스 상대 end-to-end 검증
-- [x] Claude 데스크탑 앱 연동, `search_docs` 실시간 호출 검증
+- ✅ `ragClient.ts`/`search_docs` tool 추가 (양쪽 프로젝트 동일)
+- ✅ `RAG_ENABLED`(true/false) 토글 추가
+- ✅ `tsc` 빌드 통과(양쪽), rag_server 실 인스턴스 상대 end-to-end 검증
+- ✅ Claude 데스크탑 앱 연동, `search_docs` 실시간 호출 검증
 
 ## Stage C — GM Platform `server/` 프록시 (완료)
 
-- [x] `server/src/config/env.ts`에 `rag` 그룹 추가(`RAG_ENABLED`/`RAG_BASE_URL`/`RAG_API_KEY`)
-- [x] `server/src/services/docSearch.service.ts` 신설
-- [x] `server/src/routes/docSearch.ts` (`GET /api/doc-search`, `authenticate`만 요구), `RAG_ENABLED=false`면 라우트 자체 미등록
-- [x] `tests/api_test.ps1` 14B 섹션 추가(rag_server 기동 전제 스모크 테스트)
-- [x] Swagger 문서 반영(`DocSearch` 태그)
-- [x] 검증 (JWT로 `GET /api/doc-search` 호출, `tests/api_test.ps1` 전체 회귀)
+- ✅ `server/src/config/env.ts`에 `rag` 그룹 추가(`RAG_ENABLED`/`RAG_BASE_URL`/`RAG_API_KEY`)
+- ✅ `server/src/services/docSearch.service.ts` 신설
+- ✅ `server/src/routes/docSearch.ts` (`GET /api/doc-search`, `authenticate`만 요구), `RAG_ENABLED=false`면 라우트 자체 미등록
+- ✅ `tests/api_test.ps1` 14B 섹션 추가(rag_server 기동 전제 스모크 테스트)
+- ✅ Swagger 문서 반영(`DocSearch` 태그)
+- ✅ 검증 (JWT로 `GET /api/doc-search` 호출, `tests/api_test.ps1` 전체 회귀)
 
 ## Stage D — `client/` 검색 UI (완료)
 
-- [x] `client/src/api/docSearch.api.ts` — `GET /doc-search` 호출 함수
-- [x] `pages/main/doc-search/DocSearchPage.tsx` — 검색창 + 결과 리스트(파일/헤딩/본문 스니펫/유사도)
-- [x] `router/index.tsx`/`Sidebar.tsx` — `/doc-search` 라우트·메뉴 등록(전 역할 공용, `MAIN_MENU`)
+- ✅ `client/src/api/docSearch.api.ts` — `GET /doc-search` 호출 함수
+- ✅ `pages/main/doc-search/DocSearchPage.tsx` — 검색창 + 결과 리스트(파일/헤딩/본문 스니펫/유사도)
+- ✅ `router/index.tsx`/`Sidebar.tsx` — `/doc-search` 라우트·메뉴 등록(전 역할 공용, `MAIN_MENU`)
 
 ## 범위 밖 (후속 논의)
 
 - Phase 2(API 정의)/Phase 3(감사로그) RAG — 프로젝트/회사 단위 접근제어 스코핑 이식 필요, 별도 설계
 - `CLAUDE.md` 인덱싱(보류) — §1-1 참고, 신뢰 경계 검토 후 착수
-- **(해결됨) 긴/이질적 청크·임베딩 모델의 검색 품질 한계** — 서로 다른 소주제(예: 기술 스택 표 + 별개의 설명 문단)가 한 청크에 섞이면 mean pooling으로 신호가 희석되는 문제가 있었다. 섹션 내 문단 단위로 항상 소주제별 청크를 분리하도록 청킹 전략을 바꿔(§3.2) 우선 완화했으나, 그래도 "기술 스택"/"테크스택" 질의는 여전히 실패했다 — 원인을 더 파보니 짧고 일반적인 문장이 무관한 질의에도 고르게 높은 유사도를 보이는 임베딩 모델(`paraphrase-multilingual-MiniLM-L12-v2`) 자체의 anisotropy(hubness) 한계였다. 검색(retrieval) 목적으로 학습되고 query/passage를 비대칭 인코딩하는 `multilingual-e5-base`로 교체(§3.1)한 뒤 재검증한 결과, 실패하던 두 질의가 각각 1~2위로 올라섰고 기존에 잘 되던 질의도 회귀 없이 스코어가 더 견고해져 hubness 현상 자체가 관측되지 않았다 — 이 항목은 해결됨으로 종료.

@@ -12,13 +12,57 @@ export const VECTOR_SIZE = 768;
 const ALIAS = env.qdrant.collection;
 
 /**
+ * undici(HTTP/1.1 keep-alive) 연결 풀의 소켓이 유휴 상태에서 Qdrant 쪽에 의해 닫힌 뒤 재사용되면
+ * "other side closed"(원인 코드 UND_ERR_SOCKET)로 실패하는 경우가 있다 — isIndexHealthy() 호출과
+ * 그 뒤 임베딩 루프(~수십 초, Qdrant 호출 없음)를 거쳐 rebuildAndSwap()이 같은 커넥션 풀을 다시
+ * 쓰려는 시점에 실측 재현됨. 풀은 실패한 소켓을 버리고 다음 시도에서 새 연결을 열기 때문에 1회
+ * 재시도로 해결된다 — 그래도 실패하면 진짜 장애로 간주해 원래 오류를 그대로 던진다.
+ * @param fn Qdrant 클라이언트 호출
+ * @returns fn의 반환값
+ */
+async function withSocketRetry<T>(fn: () => Promise<T>): Promise<T> {
+  try {
+    return await fn();
+  } catch (err) {
+    const cause = err instanceof Error ? err.cause : undefined;
+    const isStaleSocket = cause instanceof Error && (cause as NodeJS.ErrnoException).code === "UND_ERR_SOCKET";
+    if (!isStaleSocket)
+      throw err;
+
+    logger.warn("Qdrant 요청이 유휴 커넥션 재사용 실패(UND_ERR_SOCKET)로 끊김 — 1회 재시도합니다.");
+    return await fn();
+  }
+}
+
+/**
  * 현재 ALIAS가 가리키는 물리 컬렉션 이름을 반환한다.
  * @returns 물리 컬렉션 이름, alias가 아직 없으면(최초 구축 전) null
  */
 async function getCurrentAliasTarget(): Promise<string | null> {
-  const { aliases } = await qdrantClient.getAliases();
+  const { aliases } = await withSocketRetry(() => qdrantClient.getAliases());
   const match = aliases.find((a) => a.alias_name === ALIAS);
   return match?.collection_name ?? null;
+}
+
+/**
+ * ALIAS가 가리키는 물리 컬렉션이 실제로 존재하고 데이터를 갖고 있는지 확인한다. 매니페스트
+ * 비교(reindex.ts)는 문서 내용 변경 여부만 볼 뿐 Qdrant의 실제 상태를 모르므로, Qdrant 콘솔
+ * 등으로 컬렉션/alias를 직접 삭제해도 문서가 그대로면 재인덱싱이 스킵되는 공백이 있었다 — 이
+ * 함수로 그 공백을 부팅 시퀀스에서 직접 메운다.
+ * @returns alias가 존재하고 points_count > 0이면 true
+ */
+export async function isIndexHealthy(): Promise<boolean> {
+  const target = await getCurrentAliasTarget();
+  if (!target)
+    return false;
+
+  try {
+    const info = await withSocketRetry(() => qdrantClient.getCollection(target));
+    return (info.points_count ?? 0) > 0;
+  } catch {
+    // alias 메타데이터는 남아있는데 실제 물리 컬렉션이 없는 경우(수동 삭제 등) — getCollection 404
+    return false;
+  }
 }
 
 /**
@@ -37,16 +81,18 @@ export async function rebuildAndSwap(chunks: Chunk[], vectors: number[][]): Prom
     throw new Error(`청크(${chunks.length})와 벡터(${vectors.length}) 개수가 일치하지 않습니다`);
 
   const newCollection = `${ALIAS}_${Date.now()}`;
-  await qdrantClient.createCollection(newCollection, {
-    vectors: { size: VECTOR_SIZE, distance: "Cosine" },
-  });
+  await withSocketRetry(() =>
+    qdrantClient.createCollection(newCollection, {
+      vectors: { size: VECTOR_SIZE, distance: "Cosine" },
+    }),
+  );
 
   const points = chunks.map((chunk, i) => ({
     id: i,
     vector: vectors[i],
     payload: { file: chunk.file, heading: chunk.heading, text: chunk.text },
   }));
-  await qdrantClient.upsert(newCollection, { wait: true, points });
+  await withSocketRetry(() => qdrantClient.upsert(newCollection, { wait: true, points }));
   logger.info(`Qdrant 새 컬렉션(${newCollection})에 upsert 완료: ${points.length}건`);
 
   const oldTarget = await getCurrentAliasTarget();
@@ -57,9 +103,9 @@ export async function rebuildAndSwap(chunks: Chunk[], vectors: number[][]): Prom
   // 이름의 물리 컬렉션을 동시에 허용하지 않으므로 이 경우 레거시 컬렉션은 절대 있을 수 없다 —
   // 매 재구축마다 getCollections()를 반복 호출하지 않도록 마이그레이션이 필요할 때(oldTarget=null)만 확인한다.
   if (!oldTarget) {
-    const { collections } = await qdrantClient.getCollections();
+    const { collections } = await withSocketRetry(() => qdrantClient.getCollections());
     if (collections.some((c) => c.name === ALIAS)) {
-      await qdrantClient.deleteCollection(ALIAS);
+      await withSocketRetry(() => qdrantClient.deleteCollection(ALIAS));
       logger.warn(`레거시(alias 도입 이전) 물리 컬렉션 '${ALIAS}'을 삭제했습니다(1회성 마이그레이션).`);
     }
   }
@@ -67,11 +113,11 @@ export async function rebuildAndSwap(chunks: Chunk[], vectors: number[][]): Prom
   const actions = oldTarget
     ? [{ delete_alias: { alias_name: ALIAS } }, { create_alias: { collection_name: newCollection, alias_name: ALIAS } }]
     : [{ create_alias: { collection_name: newCollection, alias_name: ALIAS } }];
-  await qdrantClient.updateCollectionAliases({ actions });
+  await withSocketRetry(() => qdrantClient.updateCollectionAliases({ actions }));
   logger.info(`Qdrant alias '${ALIAS}' → '${newCollection}' 스왑 완료`);
 
   if (oldTarget) {
-    await qdrantClient.deleteCollection(oldTarget);
+    await withSocketRetry(() => qdrantClient.deleteCollection(oldTarget));
     logger.info(`이전 물리 컬렉션 삭제: ${oldTarget}`);
   }
 }
@@ -83,11 +129,13 @@ export async function rebuildAndSwap(chunks: Chunk[], vectors: number[][]): Prom
  * @returns 유사도(score) 내림차순 검색 결과
  */
 export async function searchSimilar(vector: number[], limit: number): Promise<SearchResult[]> {
-  const hits = await qdrantClient.search(ALIAS, {
-    vector,
-    limit,
-    with_payload: true,
-  });
+  const hits = await withSocketRetry(() =>
+    qdrantClient.search(ALIAS, {
+      vector,
+      limit,
+      with_payload: true,
+    }),
+  );
 
   return hits.map((hit) => {
     const payload = hit.payload as { file: string; heading: string; text: string };
