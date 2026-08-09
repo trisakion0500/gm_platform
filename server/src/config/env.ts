@@ -77,9 +77,10 @@ export const env = {
     keyPrefix: process.env.REDIS_KEY_PREFIX ?? 'gm:', // 이 프로젝트가 쓰는 모든 Redis 키에 공통으로 붙는 프리픽스
     // Redis 명령 타임아웃(ms) — Redis가 응답 불가 상태(장애 등)일 때 ioredis 기본 재시도(최대 20회, 누적 최대 수십초)를
     // 기다리지 않고 이 시간 안에 실패로 확정시켜, Redis 장애가 API 응답 지연으로 그대로 전이되지 않도록 한다.
-    // 너무 짧게(예: 200ms) 잡으면 서버 부팅 시점 rate-limit-redis의 최초 SCRIPT LOAD 호출이 ioredis 커넥션
-    // 수립과 경합하다 타임아웃될 수 있고, 그 실패가 Promise로 캐싱돼 이후 Redis가 멀쩡해도 로그인이 프로세스
-    // 재기동 전까지 계속 500이 되는 게 실측으로 확인됨(200ms 3/3 재현, 1000ms 3/3 정상) — 1000ms을 기본값으로 둔다.
+    // (과거엔 서버 부팅 시점 rate-limit-redis의 최초 SCRIPT LOAD 호출이 ioredis 커넥션 수립과 경합해 타임아웃되면
+    // 그 실패가 Promise로 영구 캐싱돼 로그인이 프로세스 재기동 전까지 계속 500이 되는 문제가 실측으로 확인됐었다 —
+    // 이 클래스의 결함 자체는 자체 구현 RedisRateLimitStore(middleware/redisRateLimitStore.ts)로 교체해 제거했지만,
+    // 이 타임아웃 값 자체는 세션 캐시·참조 데이터 캐시 등 다른 Redis 호출 전반에 여전히 유효한 방어라 그대로 둔다.
     commandTimeoutMs: Number(process.env.REDIS_COMMAND_TIMEOUT_MS ?? 1000),
     // 세션(jti) 캐시 TTL — generation 불일치로 통상 그 즉시 무효화되지만 만약을 대비한 안전판.
     // Access Token 자체가 JWT_ACCESS_EXPIRES_IN이 지나면 세션 캐시를 보기도 전에 거부되므로,
