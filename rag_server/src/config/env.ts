@@ -23,6 +23,15 @@ export const env = {
     url: process.env.QDRANT_URL!,
     apiKey: process.env.QDRANT_API_KEY!,
     collection: process.env.QDRANT_COLLECTION || "gm_docs",
+    // Qdrant 클라이언트(REST, fetch 기반)의 클라이언트 측 응답 대기 타임아웃(ms) — 라이브러리 기본값(300000ms=5분)이
+    // 그대로면 Qdrant가 완전히 다운(connection refused)된 경우는 즉시 실패하지만, 응답 없이 멈춰있는 상태(hang)일
+    // 땐 검색 요청 하나가 최대 5분까지 물릴 수 있었다(server/의 REDIS_COMMAND_TIMEOUT_MS와 동일한 취지의 방어가
+    // 빠져 있던 것). 이 클라이언트는 모든 호출(검색·재인덱싱의 대량 upsert 포함)에 동일하게 적용되는 전역값이라
+    // (search()처럼 호출별 timeout을 받는 메서드도 있지만 그건 Qdrant 서버 측 쿼리 제한 힌트일 뿐 이 클라이언트
+    // 타임아웃과 무관하고, upsert()는 호출별 override 자체가 없음), 너무 짧게 잡으면 정상적인 재인덱싱 대량
+    // upsert(현재 코퍼스 기준 실측 32~40초)를 오작동으로 끊어버린다 — reindex.ts의 LOCK_TIMEOUT_MS(60000,
+    // "실측 재구축 시간보다 넉넉하게"라는 동일한 여유 기준)와 맞춰 기본값을 60000ms로 둔다.
+    timeoutMs: Number(process.env.QDRANT_TIMEOUT_MS ?? 60000),
   },
   // rag_server 호출자(GM Platform server, MCP 클라이언트) 검증용 공유키.
   // 미설정 시(로컬 개발용) apiKeyAuth 미들웨어가 검증을 건너뛴다 — 실사용 전 반드시 설정해야 한다(docs/21_RAG_SERVER.md §3).
