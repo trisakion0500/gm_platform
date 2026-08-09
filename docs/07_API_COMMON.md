@@ -120,7 +120,8 @@ Validation 오류는 아래 범위를 사용한다.
 | 404 Not Found             | 31000~31999  | Validation (Not Found) |
 | 409 Conflict              | 32002        | Validation (동시 수정 충돌) |
 | 429 Too Many Requests     | 40000~49999  | Rate Limit              |
-| 500 Internal Server Error | 50000~59999  | System                 |
+| 500 Internal Server Error | 50000~59999  | System (50002 제외 — 50002는 503 Service Unavailable) |
+| 503 Service Unavailable   | 50002        | System (rag_server 연동 실패) |
 
 ---
 
@@ -338,7 +339,7 @@ API 없음
 적용 Result 범위
 
 ```text
-50000~59999
+50000~59999 (50002 제외 — 50002는 503 Service Unavailable)
 ```
 
 예시
@@ -360,7 +361,35 @@ DB 오류
 
 ---
 
-## 2.12 오류 처리 원칙
+## 2.12 503 Service Unavailable
+
+rag_server(문서 검색) 연동 실패 — 네트워크 오류·타임아웃·모델 로딩 중 등, 사유 구분 없이 통일
+
+적용 Result 범위
+
+```text
+50002
+```
+
+예시
+
+```text
+rag_server 다운/응답 없음
+RAG_API_KEY 불일치 (GM Platform 서버 설정 문제)
+```
+
+예시 응답
+
+```json
+{
+  "result": 50002,
+  "message": "Doc search service unavailable"
+}
+```
+
+---
+
+## 2.13 오류 처리 원칙
 
 GM-Tool은 비즈니스 오류를 HTTP 200으로 반환하지 않는다.
 
@@ -657,5 +686,6 @@ Anonymous (인증 불필요)
 | ----- | --------------------- |
 | 50000 | 시스템 오류(서버 내부 오류) |
 | 50001 | 데이터베이스 오류(SP 내부 오류) |
+| 50002 | rag_server 연동 실패 (HTTP 503, §2.12 참고) |
 
 > 40000번대는 Rate Limit(40001) 전용이며 "State Transition" 용도로는 쓰지 않는다. `api_execution` 상태 전이 관련 오류(접근 불가·이미 처리된 요청 등)는 이력 존재 여부 자체를 노출하지 않기 위해 `31009`(API 실행 이력 없음)로 통일해서 반환한다 — CLAUDE.md "Execution SP 오류코드 정책" 참고.
