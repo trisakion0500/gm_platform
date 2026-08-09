@@ -2,9 +2,10 @@ import fs from "fs";
 import path from "path";
 import { chunkMarkdown, flattenTablesForEmbedding } from "../embedding/chunker";
 import { embed } from "../embedding/embedder";
-import { rebuildAndSwap } from "./store";
+import { rebuildAndSwap, VECTOR_SIZE } from "./store";
 import { Manifest, hashContent, readManifest, writeManifest, isSameManifest } from "./manifest";
 import { runExclusive } from "../config/db";
+import { env } from "../config/env";
 import logger from "../utils/logger";
 
 // rag_server/src/index -> 저장소 루트. __dirname 기준 절대경로(process.cwd() 상대경로 금지, §5).
@@ -44,6 +45,10 @@ export function loadTargetFiles(): TargetFile[] {
 
 /**
  * 대상 파일 목록으로부터 매니페스트(파일별 SHA-256 해시)를 계산한다.
+ * 임베딩 모델명·차원도 함께 포함한다 — 문서 내용은 그대로여도 EMBEDDING_MODEL/VECTOR_SIZE가 바뀌면
+ * 기존 Qdrant 컬렉션의 벡터가 새 모델과 호환되지 않으므로, 파일 해시와 동일하게 변경 감지 대상에 넣어야
+ * reindexIfChanged()가 부팅 시 이를 "변경 없음"으로 오판해 옛 차원의 컬렉션을 그대로 alias에 남겨두는
+ * 사고(다음 검색 요청이 Qdrant 벡터 크기 불일치로 실패)를 막는다.
  * @param files loadTargetFiles()의 결과
  * @returns 매니페스트
  */
@@ -51,6 +56,7 @@ export function computeManifest(files: TargetFile[]): Manifest {
   const manifest: Manifest = {};
   for (const f of files)
     manifest[f.file] = hashContent(f.content);
+  manifest["__embedding_model__"] = `${env.embeddingModel}:${VECTOR_SIZE}`;
   return manifest;
 }
 

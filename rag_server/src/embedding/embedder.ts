@@ -47,11 +47,13 @@ export function isReady(): boolean {
 }
 
 /**
- * 텍스트를 384차원 임베딩 벡터로 변환한다.
+ * 텍스트를 임베딩 벡터로 변환한다(차원은 env.embeddingModel에 따라 달라짐 — 현재 768차원, store.ts의
+ * VECTOR_SIZE와 반드시 일치해야 함). 프리픽스("query: "/"passage: ")는 이 함수가 아닌 호출부
+ * (reindex.ts/search.service.ts)에서 붙인다 — 이 함수는 어떤 텍스트가 들어오든 그대로 벡터화하는 범용 함수다.
  * 모델이 아직 로딩 중이면 로딩이 끝날 때까지 대기한다 — build.ts(CLI)처럼 즉시 로딩이 필요한 경로용이며,
  * app.ts의 검색 API는 항상 isReady()를 먼저 체크해 이 대기 자체를 피한다.
  * @param text 임베딩할 텍스트
- * @returns 384차원 벡터(mean pooling + L2 정규화)
+ * @returns 임베딩 벡터(mean pooling + L2 정규화)
  */
 export async function embed(text: string): Promise<number[]> {
   const extractor = await loadExtractor();

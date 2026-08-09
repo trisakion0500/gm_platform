@@ -5,7 +5,8 @@ import logger from "../utils/logger";
 
 // 모델 출력 차원(Xenova/multilingual-e5-base)과 일치해야 한다 — 모델 교체 시 반드시 함께 바꾸고 재인덱싱해야 한다
 // (차원이 다르면 rebuildAndSwap이 새 물리 컬렉션을 만들어 자동으로 맞춰주지만, 이 상수 자체는 수동 동기화 필요).
-const VECTOR_SIZE = 768;
+// export하는 이유: reindex.ts의 매니페스트가 이 값을 함께 해시해, 값만 바뀌어도 재인덱싱 대상임을 감지하게 한다.
+export const VECTOR_SIZE = 768;
 
 // env.qdrant.collection("gm_docs")은 물리 컬렉션이 아니라 항상 이 이름의 alias를 가리킨다(아래 rebuildAndSwap 참고).
 const ALIAS = env.qdrant.collection;
