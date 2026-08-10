@@ -40,6 +40,10 @@ export const env = {
     password: process.env.DB_PASSWORD!,
     name: process.env.DB_NAME!, // 이 값은 절대 null/undefined가 아님
     connectionLimit: Number(process.env.DB_CONNECTION_LIMIT ?? 10), // 인스턴스당 풀 크기, 기본 10 (스케일아웃 시 총 커넥션 = 이 값 × 인스턴스 수)
+    // 부팅 시 최초 연결 확인을 지수 백오프로 재시도할 최대 누적 시간(ms) — MySQL 컨테이너가 이 서버보다
+    // 늦게 뜨는 배포 순서에서도 즉시 종료하지 않고 기다릴 수 있게 한다. 이미 부팅된 이후 런타임 중
+    // MySQL 장애는 callSP()가 매 요청 단위로 이미 처리하므로 이 값과 무관하다(app.ts의 connectWithRetry).
+    bootRetryMaxMs: Number(process.env.DB_BOOT_RETRY_MAX_MS ?? 60000),
   },
   // log_audit 전용 DB — 메인 DB와 같은 VM/인스턴스라는 보장이 없어 완전히 별도인 pool로 관리 (server/src/config/db.ts의 logPool)
   logDb: {

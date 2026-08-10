@@ -36,7 +36,7 @@ rag_server/
 ├── data/                        # gitignore 대상 (index-manifest.json — 파일별 SHA-256 해시)
 ├── logs/                        # gitignore 대상 (app.log/error.log, log4js dateFile)
 └── src/
-    ├── app.ts                   # 엔트리포인트 — listen() 즉시 호출, 백그라운드로 임베더 warmUp() → 매니페스트 비교 → 필요시 reindex.ts 재사용, 완료 시 readiness.markReady()
+    ├── app.ts                   # 엔트리포인트 — listen() 즉시 호출, 백그라운드로 임베더 warmUp() → 매니페스트 비교 → 필요시 reindex.ts 재사용(실패 시 지수 백오프 재시도, §3.5), 완료 시 readiness.markReady()
     ├── readiness.ts             # app.ts 부팅(모델 로딩+필요시 재인덱싱) 완료 여부 — embedder.ts의 isReady()(모델 로딩만 반영)와 별개로 둔 검색 게이팅용 전역 상태(순환참조 회피)
     ├── config/
     │   ├── env.ts                # dotenv 로드 및 검증
@@ -109,6 +109,8 @@ rag_server/
 ## 3.5 준비 상태(readiness)
 
 `app.ts`는 `listen()`을 즉시 호출해 서버 자체는 곧장 기동하고, 백그라운드로 모델 로딩(`embedder.ts`의 `warmUp()`) → 필요시 재인덱싱까지 마쳐야 `readiness.ts`의 `isReady()`가 `true`가 된다. 준비 전 `POST /search`는 붙잡아두지 않고 즉시 503(`MODEL_LOADING`)을 반환하며, `GET /health`도 같은 상태를 `loading`/`ok`로 노출한다.
+
+`warmUp()`+`reindexIfChanged()`가 실패하면(예: MySQL/Qdrant가 이 서버보다 늦게 뜨는 배포 순서) `app.ts`의 `bootstrapWithRetry()`가 지수 백오프(1s→2s→4s→...,최대 10s 간격)로 재시도한다. `RAG_BOOT_RETRY_MAX_MS`(기본 60초) 누적 시간 안에 성공 못 하면 포기하고 리턴한다 — 이때 프로세스는 종료하지 않으며(`server/`의 부팅 재시도와 달리 `process.exit()`을 호출하지 않음), `markReady()`가 끝내 호출되지 않아 재시작 전까지 `GET /health`가 `loading`으로 남는다. `warmUp()`은 이미 성공한 뒤에는 캐시된 결과를 즉시 반환하므로(`embedder.ts`), 반복 호출은 `reindexIfChanged()` 쪽 재시도 비용만 든다. 이미 `markReady()`된 이후(런타임 중) 발생하는 Qdrant 장애는 이 재시도 대상이 아니다 — `store.ts`의 `withSocketRetry()`·Qdrant 클라이언트 타임아웃(§3.3)으로 개별 요청 단위에서 이미 격리된다.
 
 ## 3.6 인증
 
@@ -199,6 +201,7 @@ Claude Code CLI뿐 아니라 Claude 데스크탑 앱의 MCP 커넥터로도 동�
 | `QDRANT_API_KEY` | Qdrant API 키 | — |
 | `QDRANT_COLLECTION` | 사용할 컬렉션명(alias) | `gm_docs` |
 | `QDRANT_TIMEOUT_MS` | Qdrant 클라이언트 응답 대기 타임아웃(ms, §3.3) — 검색·재인덱싱 upsert 모두에 적용되는 전역값이라 `reindex.ts`의 `LOCK_TIMEOUT_MS`와 맞춰뒀다 | `60000` |
+| `RAG_BOOT_RETRY_MAX_MS` | 부팅 시 모델 로딩+재인덱싱(`warmUp`/`reindexIfChanged`) 재시도 최대 누적 시간(ms, §3.5) | `60000` |
 | `RAG_API_KEY` | `X-API-Key` 헤더 검증값. 미설정 시 검증 스킵(로컬 개발용) — 실사용 전 반드시 설정 | — |
 | `DB_HOST`/`DB_PORT`/`DB_USER`/`DB_PASSWORD`/`DB_NAME` | GM Platform 본체(`server/`)와 동일한 MySQL 접속 정보 — 재인덱싱 상호배제용 advisory lock(`SP_LOCK_ACQUIRE`/`SP_LOCK_RELEASE`)만 재사용, rag_server 전용 테이블 없음 | — (전부 필수) |
 

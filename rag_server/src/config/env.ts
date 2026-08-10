@@ -33,6 +33,11 @@ export const env = {
     // "실측 재구축 시간보다 넉넉하게"라는 동일한 여유 기준)와 맞춰 기본값을 60000ms로 둔다.
     timeoutMs: Number(process.env.QDRANT_TIMEOUT_MS ?? 60000),
   },
+  // 부팅 시 임베딩 모델 로딩+재인덱싱(warmUp/reindexIfChanged, app.ts의 bootstrap())을 지수 백오프로
+  // 재시도할 최대 누적 시간(ms) — MySQL/Qdrant가 이 서버보다 늦게 뜨는 배포 순서에서도 즉시 포기하지
+  // 않고 기다린다. 이미 markReady() 이후 런타임 중 Qdrant 장애는 withSocketRetry()·검색 요청 단위
+  // 타임아웃으로 이미 별도 처리되므로 이 값과 무관 — 여기서 다루는 건 부팅 시점 최초 준비뿐이다.
+  bootRetryMaxMs: Number(process.env.RAG_BOOT_RETRY_MAX_MS ?? 60000),
   // rag_server 호출자(GM Platform server, MCP 클라이언트) 검증용 공유키.
   // 미설정 시(로컬 개발용) apiKeyAuth 미들웨어가 검증을 건너뛴다 — 실사용 전 반드시 설정해야 한다(docs/21_RAG_SERVER.md §3).
   apiKey: process.env.RAG_API_KEY || null,
