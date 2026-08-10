@@ -101,6 +101,32 @@ GM Platform은 **회사 → 프로젝트 → API** 계층 구조로 데이터 �
 | 상태 관리 | Zustand               |
 | HTTP      | Axios                 |
 
+**MCP 서버** (`mcp_server_dev/`, `mcp_server_pc/`)
+
+| 항목      | 스택                                |
+| --------- | ------------------------------------ |
+| Runtime   | Node.js 22 LTS + TypeScript           |
+| Protocol  | MCP (Model Context Protocol, stdio)   |
+| SDK       | `@modelcontextprotocol/sdk`           |
+| 입력 검증 | Zod                                  |
+| HTTP      | Axios (GM Platform REST API 호출)     |
+| 로깅      | log4js                               |
+
+> LLM(Claude Code / Claude Desktop)이 GM Platform을 자연어로 조작할 수 있도록 REST API를 MCP tool로 감싼 stdio 서버. 로그인 계정의 `role_code`에 따라 노출 tool을 동적으로 게이팅한다.
+
+**RAG 서버** (`rag_server/`)
+
+| 항목      | 스택                                                       |
+| --------- | ------------------------------------------------------------ |
+| Runtime   | Node.js 22 LTS + TypeScript                                  |
+| Framework | Express                                                      |
+| Vector DB | Qdrant 1.11.0                                                |
+| 임베딩    | `@xenova/transformers` (multilingual-e5-base, 로컬 추론)     |
+| DB        | mysql2 (advisory lock 전용 — 스키마 직접 접근 없음)          |
+| 로깅      | log4js                                                       |
+
+> 설계 문서(`docs/*.md`+`README.md`)를 자연어로 검색하는 독립 서비스. GM Platform 스키마를 모르는 별도 MSA 경계로 설계했고, 재인덱싱은 Qdrant collection alias 원자적 스왑 + MySQL advisory lock으로 안전하게 처리한다.
+
 ---
 
 ## 주요 기능
