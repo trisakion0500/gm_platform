@@ -51,6 +51,8 @@ GM Platform은 **회사 → 프로젝트 → API** 계층 구조로 데이터 �
 
 지금은 하나의 조직이 여러 게임 타이틀을 통합 관리하는 시나리오에 맞춰져 있지만, 회사 단위 격리가 이미 데이터 모델에 반영되어 있어 추후 여러 고객사가 하나의 플랫폼을 공유하는 SaaS 형태로 확장할 때도 테이블 구조를 크게 바꾸지 않고 접근할 수 있다.
 
+![Company-Project-API 데이터 격리 계층](docs/svg/data_hierarchy.svg)
+
 ---
 
 ## 향후 확장 아이디어
@@ -126,6 +128,10 @@ GM Platform은 **회사 → 프로젝트 → API** 계층 구조로 데이터 �
 | 로깅      | log4js                                                       |
 
 > 설계 문서(`docs/*.md`+`README.md`)를 자연어로 검색하는 독립 서비스. GM Platform 스키마를 모르는 별도 MSA 경계로 설계했고, 재인덱싱은 Qdrant collection alias 원자적 스왑 + MySQL advisory lock으로 안전하게 처리한다.
+
+**시스템 아키텍처**
+
+![시스템 아키텍처](docs/svg/system_architecture.svg)
 
 ---
 
