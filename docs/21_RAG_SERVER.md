@@ -47,17 +47,22 @@ rag_server/
     │   ├── embedder.ts           # @xenova/transformers pipeline('feature-extraction', model) 래퍼 + isReady()/warmUp() 논블로킹 로딩
     │   └── chunker.ts            # docs/*.md + README.md 헤딩 분할
     ├── index/
-    │   ├── store.ts              # Qdrant 컬렉션 생성/upsert/검색 래퍼 + alias 원자적 스왑(rebuildAndSwap)
-    │   ├── manifest.ts           # data/index-manifest.json 읽기/쓰기 — 파일별 SHA-256 해시로 변경 여부 판단
-    │   ├── reindex.ts            # 청킹→임베딩→Qdrant 재구축 흐름 + config/db.ts의 runExclusive로 감싼 forceReindex()/reindexIfChanged() — build.ts와 app.ts 부팅 시 각각 재사용
-    │   └── build.ts               # `npm run build-index` 진입점 — forceReindex()를 호출하는 CLI 래퍼
+    │   ├── store.ts              # Qdrant 컬렉션 생성/upsert/검색 래퍼(gm_docs/gm_apis 공용 저수준 함수 + 각 컬렉션 전용 얇은 wrapper) + alias 원자적 스왑
+    │   ├── manifest.ts           # data/index-manifest.json 읽기/쓰기 — 파일별 SHA-256 해시로 변경 여부 판단(gm_docs 전용, gm_apis는 매니페스트 없이 §10.2의 자가치유만 사용)
+    │   ├── reindex.ts            # gm_docs — 청킹→임베딩→Qdrant 재구축 흐름 + config/db.ts의 runExclusive로 감싼 forceReindex()/reindexIfChanged() — build.ts와 app.ts 부팅 시 각각 재사용
+    │   ├── build.ts               # `npm run build-index` 진입점 — forceReindex()를 호출하는 CLI 래퍼
+    │   ├── apiReindex.ts         # gm_apis(Phase 2, §10.2) — upsertOneApi(push 수신 증분)/rebuild(pull 기반 전체 재구축)/apiReindexIfChanged(부팅 자가치유)/forceReindexApis
+    │   └── buildApis.ts          # `npm run build-index-apis` 진입점 — forceReindexApis()를 호출하는 CLI 래퍼
     ├── routes/
     │   ├── search.ts             # POST /search
+    │   ├── apiSearch.ts          # POST /apis/search, POST /apis/reindex (§10.2)
     │   └── health.ts             # GET /health
     ├── controllers/
-    │   └── search.controller.ts
+    │   ├── search.controller.ts
+    │   └── apiSearch.controller.ts
     ├── services/
-    │   └── search.service.ts
+    │   ├── search.service.ts
+    │   └── apiSearch.service.ts  # project_roles → Qdrant should 필터 변환(§10.2 "스코핑")
     ├── middleware/
     │   ├── apiKeyAuth.ts         # test_game_server와 동일 패턴 — X-API-Key 상수시간 비교
     │   ├── errorHandler.ts
@@ -381,20 +386,21 @@ rag_server 부팅 시 gm_apis 컬렉션이 비어있음(최초 배포 또는 외
 
 ### Stage 진행 상황
 
-설계는 확정됐고(위 전체) 구현은 아직이다.
+설계는 확정됐고(위 전체) 구현이 진행 중이다.
 
-**Stage A — rag_server 코어 (예정)**
-- ⬜ `store.ts` 컬렉션 파라미터화(`gm_docs`/`gm_apis` 공용, 새 파일로 복제 안 함)
-- ⬜ `gm_apis` 인덱싱(`index/apiReindex.ts` — push 수신 upsert, pull 기반 전체 재구축, 부팅 자가치유)
-- ⬜ `POST /apis/search`/`POST /apis/reindex`
-- ⬜ `npm run build-index-apis` CLI
+**Stage A — rag_server 코어 (완료)**
+- ✅ `store.ts` 컬렉션 파라미터화(`gm_docs`/`gm_apis` 공용, 새 파일로 복제 안 함 — 기존 `reindex.ts`/`search.service.ts`는 무변경)
+- ✅ `gm_apis` 인덱싱(`index/apiReindex.ts` — `upsertOneApi`로 push 수신 증분 upsert, `rebuild`로 pull 기반 전체 재구축, `apiReindexIfChanged`로 부팅 자가치유)
+- ✅ `POST /apis/search`(`services/apiSearch.service.ts`의 project_roles→Qdrant `should` 필터 변환, fail-closed 검증)/`POST /apis/reindex`
+- ✅ `npm run build-index-apis` CLI(`index/buildApis.ts`), `app.ts`의 `bootstrapWithRetry()`에 `apiReindexIfChanged()` 편입(새 재시도 루프 없음)
 
-**Stage B — 아웃박스 동기화 (예정)**
-- ⬜ `api_index_sync_queue` 테이블 + SP 6개 수정 + SP 3개 신규
-- ⬜ `server/src/jobs/apiIndexSync.job.ts`
+**Stage B — 아웃박스 동기화 (진행 중)**
+- ✅ `api_index_sync_queue` 테이블 + SP 6개 수정(같은 트랜잭션 내 `ON DUPLICATE KEY UPDATE` dedup) + SP 3개 신규(`SP_GET_PENDING_API_INDEX_SYNC`/`SP_DELETE_API_INDEX_SYNC`/`SP_MARK_API_INDEX_SYNC_FAILED`)
+- ⬜ `server/src/jobs/apiIndexSync.job.ts`(큐 폴링 → `getApi` 조립 → `POST /apis/reindex` push)
 
-**Stage C — GM Platform `server/` 프록시 (예정)**
-- ⬜ `GET /api-search`, `GET /internal/apis` + `ragKeyAuth.ts`
+**Stage C — GM Platform `server/` 프록시 (진행 중)**
+- ✅ `GET /internal/apis`(`services/internal.service.ts` — `SP_GET_PROJECT_LIST(role_code=10)` → 프로젝트별 `SP_GET_API_LIST` → API별 `SP_GET_API` 조합, 새 SP 없음) + `middleware/ragKeyAuth.ts`
+- ⬜ `GET /api-search`(`resolveApiProjectRoles` — 메인 DB `SP_GET_USER_ROLE_LIST` 기준 프로젝트별 실제 role_code 계산 후 rag_server에 전달)
 - ⬜ Swagger 문서 반영, `tests/api_test.ps1` 신규 섹션(스모크 + 프로젝트/역할 교차 스코핑 회귀)
 
 **범위 밖**
