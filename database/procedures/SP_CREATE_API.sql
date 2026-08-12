@@ -21,14 +21,18 @@ BEGIN
 --        먼저 검증한 뒤 이 SP를 호출해, 그 사이 권한이 회수되어도 통과하는 TOCTOU 창이 있었음)
 -- 수정 : 2026-08-09 trisakion - UNIQUE 제약 위반(MySQL 1062)을 32001로 매핑하는 전용 핸들러 추가
 --        (사전 중복검사 이후 동시 요청이 끼어드는 TOCTOU 레이스 시 50001 대신 32001로 정확히 응답)
+-- 수정 : 2026-08-12 trisakion - api_index_sync_queue INSERT 추가(같은 트랜잭션, ON DUPLICATE KEY UPDATE로
+--        dedup) - RAG Phase 2(API 정의 검색) rag_server 동기화용 아웃박스 큐 적재
 -- 내용 : API 등록
 --        project 존재 및 활성 검사 (31002)
 --        SUPER_ADMIN 외 대상 프로젝트에 DEVELOPER 활성 권한 없음 → 20001
 --        api_code 프로젝트 내 중복 검사 (32001)
 --        초기값 : api_stage=20(개발), status=1(사용)
--- 테이블 적용 순서 : api
+-- 테이블 적용 순서 : api → api_index_sync_queue
 -- --------------------------------- --
 
+    DECLARE v_now               DATETIME DEFAULT NOW();
+    DECLARE v_api_id            BIGINT;
     DECLARE v_actual_role_code  INT;
 
     DECLARE sql_state      CHAR(5)       DEFAULT '00000';
@@ -81,6 +85,11 @@ BEGIN
                 20, i_is_required_approval, i_response_view_type,
                 1, i_display_order, i_created_by, i_created_by
             );
+            SET v_api_id = LAST_INSERT_ID();
+
+            INSERT INTO `api_index_sync_queue` (`api_id`, `attempt_count`, `last_error`, `updated_at`)
+            VALUES (v_api_id, 0, NULL, v_now)
+            ON DUPLICATE KEY UPDATE `attempt_count` = 0, `last_error` = NULL, `updated_at` = v_now;
 
         COMMIT;
 
@@ -89,7 +98,7 @@ BEGIN
                `api_stage`, `is_required_approval`, `response_view_type`,
                `status`, `display_order`, `created_by`, `updated_by`, `created_at`, `updated_at`
         FROM `api`
-        WHERE `api_id` = LAST_INSERT_ID();
+        WHERE `api_id` = v_api_id;
 
     END;
 

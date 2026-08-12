@@ -20,14 +20,17 @@ BEGIN
 --        얻도록 SELECT INTO로 변경.
 -- 수정 : 2026-08-09 trisakion - UNIQUE 제약 위반(MySQL 1062)을 32001로 매핑하는 전용 핸들러 추가
 --        (사전 중복검사 이후 동시 요청이 끼어드는 TOCTOU 레이스 시 50001 대신 32001로 정확히 응답)
+-- 수정 : 2026-08-12 trisakion - api_index_sync_queue INSERT 추가(같은 트랜잭션, ON DUPLICATE KEY UPDATE로
+--        dedup) - RAG Phase 2(API 정의 검색) rag_server 동기화용 아웃박스 큐 적재
 -- 내용 : API Response 파라미터 등록
 --        api 존재 검사 (31006)
 --        SUPER_ADMIN 외 대상 프로젝트에 DEVELOPER 활성 권한 없음 → 20001
 --        parameter_name API 내 중복 검사 (32001)
 --        등록 시 api.api_stage = 20 자동 설정
--- 테이블 적용 순서 : api_response → api
+-- 테이블 적용 순서 : api_response → api → api_index_sync_queue
 -- --------------------------------- --
 
+    DECLARE v_now              DATETIME DEFAULT NOW();
     DECLARE v_project_id       BIGINT;
     DECLARE v_actual_role_code INT;
 
@@ -86,6 +89,10 @@ BEGIN
             SET `api_stage`  = 20,
                 `updated_by` = i_created_by
             WHERE `api_id` = i_api_id;
+
+            INSERT INTO `api_index_sync_queue` (`api_id`, `attempt_count`, `last_error`, `updated_at`)
+            VALUES (i_api_id, 0, NULL, v_now)
+            ON DUPLICATE KEY UPDATE `attempt_count` = 0, `last_error` = NULL, `updated_at` = v_now;
 
         COMMIT;
 

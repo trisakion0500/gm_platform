@@ -321,14 +321,18 @@ BEGIN
 --        먼저 검증한 뒤 이 SP를 호출해, 그 사이 권한이 회수되어도 통과하는 TOCTOU 창이 있었음)
 -- 수정 : 2026-08-09 trisakion - UNIQUE 제약 위반(MySQL 1062)을 32001로 매핑하는 전용 핸들러 추가
 --        (사전 중복검사 이후 동시 요청이 끼어드는 TOCTOU 레이스 시 50001 대신 32001로 정확히 응답)
+-- 수정 : 2026-08-12 trisakion - api_index_sync_queue INSERT 추가(같은 트랜잭션, ON DUPLICATE KEY UPDATE로
+--        dedup) - RAG Phase 2(API 정의 검색) rag_server 동기화용 아웃박스 큐 적재
 -- 내용 : API 등록
 --        project 존재 및 활성 검사 (31002)
 --        SUPER_ADMIN 외 대상 프로젝트에 DEVELOPER 활성 권한 없음 → 20001
 --        api_code 프로젝트 내 중복 검사 (32001)
 --        초기값 : api_stage=20(개발), status=1(사용)
--- 테이블 적용 순서 : api
+-- 테이블 적용 순서 : api → api_index_sync_queue
 -- --------------------------------- --
 
+    DECLARE v_now               DATETIME DEFAULT NOW();
+    DECLARE v_api_id            BIGINT;
     DECLARE v_actual_role_code  INT;
 
     DECLARE sql_state      CHAR(5)       DEFAULT '00000';
@@ -381,6 +385,11 @@ BEGIN
                 20, i_is_required_approval, i_response_view_type,
                 1, i_display_order, i_created_by, i_created_by
             );
+            SET v_api_id = LAST_INSERT_ID();
+
+            INSERT INTO `api_index_sync_queue` (`api_id`, `attempt_count`, `last_error`, `updated_at`)
+            VALUES (v_api_id, 0, NULL, v_now)
+            ON DUPLICATE KEY UPDATE `attempt_count` = 0, `last_error` = NULL, `updated_at` = v_now;
 
         COMMIT;
 
@@ -389,7 +398,7 @@ BEGIN
                `api_stage`, `is_required_approval`, `response_view_type`,
                `status`, `display_order`, `created_by`, `updated_by`, `created_at`, `updated_at`
         FROM `api`
-        WHERE `api_id` = LAST_INSERT_ID();
+        WHERE `api_id` = v_api_id;
 
     END;
 
@@ -553,15 +562,19 @@ BEGIN
 --        얻도록 SELECT INTO로 변경.
 -- 수정 : 2026-08-09 trisakion - UNIQUE 제약 위반(MySQL 1062)을 32001로 매핑하는 전용 핸들러 추가
 --        (사전 중복검사 이후 동시 요청이 끼어드는 TOCTOU 레이스 시 50001 대신 32001로 정확히 응답)
+-- 수정 : 2026-08-12 trisakion - api_index_sync_queue INSERT 추가(같은 트랜잭션, ON DUPLICATE KEY UPDATE로
+--        dedup) - RAG Phase 2(API 정의 검색) rag_server 동기화용 아웃박스 큐 적재. api_request 변경도
+--        소속 api의 검색 인덱스(요청 파라미터 포함)를 최신으로 유지해야 하므로 api_id 기준으로 적재.
 -- 내용 : API Request 파라미터 등록
 --        api 존재 검사 (31006)
 --        SUPER_ADMIN 외 대상 프로젝트에 DEVELOPER 활성 권한 없음 → 20001
 --        parameter_name API 내 중복 검사 (32001)
 --        component_type 5/6/7 이면 code_group_id > 0 필수 (30003)
 --        등록 시 api.api_stage = 20 자동 설정
--- 테이블 적용 순서 : api_request → api
+-- 테이블 적용 순서 : api_request → api → api_index_sync_queue
 -- --------------------------------- --
 
+    DECLARE v_now              DATETIME DEFAULT NOW();
     DECLARE v_project_id       BIGINT;
     DECLARE v_actual_role_code INT;
 
@@ -629,6 +642,10 @@ BEGIN
                 `updated_by` = i_created_by
             WHERE `api_id` = i_api_id;
 
+            INSERT INTO `api_index_sync_queue` (`api_id`, `attempt_count`, `last_error`, `updated_at`)
+            VALUES (i_api_id, 0, NULL, v_now)
+            ON DUPLICATE KEY UPDATE `attempt_count` = 0, `last_error` = NULL, `updated_at` = v_now;
+
         COMMIT;
 
         SELECT 0 AS RESULT;
@@ -666,14 +683,17 @@ BEGIN
 --        얻도록 SELECT INTO로 변경.
 -- 수정 : 2026-08-09 trisakion - UNIQUE 제약 위반(MySQL 1062)을 32001로 매핑하는 전용 핸들러 추가
 --        (사전 중복검사 이후 동시 요청이 끼어드는 TOCTOU 레이스 시 50001 대신 32001로 정확히 응답)
+-- 수정 : 2026-08-12 trisakion - api_index_sync_queue INSERT 추가(같은 트랜잭션, ON DUPLICATE KEY UPDATE로
+--        dedup) - RAG Phase 2(API 정의 검색) rag_server 동기화용 아웃박스 큐 적재
 -- 내용 : API Response 파라미터 등록
 --        api 존재 검사 (31006)
 --        SUPER_ADMIN 외 대상 프로젝트에 DEVELOPER 활성 권한 없음 → 20001
 --        parameter_name API 내 중복 검사 (32001)
 --        등록 시 api.api_stage = 20 자동 설정
--- 테이블 적용 순서 : api_response → api
+-- 테이블 적용 순서 : api_response → api → api_index_sync_queue
 -- --------------------------------- --
 
+    DECLARE v_now              DATETIME DEFAULT NOW();
     DECLARE v_project_id       BIGINT;
     DECLARE v_actual_role_code INT;
 
@@ -732,6 +752,10 @@ BEGIN
             SET `api_stage`  = 20,
                 `updated_by` = i_created_by
             WHERE `api_id` = i_api_id;
+
+            INSERT INTO `api_index_sync_queue` (`api_id`, `attempt_count`, `last_error`, `updated_at`)
+            VALUES (i_api_id, 0, NULL, v_now)
+            ON DUPLICATE KEY UPDATE `attempt_count` = 0, `last_error` = NULL, `updated_at` = v_now;
 
         COMMIT;
 
@@ -1217,6 +1241,41 @@ BEGIN
         WHERE ur.`user_id` = i_user_id AND ur.`project_id` = i_project_id;
 
     END;
+
+END$
+
+DELIMITER ;
+
+DROP PROCEDURE IF EXISTS SP_DELETE_API_INDEX_SYNC;
+DELIMITER $
+CREATE PROCEDURE SP_DELETE_API_INDEX_SYNC(
+    IN  i_sync_id  BIGINT  -- 삭제할 동기화 큐 ID
+) COMMENT 'rag_server 동기화 성공 후 큐 행 삭제 - 접근제어 없음(내부 배치 전용)'
+BEGIN
+-- --------------------------------- --
+-- 명칭 : SP_DELETE_API_INDEX_SYNC
+-- 작성 : 2026-08-12 trisakion
+-- 내용 : apiIndexSync.job.ts(server/) 전용 내부 배치 - rag_server push 성공 시 호출.
+--        이미 삭제된 sync_id(ROW_COUNT=0)여도 오류로 취급하지 않는다 - 워커가 재시도 중 중복
+--        삭제를 시도해도 안전해야 하기 때문(다른 SP들의 "ROW_COUNT()=0 체크" 관례와 달리
+--        여기서는 idempotent 삭제가 정확한 의미).
+-- --------------------------------- --
+
+    DECLARE sql_state      CHAR(5)       DEFAULT '00000';
+    DECLARE error_no       INT           DEFAULT 0;
+    DECLARE error_message  VARCHAR(255)  DEFAULT '';
+    DECLARE EXIT HANDLER FOR SQLEXCEPTION
+    BEGIN
+        GET DIAGNOSTICS CONDITION 1
+            sql_state     = RETURNED_SQLSTATE,
+            error_no      = MYSQL_ERRNO,
+            error_message = MESSAGE_TEXT;
+        SELECT 99 AS RESULT, sql_state AS SQL_STATE, error_no AS ERROR_NO, error_message AS ERROR_MESSAGE;
+    END;
+
+    DELETE FROM `api_index_sync_queue` WHERE `sync_id` = i_sync_id;
+
+    SELECT 0 AS RESULT;
 
 END$
 
@@ -2206,6 +2265,41 @@ END$
 
 DELIMITER ;
 
+DROP PROCEDURE IF EXISTS SP_GET_PENDING_API_INDEX_SYNC;
+DELIMITER $
+CREATE PROCEDURE SP_GET_PENDING_API_INDEX_SYNC(
+    IN  i_limit  INT  -- 한 번에 조회할 최대 건수
+) COMMENT 'rag_server 동기화 대기 중인 API 목록 조회 - sync_id 오름차순(오래된 순), 접근제어 없음(내부 배치 전용)'
+BEGIN
+-- --------------------------------- --
+-- 명칭 : SP_GET_PENDING_API_INDEX_SYNC
+-- 작성 : 2026-08-12 trisakion
+-- 내용 : apiIndexSync.job.ts(server/) 전용 내부 배치 조회 - 컨트롤러/라우트 없이 job이 직접 호출한다.
+--        sync_id 오름차순으로 오래된 순 i_limit건 반환
+-- --------------------------------- --
+
+    DECLARE sql_state      CHAR(5)       DEFAULT '00000';
+    DECLARE error_no       INT           DEFAULT 0;
+    DECLARE error_message  VARCHAR(255)  DEFAULT '';
+    DECLARE EXIT HANDLER FOR SQLEXCEPTION
+    BEGIN
+        GET DIAGNOSTICS CONDITION 1
+            sql_state     = RETURNED_SQLSTATE,
+            error_no      = MYSQL_ERRNO,
+            error_message = MESSAGE_TEXT;
+        SELECT 99 AS RESULT, sql_state AS SQL_STATE, error_no AS ERROR_NO, error_message AS ERROR_MESSAGE;
+    END;
+
+    SELECT 0 AS RESULT;
+    SELECT `sync_id`, `api_id`, `attempt_count`, `last_error`
+    FROM `api_index_sync_queue`
+    ORDER BY `sync_id` ASC
+    LIMIT i_limit;
+
+END$
+
+DELIMITER ;
+
 DROP PROCEDURE IF EXISTS SP_GET_PROJECT;
 DELIMITER $
 CREATE PROCEDURE SP_GET_PROJECT(
@@ -3000,6 +3094,45 @@ END$
 
 DELIMITER ;
 
+DROP PROCEDURE IF EXISTS SP_MARK_API_INDEX_SYNC_FAILED;
+DELIMITER $
+CREATE PROCEDURE SP_MARK_API_INDEX_SYNC_FAILED(
+    IN  i_sync_id  BIGINT,       -- 실패 처리할 동기화 큐 ID
+    IN  i_error    VARCHAR(500)  -- 실패 사유
+) COMMENT 'rag_server 동기화 실패 시 재시도 카운트/사유 갱신 - 접근제어 없음(내부 배치 전용)'
+BEGIN
+-- --------------------------------- --
+-- 명칭 : SP_MARK_API_INDEX_SYNC_FAILED
+-- 작성 : 2026-08-12 trisakion
+-- 내용 : apiIndexSync.job.ts(server/) 전용 내부 배치 - rag_server push 실패 시 호출.
+--        행을 삭제하지 않고 attempt_count 증가 + last_error 갱신만 하여 다음 tick에
+--        무기한 재시도한다(별도 dead-letter 없음 - "시간차는 있어도 결국 반드시 일치"라는
+--        설계 의도).
+-- --------------------------------- --
+
+    DECLARE sql_state      CHAR(5)       DEFAULT '00000';
+    DECLARE error_no       INT           DEFAULT 0;
+    DECLARE error_message  VARCHAR(255)  DEFAULT '';
+    DECLARE EXIT HANDLER FOR SQLEXCEPTION
+    BEGIN
+        GET DIAGNOSTICS CONDITION 1
+            sql_state     = RETURNED_SQLSTATE,
+            error_no      = MYSQL_ERRNO,
+            error_message = MESSAGE_TEXT;
+        SELECT 99 AS RESULT, sql_state AS SQL_STATE, error_no AS ERROR_NO, error_message AS ERROR_MESSAGE;
+    END;
+
+    UPDATE `api_index_sync_queue`
+    SET `attempt_count` = `attempt_count` + 1,
+        `last_error`    = i_error
+    WHERE `sync_id` = i_sync_id;
+
+    SELECT 0 AS RESULT;
+
+END$
+
+DELIMITER ;
+
 DROP PROCEDURE IF EXISTS SP_REJECT_API_EXECUTION;
 DELIMITER $
 CREATE PROCEDURE SP_REJECT_API_EXECUTION(
@@ -3273,6 +3406,8 @@ BEGIN
 --        검증+UPDATE 한 트랜잭션에서 처리(TOCTOU 창 제거, SP_CREATE_API와 동일한 이유)
 -- 수정 : 2026-08-09 trisakion - UNIQUE 제약 위반(MySQL 1062)을 32001로 매핑하는 전용 핸들러 추가
 --        (사전 중복검사 이후 동시 요청이 끼어드는 TOCTOU 레이스 시 50001 대신 32001로 정확히 응답)
+-- 수정 : 2026-08-12 trisakion - api_index_sync_queue INSERT 추가(같은 트랜잭션, ON DUPLICATE KEY UPDATE로
+--        dedup) - RAG Phase 2(API 정의 검색) rag_server 동기화용 아웃박스 큐 적재
 -- 내용 : API 수정
 --        api 존재 검사 (31006)
 --        SUPER_ADMIN 외 대상 프로젝트에 DEVELOPER 활성 권한 없음 → 20001
@@ -3280,9 +3415,10 @@ BEGIN
 --        롤백 트리거 필드(api_code/endpoint/is_required_approval/response_view_type) 변경 시
 --        api_stage 강제 20 (i_api_stage 무시)
 --        NULL 입력 시 기존 값 유지 (COALESCE)
--- 테이블 적용 순서 : api
+-- 테이블 적용 순서 : api → api_index_sync_queue
 -- --------------------------------- --
 
+    DECLARE v_now                     DATETIME DEFAULT NOW();
     DECLARE v_actual_role_code        INT;
     DECLARE v_project_id              BIGINT;
     DECLARE v_old_api_code            VARCHAR(100);
@@ -3370,6 +3506,10 @@ BEGIN
                 `status`                = COALESCE(i_status,               `status`),
                 `updated_by`            = i_updated_by
             WHERE `api_id` = i_api_id;
+
+            INSERT INTO `api_index_sync_queue` (`api_id`, `attempt_count`, `last_error`, `updated_at`)
+            VALUES (i_api_id, 0, NULL, v_now)
+            ON DUPLICATE KEY UPDATE `attempt_count` = 0, `last_error` = NULL, `updated_at` = v_now;
 
         COMMIT;
 
@@ -3478,15 +3618,19 @@ BEGIN
 --        검증+UPDATE 한 트랜잭션에서 처리(TOCTOU 창 제거). api JOIN으로 project_id 함께 조회.
 -- 수정 : 2026-08-09 trisakion - UNIQUE 제약 위반(MySQL 1062)을 32001로 매핑하는 전용 핸들러 추가
 --        (사전 중복검사 이후 동시 요청이 끼어드는 TOCTOU 레이스 시 50001 대신 32001로 정확히 응답)
+-- 수정 : 2026-08-12 trisakion - api_index_sync_queue INSERT 추가(같은 트랜잭션, ON DUPLICATE KEY UPDATE로
+--        dedup) - RAG Phase 2(API 정의 검색) rag_server 동기화용 아웃박스 큐 적재. status만 바뀌는
+--        경우(롤백 미트리거)도 검색 인덱스 반영 대상이라 v_do_rollback과 무관하게 항상 큐에 적재한다.
 -- 내용 : API Request 파라미터 수정
 --        api_request 존재 검사 (31007)
 --        SUPER_ADMIN 외 대상 프로젝트에 DEVELOPER 활성 권한 없음 → 20001
 --        parameter_name 변경 시 API 내 중복 검사 (32001)
 --        롤백 트리거 필드(parameter_name/parameter_type/component_type/code_group_id/is_required) 변경 시
 --        api.api_stage = 20 자동 설정
--- 테이블 적용 순서 : api_request → api(조건부)
+-- 테이블 적용 순서 : api_request → api(조건부) → api_index_sync_queue
 -- --------------------------------- --
 
+    DECLARE v_now                  DATETIME DEFAULT NOW();
     DECLARE v_api_id               BIGINT;
     DECLARE v_project_id           BIGINT;
     DECLARE v_actual_role_code     INT;
@@ -3584,6 +3728,10 @@ BEGIN
                 WHERE `api_id` = v_api_id;
             END IF;
 
+            INSERT INTO `api_index_sync_queue` (`api_id`, `attempt_count`, `last_error`, `updated_at`)
+            VALUES (v_api_id, 0, NULL, v_now)
+            ON DUPLICATE KEY UPDATE `attempt_count` = 0, `last_error` = NULL, `updated_at` = v_now;
+
         COMMIT;
 
         SELECT 0 AS RESULT;
@@ -3621,15 +3769,19 @@ BEGIN
 --        검증+UPDATE 한 트랜잭션에서 처리(TOCTOU 창 제거). api JOIN으로 project_id 함께 조회.
 -- 수정 : 2026-08-09 trisakion - UNIQUE 제약 위반(MySQL 1062)을 32001로 매핑하는 전용 핸들러 추가
 --        (사전 중복검사 이후 동시 요청이 끼어드는 TOCTOU 레이스 시 50001 대신 32001로 정확히 응답)
+-- 수정 : 2026-08-12 trisakion - api_index_sync_queue INSERT 추가(같은 트랜잭션, ON DUPLICATE KEY UPDATE로
+--        dedup) - RAG Phase 2(API 정의 검색) rag_server 동기화용 아웃박스 큐 적재. status만 바뀌는
+--        경우(롤백 미트리거)도 검색 인덱스 반영 대상이라 v_do_rollback과 무관하게 항상 큐에 적재한다.
 -- 내용 : API Response 파라미터 수정
 --        api_response 존재 검사 (31008)
 --        SUPER_ADMIN 외 대상 프로젝트에 DEVELOPER 활성 권한 없음 → 20001
 --        parameter_name 변경 시 API 내 중복 검사 (32001)
 --        롤백 트리거 필드(parameter_name/parameter_type/code_group_id) 변경 시
 --        api.api_stage = 20 자동 설정
--- 테이블 적용 순서 : api_response → api(조건부)
+-- 테이블 적용 순서 : api_response → api(조건부) → api_index_sync_queue
 -- --------------------------------- --
 
+    DECLARE v_now                 DATETIME DEFAULT NOW();
     DECLARE v_api_id              BIGINT;
     DECLARE v_project_id          BIGINT;
     DECLARE v_actual_role_code    INT;
@@ -3716,6 +3868,10 @@ BEGIN
                     `updated_by` = i_updated_by
                 WHERE `api_id` = v_api_id;
             END IF;
+
+            INSERT INTO `api_index_sync_queue` (`api_id`, `attempt_count`, `last_error`, `updated_at`)
+            VALUES (v_api_id, 0, NULL, v_now)
+            ON DUPLICATE KEY UPDATE `attempt_count` = 0, `last_error` = NULL, `updated_at` = v_now;
 
         COMMIT;
 

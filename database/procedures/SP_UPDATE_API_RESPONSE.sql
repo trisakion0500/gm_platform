@@ -20,15 +20,19 @@ BEGIN
 --        검증+UPDATE 한 트랜잭션에서 처리(TOCTOU 창 제거). api JOIN으로 project_id 함께 조회.
 -- 수정 : 2026-08-09 trisakion - UNIQUE 제약 위반(MySQL 1062)을 32001로 매핑하는 전용 핸들러 추가
 --        (사전 중복검사 이후 동시 요청이 끼어드는 TOCTOU 레이스 시 50001 대신 32001로 정확히 응답)
+-- 수정 : 2026-08-12 trisakion - api_index_sync_queue INSERT 추가(같은 트랜잭션, ON DUPLICATE KEY UPDATE로
+--        dedup) - RAG Phase 2(API 정의 검색) rag_server 동기화용 아웃박스 큐 적재. status만 바뀌는
+--        경우(롤백 미트리거)도 검색 인덱스 반영 대상이라 v_do_rollback과 무관하게 항상 큐에 적재한다.
 -- 내용 : API Response 파라미터 수정
 --        api_response 존재 검사 (31008)
 --        SUPER_ADMIN 외 대상 프로젝트에 DEVELOPER 활성 권한 없음 → 20001
 --        parameter_name 변경 시 API 내 중복 검사 (32001)
 --        롤백 트리거 필드(parameter_name/parameter_type/code_group_id) 변경 시
 --        api.api_stage = 20 자동 설정
--- 테이블 적용 순서 : api_response → api(조건부)
+-- 테이블 적용 순서 : api_response → api(조건부) → api_index_sync_queue
 -- --------------------------------- --
 
+    DECLARE v_now                 DATETIME DEFAULT NOW();
     DECLARE v_api_id              BIGINT;
     DECLARE v_project_id          BIGINT;
     DECLARE v_actual_role_code    INT;
@@ -115,6 +119,10 @@ BEGIN
                     `updated_by` = i_updated_by
                 WHERE `api_id` = v_api_id;
             END IF;
+
+            INSERT INTO `api_index_sync_queue` (`api_id`, `attempt_count`, `last_error`, `updated_at`)
+            VALUES (v_api_id, 0, NULL, v_now)
+            ON DUPLICATE KEY UPDATE `attempt_count` = 0, `last_error` = NULL, `updated_at` = v_now;
 
         COMMIT;
 
