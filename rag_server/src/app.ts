@@ -5,6 +5,7 @@ import { requestLogger } from "./middleware/requestLogger";
 import { errorHandler } from "./middleware/errorHandler";
 import { warmUp } from "./embedding/embedder";
 import { reindexIfChanged } from "./index/reindex";
+import { apiReindexIfChanged } from "./index/apiReindex";
 import { markReady } from "./readiness";
 import logger from "./utils/logger";
 
@@ -43,6 +44,10 @@ async function bootstrapWithRetry(): Promise<boolean> {
     try {
       await warmUp();
       await reindexIfChanged();
+      // gm_apis(RAG Phase 2) pull은 server/ GET /internal/apis에 의존하므로 server/가 이 서버보다
+      // 늦게 뜨는 배포 순서에서도 별도 재시도 루프 없이 이 지수 백오프에 그대로 편입된다
+      // (docs/21_RAG_SERVER.md §10.2 "데이터 흐름" — 새 재시도 루프를 따로 만들지 않는다는 설계 결정).
+      await apiReindexIfChanged();
       return true;
     } catch (err) {
       const elapsed = Date.now() - startedAt;

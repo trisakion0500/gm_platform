@@ -23,6 +23,9 @@ export const env = {
     url: process.env.QDRANT_URL!,
     apiKey: process.env.QDRANT_API_KEY!,
     collection: process.env.QDRANT_COLLECTION || "gm_docs",
+    // RAG Phase 2(API 정의 검색) — docs(gm_docs)와 분리된 별도 alias. store.ts가 두 alias를
+    // 공용 로직(alias 스왑·withSocketRetry 등)으로 다루되 완전히 독립된 컬렉션으로 관리한다.
+    apisCollection: process.env.QDRANT_APIS_COLLECTION || "gm_apis",
     // Qdrant 클라이언트(REST, fetch 기반)의 클라이언트 측 응답 대기 타임아웃(ms) — 라이브러리 기본값(300000ms=5분)이
     // 그대로면 Qdrant가 완전히 다운(connection refused)된 경우는 즉시 실패하지만, 응답 없이 멈춰있는 상태(hang)일
     // 땐 검색 요청 하나가 최대 5분까지 물릴 수 있었다(server/의 REDIS_COMMAND_TIMEOUT_MS와 동일한 취지의 방어가
@@ -38,9 +41,14 @@ export const env = {
   // 않고 기다린다. 이미 markReady() 이후 런타임 중 Qdrant 장애는 withSocketRetry()·검색 요청 단위
   // 타임아웃으로 이미 별도 처리되므로 이 값과 무관 — 여기서 다루는 건 부팅 시점 최초 준비뿐이다.
   bootRetryMaxMs: Number(process.env.RAG_BOOT_RETRY_MAX_MS ?? 60000),
-  // rag_server 호출자(GM Platform server, MCP 클라이언트) 검증용 공유키.
+  // rag_server 호출자(GM Platform server, MCP 클라이언트) 검증용 공유키. 방향이 반대인
+  // GET /internal/apis(server/) 호출 시에도 이 값을 그대로 X-API-Key로 실어 보낸다 — server/의
+  // ragKeyAuth.ts가 검증하는 env.rag.apiKey(RAG_API_KEY)와 동일한 값이라 공유키 하나로 양방향을 커버한다.
   // 미설정 시(로컬 개발용) apiKeyAuth 미들웨어가 검증을 건너뛴다 — 실사용 전 반드시 설정해야 한다(docs/21_RAG_SERVER.md §3).
   apiKey: process.env.RAG_API_KEY || null,
+  // RAG Phase 2(API 정의 검색) — gm_apis 컬렉션이 비어있을 때(부팅 자가치유·build-index-apis) 전체
+  // 스냅샷을 pull할 GM Platform server/의 base URL. server/의 GET /internal/apis를 호출한다.
+  gmPlatformBaseUrl: process.env.GM_PLATFORM_BASE_URL || "http://127.0.0.1:3000/api",
   // GM Platform 본체(server/)와 동일한 MySQL — rag_server 전용 테이블은 없고, 재인덱싱 인스턴스 간
   // 상호배제용 advisory lock(SP_LOCK_ACQUIRE/SP_LOCK_RELEASE)만 재사용한다(config/db.ts, docs/21_RAG_SERVER.md §3).
   db: {
