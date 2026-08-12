@@ -526,6 +526,27 @@ export interface LogAuditRow {
 }
 
 /**
+ * server/가 rag_server에 POST /apis/reindex(단건 push)·GET /internal/apis(전체 pull) 양쪽에서
+ * 공통으로 보내는 완성된 API 데이터 형태. rag_server 쪽 동명 타입(rag_server/src/types/index.ts의
+ * ApiReindexPushBody)과 필드가 정확히 일치해야 한다 — MSA 경계상 두 프로젝트가 독립적으로
+ * 이 계약을 유지한다(공유 패키지 없음).
+ * @author trisakion
+ */
+export interface ApiReindexPushBody {
+  api_id: number;
+  project_id: number;
+  project_name: string;
+  api_code: string;
+  api_name: string;
+  endpoint: string;
+  description: string | null;
+  api_stage: number;
+  status: number;
+  requests: Array<{ parameter_name: string; parameter_label: string; description: string | null }>;
+  responses: Array<{ parameter_name: string; parameter_label: string; description: string | null }>;
+}
+
+/**
  * 비즈니스 로직 오류를 표현하는 기본 오류 클래스.
  * result(비즈니스 오류 코드)와 httpStatus를 함께 보유하여 errorHandler에서 일관된 응답을 생성한다.
  * @author trisakion

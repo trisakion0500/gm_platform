@@ -33,9 +33,10 @@ const options: swaggerJsdoc.Options = {
       { name: 'ApiResponse',  description: 'API 응답 파라미터' },
       { name: 'ApiExecution', description: 'API 실행 및 승인 워크플로우' },
       { name: 'LogAudit',     description: '감사 로그' },
-      // RAG_ENABLED=false면 GET /doc-search 라우트 자체가 없으므로(routes/index.ts) 태그도 함께 뺀다 —
-      // 아래 apis(글롭 대상)에서 docSearch.ts를 제외하는 것과 짝을 맞춘 조치, 안 그러면 빈 태그 섹션만 남는다.
+      // RAG_ENABLED=false면 GET /doc-search, GET /api-search 라우트 자체가 없으므로(routes/index.ts) 태그도 함께 뺀다 —
+      // 아래 apis(글롭 대상)에서 docSearch.ts/apiSearch.ts를 제외하는 것과 짝을 맞춘 조치, 안 그러면 빈 태그 섹션만 남는다.
       ...(env.rag.enabled ? [{ name: 'DocSearch', description: '설계 문서 자연어 검색 (rag_server 연동)' }] : []),
+      ...(env.rag.enabled ? [{ name: 'ApiSearch', description: 'API 정의 자연어 검색 (rag_server 연동)' }] : []),
     ],
     components: {
       securitySchemes: {
@@ -348,12 +349,13 @@ const options: swaggerJsdoc.Options = {
     },
   },
   // routes/ 폴더 파일 존재 여부만으로 문서를 만들어 실제 라우트 등록 여부(routes/index.ts)를 모르는 게
-  // swagger-jsdoc의 기본 동작이라, RAG_ENABLED=false일 때 docSearch.ts만 명시적으로 글롭 대상에서 뺀다 —
-  // 안 그러면 실제로는 등록 안 된 GET /doc-search가 Swagger UI엔 정상 API처럼 남는 불일치가 생긴다.
+  // swagger-jsdoc의 기본 동작이라, RAG_ENABLED=false일 때 docSearch.ts/apiSearch.ts를 명시적으로 글롭 대상에서 뺀다 —
+  // 안 그러면 실제로는 등록 안 된 GET /doc-search, GET /api-search가 Swagger UI엔 정상 API처럼 남는 불일치가 생긴다.
+  // internal.ts는 @swagger 주석 자체가 없어(rag_server 전용 내부 경로, X-API-Key 인증) 걸러도 결과가 같지만 일관성 차원에서 함께 제외.
   apis: fs
     .readdirSync(routesDir)
     .filter((file) => file.endsWith(`.${routeFileExt}`))
-    .filter((file) => env.rag.enabled || file !== `docSearch.${routeFileExt}`)
+    .filter((file) => env.rag.enabled || !['docSearch', 'apiSearch', 'internal'].includes(path.basename(file, `.${routeFileExt}`)))
     .map((file) => path.join(routesDir, file)),
 };
 
