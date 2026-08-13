@@ -239,3 +239,13 @@ export interface DocSearchResult {
   text: string;
   score: number;
 }
+
+export interface ApiSearchResult {
+  api_id: number;
+  project_id: number;
+  project_name: string;
+  api_name: string;
+  api_code: string;
+  endpoint: string;
+  score: number;
+}
