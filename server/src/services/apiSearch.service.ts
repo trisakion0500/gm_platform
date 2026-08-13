@@ -47,22 +47,30 @@ async function resolveApiProjectRoles(callerUserId: number): Promise<ProjectRole
 /**
  * rag_server(POST /apis/search)에 API 정의 검색을 위임한다. docSearch.service.ts의 searchDocs()와
  * 동일하게 실패 사유를 구분하지 않고 전부 RAG_SERVICE_UNAVAILABLE(503)로 통일한다.
- * project_roles는 여기서 계산해 넘긴다 — rag_server는 JWT/role을 모르고 이 값을 그대로 신뢰한다
- * (log_audit DB가 server/가 계산한 스코프를 그대로 신뢰하는 기존 패턴과 동일한 신뢰 경계).
+ * 헤더에서 선택된 프로젝트 하나로 강제 스코핑한다(다른 프로젝트 종속 화면과 동일 원칙) — SUPER_ADMIN도
+ * 예외 없이 projectId로 좁혀서 검색하고, 그 안에서는 role_code=SUPER_ADMIN(10)이 모든 api_stage를
+ * 통과시켜 무제한과 동일한 효과를 낸다. project_roles는 여기서 계산해 넘긴다 — rag_server는
+ * JWT/role을 모르고 이 값을 그대로 신뢰한다(log_audit DB가 server/가 계산한 스코프를 그대로
+ * 신뢰하는 기존 패턴과 동일한 신뢰 경계).
  * @author trisakion
  * @param query 검색어 (자연어)
+ * @param projectId 검색을 좁힐 대상 프로젝트 ID (헤더에서 선택된 프로젝트)
  * @param topK 반환할 최대 개수 (null이면 rag_server 기본값 5 적용)
- * @param callerRoleCode 요청자 역할 코드 (SUPER_ADMIN이면 project_roles=null로 무제한 조회)
+ * @param callerRoleCode 요청자 역할 코드
  * @param callerUserId 요청자 user_id
- * @returns 유사도 내림차순 검색 결과
+ * @returns 유사도 내림차순 검색 결과 (호출자가 projectId에 실제 활성 배정이 없으면 빈 배열)
  */
 export async function searchApis(
   query: string,
+  projectId: number,
   topK: number | null,
   callerRoleCode: number,
   callerUserId: number,
 ): Promise<ApiSearchHit[]> {
-  const projectRoles = callerRoleCode === ROLE.SUPER_ADMIN ? null : await resolveApiProjectRoles(callerUserId);
+  const projectRoles: ProjectRoleFilter[] =
+    callerRoleCode === ROLE.SUPER_ADMIN
+      ? [{ project_id: projectId, role_code: ROLE.SUPER_ADMIN }]
+      : (await resolveApiProjectRoles(callerUserId)).filter((r) => r.project_id === projectId);
 
   try {
     const headers = env.rag.apiKey ? { 'X-API-Key': env.rag.apiKey } : undefined;

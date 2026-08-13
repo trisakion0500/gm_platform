@@ -303,8 +303,8 @@ rag_server 부팅 시 gm_apis 컬렉션이 비어있음(최초 배포 또는 외
 
 ### 스코핑 — `project_id` × `role_code` × `api_stage`
 
-1. `GET /api-search?q=...`가 `authenticate`를 통과하면 `req.user = {user_id, role_code, ...}` 확보.
-2. `callerRoleCode === 10`(SUPER_ADMIN)이면 무제한. 아니면 `resolveApiProjectRoles(callerUserId)`가 메인 DB에서 `SP_GET_USER_ROLE_LIST(callerUserId, null, null, 1, null)`로 활성 `user_role` 전체를 조회해 `{project_id, role_code}[]`로 변환 — `logAudit.service.ts`의 `resolveAllowedProjectIds()`와 동일한 선례(물리적으로 분리된 log_audit DB에 `server/`가 계산한 스코프를 그대로 신뢰해 넘기는 패턴)를 따르되, role_code 상한 없이(`GET /apis`가 전 역할 조회 가능이라 log_audit의 `<=30`과 다름) role_code 자체도 함께 보존한다.
+1. `GET /api-search?q=...&project_id=...`가 `authenticate`를 통과하면 `req.user = {user_id, role_code, ...}` 확보. `project_id`는 헤더에서 선택된 프로젝트로 **강제 스코핑**되는 필수 파라미터다(다른 프로젝트 종속 화면(`GET /apis` 등)과 동일 원칙 — SUPER_ADMIN도 예외 없이 하나의 project_id로 좁혀서 검색한다, `client/`도 "전체 프로젝트"(`selectedProjectId=null`) 상태에서는 이 API를 호출하지 않고 "프로젝트를 선택하세요"만 보여준다). 누락 시 30001.
+2. `callerRoleCode === 10`(SUPER_ADMIN)이면 `[{project_id, role_code: 10}]` 한 항목으로 고정(그 프로젝트 안에서는 무제한과 동치 — `role_code=10`이 모든 `api_stage`를 통과시킴). 아니면 `resolveApiProjectRoles(callerUserId)`가 메인 DB에서 `SP_GET_USER_ROLE_LIST(callerUserId, null, null, 1, null)`로 활성 `user_role` 전체를 조회한 뒤 요청받은 `project_id`로 필터링해 `{project_id, role_code}[]`(0~1개)로 변환 — `logAudit.service.ts`의 `resolveAllowedProjectIds()`와 동일한 선례(물리적으로 분리된 log_audit DB에 `server/`가 계산한 스코프를 그대로 신뢰해 넘기는 패턴)를 따르되, role_code 상한 없이(`GET /apis`가 전 역할 조회 가능이라 log_audit의 `<=30`과 다름) role_code 자체도 함께 보존한다. 호출자가 그 project_id에 실제 활성 배정이 없으면 빈 배열이 되어 rag_server가 즉시 빈 결과를 반환한다(강제 스코핑이 인가 우회를 의미하지 않음 — 접근권한 없는 프로젝트를 지정해도 에러 대신 조용히 빈 결과).
 3. `server/`가 rag_server `POST /apis/search`에 `{query, top_k, project_roles}`를 실어 호출(`project_roles: {project_id, role_code}[] | null`). **rag_server는 이 값을 그대로 신뢰한다** — JWT·role을 몰라도 되고, "호출자가 이미 검증한 프로젝트별 실제 권한"으로만 받아들인다.
 4. **역할×스테이지 실행 가능 규칙**(`client/src/components/layout/Sidebar.tsx`의 `canExecuteStage()`, `SP_CREATE_API_EXECUTION`의 검사와 동일해야 함):
    ```
@@ -372,7 +372,7 @@ rag_server 부팅 시 gm_apis 컬렉션이 비어있음(최초 배포 또는 외
 
 | 엔드포인트 | 설명 |
 |---|---|
-| `GET /api-search` | `authenticate`만 요구(전 역할 — `GET /apis`와 동일 범위). `RAG_ENABLED=false`면 `/doc-search`와 동일하게 라우트 자체 미등록. |
+| `GET /api-search` | `authenticate`만 요구(전 역할 — `GET /apis`와 동일 범위). `q`/`project_id` 둘 다 필수(`project_id`는 헤더 선택 프로젝트로 강제 스코핑, 위 "스코핑" 참고). `RAG_ENABLED=false`면 `/doc-search`와 동일하게 라우트 자체 미등록. |
 | `GET /internal/apis` | rag_server 전용 내부 엔드포인트(위 "데이터 흐름" pull 경로). 방향이 반대(rag_server→server/)라 새 미들웨어 `middleware/ragKeyAuth.ts`(`apiKeyAuth.ts`와 동일 패턴, `X-API-Key`를 `env.rag.apiKey`와 상수시간 비교)로 검증 — server/에 "JWT도 완전 공개도 아닌" 라우트가 처음 생기는 지점. |
 
 `npm run build-index-apis`(rag_server CLI) — 위 "데이터 흐름" pull 경로를 무조건 실행하는 수동 전체 재구축.
@@ -405,7 +405,7 @@ rag_server 부팅 시 gm_apis 컬렉션이 비어있음(최초 배포 또는 외
 
 **Stage D — `client/` 검색 UI (완료)**
 - ✅ `client/src/api/apiSearch.api.ts` — `GET /api-search` 호출 함수
-- ✅ `pages/main/api-search/ApiSearchPage.tsx` — Phase 1의 `DocSearchPage`와 동일 패턴(검색창 + 결과 카드, 레이스 방지용 `requestIdRef`). 결과 카드는 `api_name`+유사도, `project_name`, `api_code`+`endpoint`만 표시 — 문서 검색과 달리 결과 자체에 request/response 파라미터 상세는 없음(§10.2 payload 스키마상 원래 없는 필드), 상세가 필요하면 `api_id`로 기존 `GET /apis/:api_id`를 별도 호출해야 한다.
+- ✅ `pages/main/api-search/ApiSearchPage.tsx` — Phase 1의 `DocSearchPage`와 동일 패턴(검색창 + 결과 카드, 레이스 방지용 `requestIdRef`), 단 `globalStore.selectedProjectId`가 없으면(SUPER_ADMIN "전체 프로젝트" 상태) 검색창 자체를 숨기고 "프로젝트를 선택하세요"만 표시(위 "스코핑" 1번 — `project_id` 필수). 결과 카드는 `api_name`+유사도, `api_code`+`endpoint`만 표시 — 한 프로젝트로 스코핑되면 모든 결과의 `project_name`이 동일해 카드마다 반복 표시할 필요가 없고(헤더에 이미 선택된 프로젝트가 항상 보임), 문서 검색과 달리 결과 자체에 request/response 파라미터 상세도 없음(§10.2 payload 스키마상 원래 없는 필드) — 상세가 필요하면 `api_id`로 기존 `GET /apis/:api_id`를 별도 호출해야 한다.
 - ✅ `router/index.tsx`/`Sidebar.tsx` — `/api-search` 라우트·"API 검색" 메뉴 등록(전 역할 공용, `MAIN_MENU`), `RAG_ENABLED` 게이팅은 문서 검색과 같은 빌드타임 값 재사용(새 env 없음)
 
 **범위 밖**

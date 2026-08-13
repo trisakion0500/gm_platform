@@ -1171,11 +1171,13 @@ Check "문서 검색 - 인증 없음 #3" (Req GET "/doc-search?q=password" $null
 # ============================================================
 # 14C. API SEARCH (rag_server 연동 — rag_server(3200) 기동 + server RAG_ENABLED=true 전제)
 # ============================================================
-# 13A에서 만든 스코프 프로젝트/사용자/API를 그대로 재사용한다:
+# GET /api-search는 project_id로 강제 스코핑된다(다른 프로젝트 종속 화면과 동일 원칙, SUPER_ADMIN도
+# 예외 없음 — client의 헤더 선택 프로젝트를 그대로 실어보내는 것과 동일하게 검증). 13A에서 만든
+# 스코프 프로젝트/사용자/API를 그대로 재사용한다:
 #   project A: EA_STG20_A(stage20) / EA_APPR_A(stage40으로 승급됨)
 #   project B: EA_STG20_B(stage20) / EA_APPR_B(stage40으로 승급됨)
-#   apv: A에서 APPROVER(30), B에는 role 자체가 없음 — "프로젝트 교차 스코핑"(project_roles should절에
-#        B 항목 자체가 없어 완전히 배제됨)을 순수하게 검증하기 좋은 사용자.
+#   apv: A에서 APPROVER(30), B에는 role 자체가 없음 — "project_id를 B로 지정해도 접근권한이 없으면
+#        빈 결과"(강제 스코핑이 곧 인가 우회를 의미하지 않음)를 검증하기 좋은 사용자.
 #   op:  A/B 둘 다 OPERATOR(40) — "역할×스테이지 스코핑"(role_code<=api_stage)을 검증하기 좋은 사용자.
 #   exec: A에서 DEVELOPER(20) — stage20 API도 보여야 함(20<=20).
 # 아웃박스 워커(기본 API_INDEX_SYNC_INTERVAL_MS=15초)가 13A에서 생성된 API를 gm_apis에 반영할
@@ -1186,68 +1188,72 @@ Section "14C. API SEARCH"
 Start-Sleep -Seconds 20
 
 # --- 스모크: 형식 검증 ---
-Check "API 검색 성공 #1" (Req GET "/api-search?q=ScopeStage20A&top_k=20" $null $TOKEN)
-Check "API 검색 성공 #2" (Req GET "/api-search?q=ScopeStage20A&top_k=20" $null $TOKEN)
-Check "API 검색 성공 #3" (Req GET "/api-search?q=ScopeStage20A&top_k=20" $null $TOKEN)
+Check "API 검색 성공 #1" (Req GET "/api-search?q=ScopeStage20A&project_id=$SCOPE_PID_A&top_k=20" $null $TOKEN)
+Check "API 검색 성공 #2" (Req GET "/api-search?q=ScopeStage20A&project_id=$SCOPE_PID_A&top_k=20" $null $TOKEN)
+Check "API 검색 성공 #3" (Req GET "/api-search?q=ScopeStage20A&project_id=$SCOPE_PID_A&top_k=20" $null $TOKEN)
 
-Check "API 검색 - q 누락 #1" (Req GET "/api-search" $null $TOKEN) 30001
-Check "API 검색 - q 누락 #2" (Req GET "/api-search" $null $TOKEN) 30001
-Check "API 검색 - q 누락 #3" (Req GET "/api-search" $null $TOKEN) 30001
+Check "API 검색 - q 누락 #1" (Req GET "/api-search?project_id=$SCOPE_PID_A" $null $TOKEN) 30001
+Check "API 검색 - q 누락 #2" (Req GET "/api-search?project_id=$SCOPE_PID_A" $null $TOKEN) 30001
+Check "API 검색 - q 누락 #3" (Req GET "/api-search?project_id=$SCOPE_PID_A" $null $TOKEN) 30001
 
-Check "API 검색 - top_k 범위 초과 #1" (Req GET "/api-search?q=test&top_k=21"  $null $TOKEN) 30003
-Check "API 검색 - top_k 범위 초과 #2" (Req GET "/api-search?q=test&top_k=0"   $null $TOKEN) 30003
-Check "API 검색 - top_k 형식 오류 #3"  (Req GET "/api-search?q=test&top_k=abc" $null $TOKEN) 30003
+Check "API 검색 - project_id 누락 #1" (Req GET "/api-search?q=test" $null $TOKEN) 30001
+Check "API 검색 - project_id 누락 #2" (Req GET "/api-search?q=test" $null $TOKEN) 30001
+Check "API 검색 - project_id 누락 #3" (Req GET "/api-search?q=test" $null $TOKEN) 30001
 
-Check "API 검색 - 인증 없음 #1" (Req GET "/api-search?q=test" $null $null) 10004
-Check "API 검색 - 인증 없음 #2" (Req GET "/api-search?q=test" $null $null) 10004
-Check "API 검색 - 인증 없음 #3" (Req GET "/api-search?q=test" $null $null) 10004
+Check "API 검색 - top_k 범위 초과 #1" (Req GET "/api-search?q=test&project_id=$SCOPE_PID_A&top_k=21"  $null $TOKEN) 30003
+Check "API 검색 - top_k 범위 초과 #2" (Req GET "/api-search?q=test&project_id=$SCOPE_PID_A&top_k=0"   $null $TOKEN) 30003
+Check "API 검색 - top_k 형식 오류 #3"  (Req GET "/api-search?q=test&project_id=$SCOPE_PID_A&top_k=abc" $null $TOKEN) 30003
 
-# --- 프로젝트 교차 스코핑: apv는 B에 role 자체가 없음 ---
+Check "API 검색 - 인증 없음 #1" (Req GET "/api-search?q=test&project_id=$SCOPE_PID_A" $null $null) 10004
+Check "API 검색 - 인증 없음 #2" (Req GET "/api-search?q=test&project_id=$SCOPE_PID_A" $null $null) 10004
+Check "API 검색 - 인증 없음 #3" (Req GET "/api-search?q=test&project_id=$SCOPE_PID_A" $null $null) 10004
+
+# --- 프로젝트 강제 스코핑: apv는 B에 role 자체가 없음 → project_id=B로 검색해도 빈 결과, A는 정상 ---
 $APV_CODE_A = "SCOPE_APPR_A_$TS"
 $APV_CODE_B = "SCOPE_APPR_B_$TS"
-$searchApvA = Req GET "/api-search?q=ScopeApprA&top_k=20" $null $TOKEN_SCOPE_APV
+$searchApvA = Req GET "/api-search?q=ScopeApprA&project_id=$SCOPE_PID_A&top_k=20" $null $TOKEN_SCOPE_APV
 CheckSearchContains "API 검색 - apv 본인프로젝트(A) 정상 #1" $searchApvA $APV_CODE_A $true
-$searchApvA2 = Req GET "/api-search?q=ScopeApprA&top_k=20" $null $TOKEN_SCOPE_APV
+$searchApvA2 = Req GET "/api-search?q=ScopeApprA&project_id=$SCOPE_PID_A&top_k=20" $null $TOKEN_SCOPE_APV
 CheckSearchContains "API 검색 - apv 본인프로젝트(A) 정상 #2" $searchApvA2 $APV_CODE_A $true
-$searchApvA3 = Req GET "/api-search?q=ScopeApprA&top_k=20" $null $TOKEN_SCOPE_APV
+$searchApvA3 = Req GET "/api-search?q=ScopeApprA&project_id=$SCOPE_PID_A&top_k=20" $null $TOKEN_SCOPE_APV
 CheckSearchContains "API 검색 - apv 본인프로젝트(A) 정상 #3" $searchApvA3 $APV_CODE_A $true
 
-$searchApvB = Req GET "/api-search?q=ScopeApprB&top_k=20" $null $TOKEN_SCOPE_APV
-CheckSearchContains "API 검색 - apv 교차프로젝트(B) 제외 #1" $searchApvB $APV_CODE_B $false
-$searchApvB2 = Req GET "/api-search?q=ScopeApprB&top_k=20" $null $TOKEN_SCOPE_APV
-CheckSearchContains "API 검색 - apv 교차프로젝트(B) 제외 #2" $searchApvB2 $APV_CODE_B $false
-$searchApvB3 = Req GET "/api-search?q=ScopeApprB&top_k=20" $null $TOKEN_SCOPE_APV
-CheckSearchContains "API 검색 - apv 교차프로젝트(B) 제외 #3" $searchApvB3 $APV_CODE_B $false
+$searchApvB = Req GET "/api-search?q=ScopeApprB&project_id=$SCOPE_PID_B&top_k=20" $null $TOKEN_SCOPE_APV
+CheckSearchContains "API 검색 - apv 무권한프로젝트(B) 빈결과 #1" $searchApvB $APV_CODE_B $false
+$searchApvB2 = Req GET "/api-search?q=ScopeApprB&project_id=$SCOPE_PID_B&top_k=20" $null $TOKEN_SCOPE_APV
+CheckSearchContains "API 검색 - apv 무권한프로젝트(B) 빈결과 #2" $searchApvB2 $APV_CODE_B $false
+$searchApvB3 = Req GET "/api-search?q=ScopeApprB&project_id=$SCOPE_PID_B&top_k=20" $null $TOKEN_SCOPE_APV
+CheckSearchContains "API 검색 - apv 무권한프로젝트(B) 빈결과 #3" $searchApvB3 $APV_CODE_B $false
 
-$searchSaB = Req GET "/api-search?q=ScopeApprB&top_k=20" $null $TOKEN
+$searchSaB = Req GET "/api-search?q=ScopeApprB&project_id=$SCOPE_PID_B&top_k=20" $null $TOKEN
 CheckSearchContains "API 검색 - SUPER_ADMIN B 정상 #1" $searchSaB $APV_CODE_B $true
-$searchSaB2 = Req GET "/api-search?q=ScopeApprB&top_k=20" $null $TOKEN
+$searchSaB2 = Req GET "/api-search?q=ScopeApprB&project_id=$SCOPE_PID_B&top_k=20" $null $TOKEN
 CheckSearchContains "API 검색 - SUPER_ADMIN B 정상 #2" $searchSaB2 $APV_CODE_B $true
-$searchSaB3 = Req GET "/api-search?q=ScopeApprB&top_k=20" $null $TOKEN
+$searchSaB3 = Req GET "/api-search?q=ScopeApprB&project_id=$SCOPE_PID_B&top_k=20" $null $TOKEN
 CheckSearchContains "API 검색 - SUPER_ADMIN B 정상 #3" $searchSaB3 $APV_CODE_B $true
 
-# --- 역할×스테이지 스코핑: op는 A/B 둘 다 OPERATOR(40)이라 role_code<=api_stage로 stage20은 걸러져야 함 ---
+# --- 역할×스테이지 스코핑(모두 project A 안에서 검증): op는 OPERATOR(40)라 role_code<=api_stage로 stage20은 걸러져야 함 ---
 $OP_CODE_STG20_A = "SCOPE_STG20_A_$TS"
-$searchOpStg20 = Req GET "/api-search?q=ScopeStage20A&top_k=20" $null $TOKEN_SCOPE_OP
+$searchOpStg20 = Req GET "/api-search?q=ScopeStage20A&project_id=$SCOPE_PID_A&top_k=20" $null $TOKEN_SCOPE_OP
 CheckSearchContains "API 검색 - OPERATOR stage20 제외 #1" $searchOpStg20 $OP_CODE_STG20_A $false
-$searchOpStg20_2 = Req GET "/api-search?q=ScopeStage20A&top_k=20" $null $TOKEN_SCOPE_OP
+$searchOpStg20_2 = Req GET "/api-search?q=ScopeStage20A&project_id=$SCOPE_PID_A&top_k=20" $null $TOKEN_SCOPE_OP
 CheckSearchContains "API 검색 - OPERATOR stage20 제외 #2" $searchOpStg20_2 $OP_CODE_STG20_A $false
-$searchOpStg20_3 = Req GET "/api-search?q=ScopeStage20A&top_k=20" $null $TOKEN_SCOPE_OP
+$searchOpStg20_3 = Req GET "/api-search?q=ScopeStage20A&project_id=$SCOPE_PID_A&top_k=20" $null $TOKEN_SCOPE_OP
 CheckSearchContains "API 검색 - OPERATOR stage20 제외 #3" $searchOpStg20_3 $OP_CODE_STG20_A $false
 
-$searchOpStg40 = Req GET "/api-search?q=ScopeApprA&top_k=20" $null $TOKEN_SCOPE_OP
+$searchOpStg40 = Req GET "/api-search?q=ScopeApprA&project_id=$SCOPE_PID_A&top_k=20" $null $TOKEN_SCOPE_OP
 CheckSearchContains "API 검색 - OPERATOR stage40 정상 #1" $searchOpStg40 $APV_CODE_A $true
-$searchOpStg40_2 = Req GET "/api-search?q=ScopeApprA&top_k=20" $null $TOKEN_SCOPE_OP
+$searchOpStg40_2 = Req GET "/api-search?q=ScopeApprA&project_id=$SCOPE_PID_A&top_k=20" $null $TOKEN_SCOPE_OP
 CheckSearchContains "API 검색 - OPERATOR stage40 정상 #2" $searchOpStg40_2 $APV_CODE_A $true
-$searchOpStg40_3 = Req GET "/api-search?q=ScopeApprA&top_k=20" $null $TOKEN_SCOPE_OP
+$searchOpStg40_3 = Req GET "/api-search?q=ScopeApprA&project_id=$SCOPE_PID_A&top_k=20" $null $TOKEN_SCOPE_OP
 CheckSearchContains "API 검색 - OPERATOR stage40 정상 #3" $searchOpStg40_3 $APV_CODE_A $true
 
 # exec는 A에서 DEVELOPER(20)이라 stage20도 보여야 함(20<=20) — OPERATOR와 대비되는 회귀 포인트
-$searchExecStg20 = Req GET "/api-search?q=ScopeStage20A&top_k=20" $null $TOKEN_SCOPE_EXEC
+$searchExecStg20 = Req GET "/api-search?q=ScopeStage20A&project_id=$SCOPE_PID_A&top_k=20" $null $TOKEN_SCOPE_EXEC
 CheckSearchContains "API 검색 - DEVELOPER stage20 정상 #1" $searchExecStg20 $OP_CODE_STG20_A $true
-$searchExecStg20_2 = Req GET "/api-search?q=ScopeStage20A&top_k=20" $null $TOKEN_SCOPE_EXEC
+$searchExecStg20_2 = Req GET "/api-search?q=ScopeStage20A&project_id=$SCOPE_PID_A&top_k=20" $null $TOKEN_SCOPE_EXEC
 CheckSearchContains "API 검색 - DEVELOPER stage20 정상 #2" $searchExecStg20_2 $OP_CODE_STG20_A $true
-$searchExecStg20_3 = Req GET "/api-search?q=ScopeStage20A&top_k=20" $null $TOKEN_SCOPE_EXEC
+$searchExecStg20_3 = Req GET "/api-search?q=ScopeStage20A&project_id=$SCOPE_PID_A&top_k=20" $null $TOKEN_SCOPE_EXEC
 CheckSearchContains "API 검색 - DEVELOPER stage20 정상 #3" $searchExecStg20_3 $OP_CODE_STG20_A $true
 
 # ============================================================

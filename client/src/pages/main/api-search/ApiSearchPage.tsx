@@ -2,10 +2,12 @@ import { useRef, useState } from 'react';
 import { Alert, Card, Empty, Input, List, Space, Spin, Tag, Typography } from 'antd';
 import PageHeader from '../../../components/common/PageHeader';
 import * as apiSearchApi from '../../../api/apiSearch.api';
+import { useGlobalStore } from '../../../stores/globalStore';
 import { getErrorMessage } from '../../../utils/error';
 import type { ApiSearchResult } from '../../../types';
 
 function ApiSearchPage() {
+  const selectedProjectId = useGlobalStore((state) => state.selectedProjectId);
   const [loading, setLoading] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
   const [results, setResults] = useState<ApiSearchResult[]>([]);
@@ -14,14 +16,14 @@ function ApiSearchPage() {
   const requestIdRef = useRef(0);
 
   async function handleSearch(query: string): Promise<void> {
-    if (!query.trim())
+    if (!query.trim() || !selectedProjectId)
       return;
     const requestId = ++requestIdRef.current;
     setLoading(true);
     setErrorMessage(null);
     setResults([]);
     try {
-      const data = await apiSearchApi.searchApis(query);
+      const data = await apiSearchApi.searchApis(query, selectedProjectId);
       if (requestId !== requestIdRef.current)
         return;
       setResults(data);
@@ -34,6 +36,15 @@ function ApiSearchPage() {
       if (requestId === requestIdRef.current)
         setLoading(false);
     }
+  }
+
+  if (!selectedProjectId) {
+    return (
+      <>
+        <PageHeader title="API 검색" />
+        <Empty description="프로젝트를 선택하세요" style={{ marginTop: 80 }} />
+      </>
+    );
   }
 
   return (
@@ -71,9 +82,6 @@ function ApiSearchPage() {
                     <Typography.Text strong>{item.api_name}</Typography.Text>
                     <Tag color="blue">유사도 {item.score.toFixed(2)}</Tag>
                   </Space>
-                  <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-                    {item.project_name}
-                  </Typography.Text>
                   <Space size={8}>
                     <Tag>{item.api_code}</Tag>
                     <Typography.Text code>{item.endpoint}</Typography.Text>

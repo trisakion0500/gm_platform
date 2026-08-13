@@ -11,10 +11,10 @@ const router = Router();
  *     tags: [ApiSearch]
  *     summary: API 정의 자연어 검색
  *     description: |
- *       rag_server를 통해 프로젝트의 API 정의(api/api_request/api_response)에서 질의와 의미적으로 유사한 API를 검색한다.
- *       인증만 요구하며 역할 제한은 없다(전체 역할 공용) — 단, 검색 결과는 호출자가 실제 활성 배정을 가진
- *       project_id별 role_code를 기준으로 스코핑된다(role_code <= api_stage인 API만 노출, SUPER_ADMIN은 무제한).
- *       RAG_ENABLED=false인 환경에서는 이 라우트 자체가 등록되지 않는다.
+ *       rag_server를 통해 project_id로 지정된 프로젝트의 API 정의(api/api_request/api_response)에서 질의와 의미적으로 유사한 API를 검색한다.
+ *       인증만 요구하며 역할 제한은 없다(전체 역할 공용) — 단, project_id는 헤더에서 선택된 프로젝트로 강제 스코핑되며(다른
+ *       프로젝트 종속 화면과 동일 원칙, SUPER_ADMIN도 예외 없음), 그 안에서 호출자의 실제 role_code 기준으로 다시 걸러진다
+ *       (role_code <= api_stage인 API만 노출). RAG_ENABLED=false인 환경에서는 이 라우트 자체가 등록되지 않는다.
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -22,6 +22,10 @@ const router = Router();
  *         name: q
  *         required: true
  *         schema: { type: string, example: 아이템 지급 API }
+ *       - in: query
+ *         name: project_id
+ *         required: true
+ *         schema: { type: integer, example: 1 }
  *       - in: query
  *         name: top_k
  *         schema: { type: integer, minimum: 1, maximum: 20, example: 5 }
