@@ -400,8 +400,8 @@ rag_server 부팅 시 gm_apis 컬렉션이 비어있음(최초 배포 또는 외
 
 **Stage C — GM Platform `server/` 프록시 (진행 중)**
 - ✅ `GET /internal/apis`(`services/internal.service.ts` — `SP_GET_PROJECT_LIST(role_code=10)` → 프로젝트별 `SP_GET_API_LIST` → API별 `SP_GET_API` 조합, 새 SP 없음) + `middleware/ragKeyAuth.ts`
-- ⬜ `GET /api-search`(`resolveApiProjectRoles` — 메인 DB `SP_GET_USER_ROLE_LIST` 기준 프로젝트별 실제 role_code 계산 후 rag_server에 전달)
-- ⬜ Swagger 문서 반영, `tests/api_test.ps1` 신규 섹션(스모크 + 프로젝트/역할 교차 스코핑 회귀)
+- ✅ `GET /api-search`(`services/apiSearch.service.ts`의 `resolveApiProjectRoles` — 기존 `userRoleService.getUserRoleList` 재사용, 새 SP 없음, 메인 DB `SP_GET_USER_ROLE_LIST` 기준 프로젝트별 실제 role_code 계산 후 rag_server에 전달) + Swagger 문서 반영(`ApiSearch` 태그, `RAG_ENABLED=false` 시 `apiSearch.ts`/`internal.ts`도 글롭 제외)
+- ⬜ `tests/api_test.ps1` 신규 섹션(스모크 + 프로젝트/역할 교차 스코핑 회귀)
 
 **범위 밖**
 - MCP tool(`search_apis`), `client/` 검색 UI — Phase 1의 Stage B/D에 대응, 후속 단계로 미룸(위 "확정된 방향" 1번)
