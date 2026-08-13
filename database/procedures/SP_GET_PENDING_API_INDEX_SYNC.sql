@@ -7,6 +7,9 @@ BEGIN
 -- --------------------------------- --
 -- 명칭 : SP_GET_PENDING_API_INDEX_SYNC
 -- 작성 : 2026-08-12 trisakion
+-- 수정 : 2026-08-13 trisakion - updated_at을 함께 반환하도록 변경. 워커가 이 값을 그대로
+--        SP_DELETE_API_INDEX_SYNC의 i_expected_updated_at으로 넘겨, 조회 이후 도메인 SP가
+--        같은 sync_id를 재큐잉(ON DUPLICATE KEY UPDATE)했는지 삭제 시점에 재검증할 수 있게 한다.
 -- 내용 : apiIndexSync.job.ts(server/) 전용 내부 배치 조회 - 컨트롤러/라우트 없이 job이 직접 호출한다.
 --        sync_id 오름차순으로 오래된 순 i_limit건 반환
 -- --------------------------------- --
@@ -24,7 +27,7 @@ BEGIN
     END;
 
     SELECT 0 AS RESULT;
-    SELECT `sync_id`, `api_id`, `attempt_count`, `last_error`
+    SELECT `sync_id`, `api_id`, `attempt_count`, `last_error`, `updated_at`
     FROM `api_index_sync_queue`
     ORDER BY `sync_id` ASC
     LIMIT i_limit;
