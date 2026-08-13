@@ -1,12 +1,12 @@
 # 21_RAG_SERVER.md
 
-# RAG 서버 (문서 검색)
+# RAG 서버 (문서/API 정의 검색)
 
 ---
 
 # 1. 개요
 
-GM Platform의 설계 문서(`docs/`)와 프로젝트 소개(`README.md`)를 자연어로 검색할 수 있게 하는 독립 서비스. gm_platform의 서버·DB 코드에는 손대지 않고 완전히 별도 프로세스로 동작하며, `test_game_server/`와 마찬가지로 상시 구동되는 Express+TypeScript HTTP 서비스다.
+GM Platform의 설계 문서(`docs/`)·프로젝트 소개(`README.md`, Phase 1, §10.1)와 API 정의(`api`/`api_request`/`api_response`, Phase 2, §10.2)를 자연어로 검색할 수 있게 하는 독립 서비스. gm_platform의 서버·DB 코드에는 손대지 않고 완전히 별도 프로세스로 동작하며, `test_game_server/`와 마찬가지로 상시 구동되는 Express+TypeScript HTTP 서비스다.
 
 | 항목 | 값 |
 | ---------- | ------------------------------------- |
@@ -18,7 +18,7 @@ GM Platform의 설계 문서(`docs/`)와 프로젝트 소개(`README.md`)를 자
 | 대상(Phase 1) | `docs/` 폴더 하위 모든 `.md` + 저장소 루트 `README.md`. `CLAUDE.md`는 보류(§1-1) |
 | 사용 주체 | Claude(MCP, `mcp_server_dev`/`mcp_server_pc`를 통해) + GM Platform 자체(`server/` 프록시 경유) 양쪽 |
 
-RAG 대상 후보로 문서 외에 API 정의(`api`/`api_request`/`api_response`)와 감사로그(`log_audit`)도 있었으나, 이 둘은 프로젝트/회사 단위 접근제어가 이미 걸려 있어 검색 경로에도 같은 스코핑을 이식해야 한다. 접근제어가 필요 없는 문서를 Phase 1로 먼저 구현했다(§10.1). API 정의(Phase 2)는 설계를 확정했다(§10.2, 구현은 아직) — 감사로그(Phase 3)는 여전히 미착수(§10.3).
+RAG 대상 후보로 문서 외에 API 정의(`api`/`api_request`/`api_response`)와 감사로그(`log_audit`)도 있었으나, 이 둘은 프로젝트/회사 단위 접근제어가 이미 걸려 있어 검색 경로에도 같은 스코핑을 이식해야 한다. 접근제어가 필요 없는 문서를 Phase 1로 먼저 구현했다(§10.1). API 정의(Phase 2)도 구현·검증 완료(§10.2) — 감사로그(Phase 3)는 여전히 미착수(§10.3).
 
 ## 1-1. `CLAUDE.md`는 이번 범위에서 보류
 
@@ -270,7 +270,7 @@ Phase 1(문서)과 근본적으로 다른 지점 둘: (1) API 정의는 DB 행�
 
 ### 확정된 방향
 
-1. **범위** — rag_server 코어 + GM Platform `server/` 프록시까지만. MCP tool(`search_apis`)·`client/` 검색 UI는 후속 단계(Phase 1의 Stage A→B→C→D 순서를 그대로 반복할 예정).
+1. **범위** — rag_server 코어 + GM Platform `server/` 프록시 + `client/` 검색 UI까지(Phase 1의 Stage A→B→C→D를 그대로 반복). MCP tool(`search_apis`)만 후속 단계로 미룬다.
 2. **컬렉션** — 기존 `gm_docs`와 분리된 새 컬렉션 `gm_apis` 하나(스테이지·역할별로 더 쪼개지 않는다 — 근거는 아래 "컬렉션 구조").
 3. **MSA 경계 유지** — rag_server는 GM Platform 스키마를 모른다. `api`/`api_request`/`api_response` 테이블에 직접 접근하지 않으며, 기존 MySQL 커넥터(`config/db.ts`)는 지금처럼 advisory lock 전용으로만 남는다. rag_server가 붙는 MySQL이 `gm_platform` DB일 필요조차 없다 — 락 재사용을 위해 같은 인스턴스를 쓰고 있을 뿐, MSA 관점에서는 논리적으로 별도 DB로 취급한다.
 4. **push 기반 인덱싱** — 인덱싱할 데이터는 rag_server가 pull하지 않고 `server/`가 완성된 형태로 만들어 push한다(아래 "데이터 흐름"). rag_server는 받은 데이터를 그대로 임베딩+upsert할 뿐, API 도메인의 필드 구성·조인 로직을 전혀 모른다.
@@ -355,9 +355,9 @@ rag_server 부팅 시 gm_apis 컬렉션이 비어있음(최초 배포 또는 외
 
 **기존 SP 6개 수정**(`SP_CREATE_API`/`SP_UPDATE_API`/`SP_CREATE_API_REQUEST`/`SP_UPDATE_API_REQUEST`/`SP_CREATE_API_RESPONSE`/`SP_UPDATE_API_RESPONSE`) — 각 SP의 **동일 트랜잭션 안**에 큐 등록(`INSERT ... ON DUPLICATE KEY UPDATE attempt_count=0`)을 추가한다. 같은 트랜잭션에 넣는 이유: API 변경과 큐 등록이 원자적으로 묶여야 "API는 바뀌었는데 큐 등록은 실패해서 영영 동기화 안 됨" 같은 창이 생기지 않는다 — 감사 로그의 "별도 트랜잭션, fire-and-forget" 패턴보다 더 강한 보장이 필요해 의도적으로 다르게 갔다.
 
-**신규 SP 3개**(큐 조작 전용, 호출자 접근제어 없음 — 내부 워커 전용): `SP_GET_PENDING_API_INDEX_SYNC(IN i_limit INT)`, `SP_DELETE_API_INDEX_SYNC(IN i_sync_id BIGINT)`, `SP_MARK_API_INDEX_SYNC_FAILED(IN i_sync_id BIGINT, IN i_error VARCHAR(500))`.
+**신규 SP 3개**(큐 조작 전용, 호출자 접근제어 없음 — 내부 워커 전용): `SP_GET_PENDING_API_INDEX_SYNC(IN i_limit INT)`(`updated_at`도 함께 반환), `SP_DELETE_API_INDEX_SYNC(IN i_sync_id BIGINT, IN i_expected_updated_at DATETIME)`, `SP_MARK_API_INDEX_SYNC_FAILED(IN i_sync_id BIGINT, IN i_error VARCHAR(500))`. `SP_DELETE_API_INDEX_SYNC`의 `i_expected_updated_at`은 낙관적 동시성 가드다 — 워커가 조회한 뒤 push하는 사이(왕복 시간) 도메인 SP가 같은 `api_id`를 다시 수정하면 `ON DUPLICATE KEY UPDATE`로 같은 `sync_id` 행이 재큐잉되는데, 이 가드 없이 `sync_id`만으로 삭제하면 방금 push한 구버전 성공을 이유로 재큐잉된 최신 변경분까지 함께 지워버려 그 변경이 `gm_apis`에 영영 반영되지 않는 레이스가 있었다(점검 중 발견·수정). `WHERE sync_id=? AND updated_at=?`로 걸어 조회 이후 재큐잉된 행(`ROW_COUNT()=0`)은 삭제하지 않고 다음 tick 재처리에 맡긴다.
 
-**`server/src/jobs/apiIndexSync.job.ts`**(신규) — `sessionCleanup.job.ts`와 동일 패턴(`node-cron` + `config/db.ts`의 `runExclusive` advisory lock, 스케일아웃 시 인스턴스 간 중복 실행 방지). `API_INDEX_SYNC_INTERVAL_MS`(기본 15000)마다: pending 조회 → 각 건마다 `getApi(apiId, 역할10 컨텍스트)`로 완성된 데이터 조립 → rag_server `POST /apis/reindex`로 push → 성공 시 큐에서 삭제, 실패 시 `attempt_count`/`last_error` 갱신 후 다음 tick에 재시도.
+**`server/src/jobs/apiIndexSync.job.ts`**(신규) — `sessionCleanup.job.ts`와 동일하게 `config/db.ts`의 `runExclusive` advisory lock으로 스케일아웃 시 인스턴스 간 중복 실행을 막는다. 다만 스케줄링 자체는 `node-cron`이 아니라 재귀 `setTimeout`을 쓴다 — 이 워커는 특정 시각에 맞춘 크론이 아니라 고정 주기(ms) 폴링이고, 재귀 구조라 한 tick이 `API_INDEX_SYNC_INTERVAL_MS`(기본 15000)보다 오래 걸려도(대량 백로그 등) 다음 tick과 겹치지 않는다(`setInterval`이라면 겹칠 수 있음). 매 tick: pending 조회(최대 20건/tick) → 각 건마다 `getApi(apiId, 역할10 컨텍스트)`+`getProject`로 완성된 데이터 조립 → rag_server `POST /apis/reindex`로 push → 성공 시 큐에서 삭제, 실패 시 `attempt_count`/`last_error` 갱신 후 다음 tick에 재시도(행 단위 개별 try/catch라 한 건 실패가 나머지 건을 막지 않음). `RAG_ENABLED=false`면 `app.ts`가 이 함수 자체를 호출하지 않는다(`doc-search`/`internal` 라우트 조건부 등록과 동일 패턴).
 
 ### API
 
@@ -386,7 +386,7 @@ rag_server 부팅 시 gm_apis 컬렉션이 비어있음(최초 배포 또는 외
 
 ### Stage 진행 상황
 
-설계는 확정됐고(위 전체) 구현이 진행 중이다.
+설계는 확정됐고(위 전체) Stage A~D 구현·검증 완료(MCP tool은 범위 밖).
 
 **Stage A — rag_server 코어 (완료)**
 - ✅ `store.ts` 컬렉션 파라미터화(`gm_docs`/`gm_apis` 공용, 새 파일로 복제 안 함 — 기존 `reindex.ts`/`search.service.ts`는 무변경)
@@ -394,17 +394,22 @@ rag_server 부팅 시 gm_apis 컬렉션이 비어있음(최초 배포 또는 외
 - ✅ `POST /apis/search`(`services/apiSearch.service.ts`의 project_roles→Qdrant `should` 필터 변환, fail-closed 검증)/`POST /apis/reindex`
 - ✅ `npm run build-index-apis` CLI(`index/buildApis.ts`), `app.ts`의 `bootstrapWithRetry()`에 `apiReindexIfChanged()` 편입(새 재시도 루프 없음)
 
-**Stage B — 아웃박스 동기화 (진행 중)**
+**Stage B — 아웃박스 동기화 (완료)**
 - ✅ `api_index_sync_queue` 테이블 + SP 6개 수정(같은 트랜잭션 내 `ON DUPLICATE KEY UPDATE` dedup) + SP 3개 신규(`SP_GET_PENDING_API_INDEX_SYNC`/`SP_DELETE_API_INDEX_SYNC`/`SP_MARK_API_INDEX_SYNC_FAILED`)
-- ⬜ `server/src/jobs/apiIndexSync.job.ts`(큐 폴링 → `getApi` 조립 → `POST /apis/reindex` push)
+- ✅ `server/src/jobs/apiIndexSync.job.ts`(재귀 `setTimeout` 폴링 → `getApi`+`getProject` 조립 → `POST /apis/reindex` push, `RAG_ENABLED=true`일 때만 등록)
 
-**Stage C — GM Platform `server/` 프록시 (진행 중)**
+**Stage C — GM Platform `server/` 프록시 (완료)**
 - ✅ `GET /internal/apis`(`services/internal.service.ts` — `SP_GET_PROJECT_LIST(role_code=10)` → 프로젝트별 `SP_GET_API_LIST` → API별 `SP_GET_API` 조합, 새 SP 없음) + `middleware/ragKeyAuth.ts`
 - ✅ `GET /api-search`(`services/apiSearch.service.ts`의 `resolveApiProjectRoles` — 기존 `userRoleService.getUserRoleList` 재사용, 새 SP 없음, 메인 DB `SP_GET_USER_ROLE_LIST` 기준 프로젝트별 실제 role_code 계산 후 rag_server에 전달) + Swagger 문서 반영(`ApiSearch` 태그, `RAG_ENABLED=false` 시 `apiSearch.ts`/`internal.ts`도 글롭 제외)
-- ⬜ `tests/api_test.ps1` 신규 섹션(스모크 + 프로젝트/역할 교차 스코핑 회귀)
+- ✅ `tests/api_test.ps1` 14C 섹션(스모크 + 프로젝트/역할 교차 스코핑 회귀, 13A 스코프 프로젝트/사용자 재사용) — 전체 713/713 PASS
+
+**Stage D — `client/` 검색 UI (완료)**
+- ✅ `client/src/api/apiSearch.api.ts` — `GET /api-search` 호출 함수
+- ✅ `pages/main/api-search/ApiSearchPage.tsx` — Phase 1의 `DocSearchPage`와 동일 패턴(검색창 + 결과 카드, 레이스 방지용 `requestIdRef`). 결과 카드는 `api_name`+유사도, `project_name`, `api_code`+`endpoint`만 표시 — 문서 검색과 달리 결과 자체에 request/response 파라미터 상세는 없음(§10.2 payload 스키마상 원래 없는 필드), 상세가 필요하면 `api_id`로 기존 `GET /apis/:api_id`를 별도 호출해야 한다.
+- ✅ `router/index.tsx`/`Sidebar.tsx` — `/api-search` 라우트·"API 검색" 메뉴 등록(전 역할 공용, `MAIN_MENU`), `RAG_ENABLED` 게이팅은 문서 검색과 같은 빌드타임 값 재사용(새 env 없음)
 
 **범위 밖**
-- MCP tool(`search_apis`), `client/` 검색 UI — Phase 1의 Stage B/D에 대응, 후속 단계로 미룸(위 "확정된 방향" 1번)
+- MCP tool(`search_apis`) — Phase 1의 Stage B에 대응, 후속 단계로 미룸(위 "확정된 방향" 1번)
 
 ## 10.3 감사로그 (`log_audit`) — Phase 3 (미착수)
 
