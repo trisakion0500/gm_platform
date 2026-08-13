@@ -9,6 +9,7 @@ import logger, { exitAfterFlush } from "./utils/logger";
 import { requestLogger } from "./middleware/requestLogger";
 import { errorHandler } from "./middleware/errorHandler";
 import { startSessionCleanupJob } from "./jobs/sessionCleanup.job";
+import { startApiIndexSyncJob } from "./jobs/apiIndexSync.job";
 import router from "./routes";
 
 const app = express();
@@ -67,6 +68,10 @@ async function start() {
     return exitAfterFlush(1);
 
   startSessionCleanupJob();
+  // RAG_ENABLED=false면 rag_server 자체가 없는 환경이므로 워커를 등록하지 않는다(routes/index.ts의
+  // doc-search/internal 라우트 조건부 등록과 동일 패턴) — 등록해봐야 매 tick 실패만 반복해 로그만 채운다.
+  if (env.rag.enabled)
+    startApiIndexSyncJob();
 
   app.listen(env.port, () => {
     logger.info(`Server running on port ${env.port}`);

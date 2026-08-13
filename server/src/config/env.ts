@@ -73,6 +73,7 @@ export const env = {
     max: Number(process.env.LOGIN_RATE_LIMIT_MAX ?? 10), // 기본 IP당 10회
   },
   sessionCleanupCron: process.env.SESSION_CLEANUP_CRON ?? '0 4 * * *', // 만료 세션 정리 크론 표현식, 기본 매일 새벽 4시
+  apiIndexSyncIntervalMs: Number(process.env.API_INDEX_SYNC_INTERVAL_MS ?? 15000), // api_index_sync_queue(아웃박스) 폴링 주기, 기본 15초
   redis: {
     enabled: process.env.REDIS_ENABLED === 'true', // false(기본)면 각 기능이 인메모리/DB로 폴백 — host 값 존재 여부가 아닌 명시적 플래그로 분기
     host: process.env.REDIS_HOST ?? '127.0.0.1',
