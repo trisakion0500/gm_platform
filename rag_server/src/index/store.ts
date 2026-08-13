@@ -130,6 +130,11 @@ async function rebuildCollectionAndSwap(alias: string, points: QdrantPoint[]): P
  * 지정된 alias가 가리키는 현재 컬렉션에 포인트를 upsert한다(전량 교체가 아닌 증분 반영).
  * alias가 아직 없으면(gm_apis 최초 구축 전) 예외를 던진다 — 호출부(apiReindex.ts)가 이 경우
  * 부팅 시 자가치유(전량 재구축)로 먼저 alias를 만들어두는 것을 전제로 한다.
+ * 실제 upsert는 getAliasTarget()이 미리 조회해둔 물리 컬렉션명이 아니라 alias 이름 자체로 호출한다
+ * (searchCollection()과 동일한 이유) — 물리명을 캡처해두면 이 함수가 실행되는 도중 전체 재구축의
+ * alias 스왑+이전 컬렉션 삭제가 끼어들 때, 캡처해둔(곧 삭제될) 옛 컬렉션에 조용히 성공해버리고
+ * 뒤이어 그 컬렉션이 삭제되며 에러 없이 유실되는 레이스가 있었다. alias로 직접 호출하면 Qdrant가
+ * 매 호출 시점에 최신 물리 컬렉션으로 원자적으로 풀어주므로 이 창 자체가 사라진다.
  * @param alias 대상 alias 이름
  * @param points upsert할 포인트 목록
  */
@@ -138,7 +143,7 @@ async function upsertPoints(alias: string, points: QdrantPoint[]): Promise<void>
   if (!target)
     throw new Error(`alias '${alias}'가 존재하지 않습니다 — 증분 upsert 전에 전량 재구축이 먼저 필요합니다.`);
 
-  await withSocketRetry(() => qdrantClient.upsert(target, { wait: true, points }));
+  await withSocketRetry(() => qdrantClient.upsert(alias, { wait: true, points }));
 }
 
 /**
