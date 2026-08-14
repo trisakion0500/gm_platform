@@ -96,6 +96,17 @@ export interface PaginatedResponse<T> {
   items: T[];
 }
 
+/** GET /api-search 검색 결과 한 건 */
+export interface ApiSearchResult {
+  api_id: number;
+  project_id: number;
+  project_name: string;
+  api_name: string;
+  api_code: string;
+  endpoint: string;
+  score: number;
+}
+
 // ---- admin 도메인 (mcp_server_dev에는 없던 회사/프로젝트/사용자/역할배정 관리 타입) ----
 
 /** GET /companies, GET /companies/:id, POST /companies, PATCH /companies/:id 응답 항목 */

@@ -95,3 +95,14 @@ export interface PaginatedResponse<T> {
   total_count: number;
   items: T[];
 }
+
+/** GET /api-search 검색 결과 한 건 */
+export interface ApiSearchResult {
+  api_id: number;
+  project_id: number;
+  project_name: string;
+  api_name: string;
+  api_code: string;
+  endpoint: string;
+  score: number;
+}

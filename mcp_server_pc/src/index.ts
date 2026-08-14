@@ -14,6 +14,7 @@ import { registerListPendingExecutionsTool } from "./tools/listPendingExecutions
 import { registerApproveExecutionTool } from "./tools/approveExecution";
 import { registerRejectExecutionTool } from "./tools/rejectExecution";
 import { registerSearchDocsTool } from "./tools/searchDocs";
+import { registerSearchApisTool } from "./tools/searchApis";
 import { registerAdminListCompaniesTool } from "./tools/adminListCompanies";
 import { registerAdminGetCompanyTool } from "./tools/adminGetCompany";
 import { registerAdminCreateCompanyTool } from "./tools/adminCreateCompany";
@@ -63,8 +64,10 @@ async function main(): Promise<void> {
   registerAdminListCompaniesTool(server);
   registerAdminGetCompanyTool(server);
   registerAdminGetMyRoleTool(server);
-  if (env.ragEnabled)
+  if (env.ragEnabled) {
     registerSearchDocsTool(server); // 문서 검색은 역할과 무관하게 전 역할 공용 — 게이팅 없음. RAG_ENABLED=false면 tool 자체를 등록하지 않음
+    registerSearchApisTool(server); // API 정의 검색도 role 게이팅 없음 — GM Platform이 결과 자체를 프로젝트/role로 스코핑
+  }
 
   if (APPROVAL_CAPABLE_ROLES.includes(roleCode)) {
     registerListPendingExecutionsTool(server);

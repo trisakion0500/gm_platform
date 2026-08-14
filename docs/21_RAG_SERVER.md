@@ -270,7 +270,7 @@ Phase 1(문서)과 근본적으로 다른 지점 둘: (1) API 정의는 DB 행�
 
 ### 확정된 방향
 
-1. **범위** — rag_server 코어 + GM Platform `server/` 프록시 + `client/` 검색 UI까지(Phase 1의 Stage A→B→C→D를 그대로 반복). MCP tool(`search_apis`)만 후속 단계로 미룬다.
+1. **범위** — rag_server 코어 + GM Platform `server/` 프록시 + `client/` 검색 UI + MCP tool(`search_apis`)까지(Phase 1의 Stage A→B→C→D→MCP를 그대로 반복).
 2. **컬렉션** — 기존 `gm_docs`와 분리된 새 컬렉션 `gm_apis` 하나(스테이지·역할별로 더 쪼개지 않는다 — 근거는 아래 "컬렉션 구조").
 3. **MSA 경계 유지** — rag_server는 GM Platform 스키마를 모른다. `api`/`api_request`/`api_response` 테이블에 직접 접근하지 않으며, 기존 MySQL 커넥터(`config/db.ts`)는 지금처럼 advisory lock 전용으로만 남는다. rag_server가 붙는 MySQL이 `gm_platform` DB일 필요조차 없다 — 락 재사용을 위해 같은 인스턴스를 쓰고 있을 뿐, MSA 관점에서는 논리적으로 별도 DB로 취급한다.
 4. **push 기반 인덱싱** — 인덱싱할 데이터는 rag_server가 pull하지 않고 `server/`가 완성된 형태로 만들어 push한다(아래 "데이터 흐름"). rag_server는 받은 데이터를 그대로 임베딩+upsert할 뿐, API 도메인의 필드 구성·조인 로직을 전혀 모른다.
@@ -386,7 +386,7 @@ rag_server 부팅 시 gm_apis 컬렉션이 비어있음(최초 배포 또는 외
 
 ### Stage 진행 상황
 
-설계는 확정됐고(위 전체) Stage A~D 구현·검증 완료(MCP tool은 범위 밖).
+설계는 확정됐고(위 전체) Stage A~D + MCP tool 구현·검증 완료.
 
 **Stage A — rag_server 코어 (완료)**
 - ✅ `store.ts` 컬렉션 파라미터화(`gm_docs`/`gm_apis` 공용, 새 파일로 복제 안 함 — 기존 `reindex.ts`/`search.service.ts`는 무변경)
@@ -408,8 +408,9 @@ rag_server 부팅 시 gm_apis 컬렉션이 비어있음(최초 배포 또는 외
 - ✅ `pages/main/api-search/ApiSearchPage.tsx` — Phase 1의 `DocSearchPage`와 동일 패턴(검색창 + 결과 카드, 레이스 방지용 `requestIdRef`), 단 `globalStore.selectedProjectId`가 없으면(SUPER_ADMIN "전체 프로젝트" 상태) 검색창 자체를 숨기고 "프로젝트를 선택하세요"만 표시(위 "스코핑" 1번 — `project_id` 필수). 결과 카드는 `api_name`+유사도, `api_code`+`endpoint`만 표시 — 한 프로젝트로 스코핑되면 모든 결과의 `project_name`이 동일해 카드마다 반복 표시할 필요가 없고(헤더에 이미 선택된 프로젝트가 항상 보임), 문서 검색과 달리 결과 자체에 request/response 파라미터 상세도 없음(§10.2 payload 스키마상 원래 없는 필드) — 상세가 필요하면 `api_id`로 기존 `GET /apis/:api_id`를 별도 호출해야 한다.
 - ✅ `router/index.tsx`/`Sidebar.tsx` — `/api-search` 라우트·"API 검색" 메뉴 등록(전 역할 공용, `MAIN_MENU`), `RAG_ENABLED` 게이팅은 문서 검색과 같은 빌드타임 값 재사용(새 env 없음)
 
-**범위 밖**
-- MCP tool(`search_apis`) — Phase 1의 Stage B에 대응, 후속 단계로 미룸(위 "확정된 방향" 1번)
+**MCP tool `search_apis` (완료)**
+- ✅ `mcp_server_dev`/`mcp_server_pc` 양쪽에 `tools/searchApis.ts` 추가. `search_docs`(rag_server를 `X-API-Key`로 직접 호출)와 달리 **rag_server를 직접 부르지 않고 GM Platform의 `GET /api-search`를 `gmClient.request()`로 호출**한다 — `project_id`×`role_code` 스코핑 계산이 GM Platform 서버 안에서만 이뤄지므로(위 "유저 스코핑"), `list_apis`와 동일한 인증 프록시 경로를 그대로 재사용한 것. `project_id`는 tool 입력값으로 필수 요구(GM Platform의 강제 스코핑과 동일).
+- ✅ 두 서버 모두 `env.ragEnabled`일 때만 `search_docs`와 함께 등록, role 게이팅 없음(결과 자체가 GM Platform에서 이미 호출자의 실제 권한으로 좁혀져 나옴).
 
 ## 10.3 감사로그 (`log_audit`) — Phase 3 (미착수)
 
