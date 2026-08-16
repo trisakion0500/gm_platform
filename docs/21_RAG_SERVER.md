@@ -20,6 +20,50 @@ GM Platform의 설계 문서(`docs/`)·프로젝트 소개(`README.md`, Phase 1,
 
 RAG 대상 후보로 문서 외에 API 정의(`api`/`api_request`/`api_response`)와 감사로그(`log_audit`)도 있었으나, 이 둘은 프로젝트/회사 단위 접근제어가 이미 걸려 있어 검색 경로에도 같은 스코핑을 이식해야 한다. 접근제어가 필요 없는 문서를 Phase 1로 먼저 구현했다(§10.1). API 정의(Phase 2)와 감사로그(Phase 3) 모두 구현·검증 완료(§10.2, §10.3).
 
+### 전체 구조
+
+```mermaid
+flowchart LR
+  subgraph Client["사용 주체"]
+    Browser["client/ 브라우저"]
+    Claude["Claude Desktop (MCP)"]
+  end
+
+  MCP["mcp_server_dev / mcp_server_pc"]
+
+  subgraph GMP["GM Platform server/"]
+    direction TB
+    ProxyAPI["GET /doc-search, /api-search, /log-audit-search"]
+    InternalAPI["GET /internal/apis, /internal/log-audits"]
+    OutboxJob["아웃박스 워커"]
+  end
+
+  subgraph RAG["rag_server (포트 3200)"]
+    direction TB
+    Bootstrap["부팅 자가치유 / npm run build-index-*"]
+    SearchAPI["POST /search, /apis/search, /log-audits/search"]
+    ReindexAPI["POST /apis/reindex, /log-audits/reindex"]
+    Qdrant[("Qdrant\ngm_docs / gm_apis / gm_logs")]
+  end
+
+  MainDB[("MySQL gm_platform")]
+  LogDB[("MySQL gm_platform_log")]
+
+  Browser --> ProxyAPI
+  Claude --> MCP --> ProxyAPI
+  ProxyAPI --> SearchAPI --> Qdrant
+
+  MainDB -->|"같은 트랜잭션에\n큐 등록"| OutboxJob
+  LogDB -->|"같은 트랜잭션에\n큐 등록"| OutboxJob
+  OutboxJob -->|push| ReindexAPI --> Qdrant
+
+  Bootstrap -->|"컬렉션 비어있을 때만 pull"| InternalAPI
+  InternalAPI --> MainDB
+  InternalAPI --> LogDB
+```
+
+rag_server는 GM Platform의 스키마를 모르는 별도 프로세스다(MSA 경계) — `server/`가 완성된 데이터를 push/pull로 넘겨줄 뿐, rag_server가 직접 `gm_platform`/`gm_platform_log` 테이블을 조회하지 않는다(advisory lock 전용 접속은 예외, §3.4). Phase 1(문서)만 예외적으로 아웃박스가 없다 — 정적 파일이라 DB 큐를 거칠 이유가 없다(§10.1).
+
 ## 1-1. `CLAUDE.md`는 이번 범위에서 보류
 
 `docs/`와 `README.md`는 공개 문서라 접근제어 걱정이 없지만, `CLAUDE.md`는 외부 비공개 문서(`.gitignore` 대상)라 인덱싱하려면 이 서비스를 반드시 신뢰된 내부망에만 두고 GM Platform 경유 조회(Stage C)도 항상 `authenticate` 뒤에 있어야 하는 등 별도 신뢰 경계 검토가 필요하다. 지금은 대상에서 제외한다.
@@ -229,278 +273,194 @@ Qdrant가 로컬에서 먼저 떠있어야 한다(`http://127.0.0.1:6333`). 재�
 
 RAG 대상 세 가지(§1 — 문서/API 정의/감사로그)별로 진행 상황을 나눠 정리한다.
 
-## 10.1 문서 검색 (`docs/*.md`+`README.md`) — Phase 1
+## 10.1 문서 검색 (`docs/*.md` + `README.md`) — Phase 1 (완료)
 
-Stage A → B → C → D 순으로 진행하며, 각 Stage 완료 시 실제 동작 검증 후 다음으로 넘어간다.
+컬렉션 `gm_docs`. GM Platform 설계 문서·`README.md`를 헤딩 단위 청크로 나눠 자연어로 검색한다.
 
-### Stage A — `rag_server/` 코어 (완료)
+### 제한 (스코핑)
 
-- ✅ 프로젝트 스캐폴딩
-- ✅ 청킹 모듈 (`embedding/chunker.ts`)
-- ✅ 임베딩 래퍼 (`embedding/embedder.ts`)
-- ✅ 인덱스 저장소 + 재구축 로직 (`index/store.ts`, `manifest.ts`, `reindex.ts`, `build.ts`, `config/qdrant.ts`, `config/db.ts`)
-- ✅ 검색 API 라우트 (`routes/`, `controllers/`, `services/`, `middleware/`)
-- ✅ 검증 — `npm run build-index` 실행 후 Qdrant 포인트 개수 확인, `RAG_API_KEY` 설정 상태로 401/400/200 응답 확인
-
-### Stage B — MCP 통합 (완료)
-
-- ✅ `ragClient.ts`/`search_docs` tool 추가 (양쪽 프로젝트 동일)
-- ✅ `RAG_ENABLED`(true/false) 토글 추가
-- ✅ `tsc` 빌드 통과(양쪽), rag_server 실 인스턴스 상대 end-to-end 검증
-- ✅ Claude 데스크탑 앱 연동, `search_docs` 실시간 호출 검증
-
-### Stage C — GM Platform `server/` 프록시 (완료)
-
-- ✅ `server/src/config/env.ts`에 `rag` 그룹 추가(`RAG_ENABLED`/`RAG_BASE_URL`/`RAG_API_KEY`)
-- ✅ `server/src/services/docSearch.service.ts` 신설
-- ✅ `server/src/routes/docSearch.ts` (`GET /api/doc-search`, `authenticate`만 요구), `RAG_ENABLED=false`면 라우트 자체 미등록
-- ✅ `tests/api_test.ps1` 14B 섹션 추가(rag_server 기동 전제 스모크 테스트)
-- ✅ Swagger 문서 반영(`DocSearch` 태그)
-- ✅ 검증 (JWT로 `GET /api/doc-search` 호출, `tests/api_test.ps1` 전체 회귀)
-
-### Stage D — `client/` 검색 UI (완료)
-
-- ✅ `client/src/api/docSearch.api.ts` — `GET /doc-search` 호출 함수
-- ✅ `pages/main/doc-search/DocSearchPage.tsx` — 검색창 + 결과 리스트(파일/헤딩/본문 스니펫/유사도)
-- ✅ `router/index.tsx`/`Sidebar.tsx` — `/doc-search` 라우트·메뉴 등록(전 역할 공용, `MAIN_MENU`)
-
-## 10.2 API 정의 (`api`/`api_request`/`api_response`) — Phase 2
-
-Phase 1(문서)과 근본적으로 다른 지점 둘: (1) API 정의는 DB 행이라 정적 파일 해시 비교가 안 통하고, (2) `project_id`+`api_stage` 두 축의 접근제어가 걸려 있다. 여러 차례 설계 논의로 아래를 확정했다(구현은 아직 — Stage 진행 상황 참고).
-
-### 확정된 방향
-
-1. **범위** — rag_server 코어 + GM Platform `server/` 프록시 + `client/` 검색 UI + MCP tool(`search_apis`)까지(Phase 1의 Stage A→B→C→D→MCP를 그대로 반복).
-2. **컬렉션** — 기존 `gm_docs`와 분리된 새 컬렉션 `gm_apis` 하나(스테이지·역할별로 더 쪼개지 않는다 — 근거는 아래 "컬렉션 구조").
-3. **MSA 경계 유지** — rag_server는 GM Platform 스키마를 모른다. `api`/`api_request`/`api_response` 테이블에 직접 접근하지 않으며, 기존 MySQL 커넥터(`config/db.ts`)는 지금처럼 advisory lock 전용으로만 남는다. rag_server가 붙는 MySQL이 `gm_platform` DB일 필요조차 없다 — 락 재사용을 위해 같은 인스턴스를 쓰고 있을 뿐, MSA 관점에서는 논리적으로 별도 DB로 취급한다.
-4. **push 기반 인덱싱** — 인덱싱할 데이터는 rag_server가 pull하지 않고 `server/`가 완성된 형태로 만들어 push한다(아래 "데이터 흐름"). rag_server는 받은 데이터를 그대로 임베딩+upsert할 뿐, API 도메인의 필드 구성·조인 로직을 전혀 모른다.
-5. **증분 반영의 신뢰성 보장** — 단순 fire-and-forget이 아니라 DB에 영속하는 아웃박스 큐 + 주기적 워커로 "언젠가는 반드시 rag_server에 도달한다"를 보장한다(아래 "아웃박스 동기화"). Qdrant와 API 데이터 사이에 시간차는 허용되지만 결국은 반드시 일치해야 한다.
-6. **역할×스테이지 인식 검색** — `api_stage`(20/30/40)에 따라 실행 가능한 최소 역할이 다르므로(아래 "스코핑"), 검색 결과도 그 기준을 따른다 — 실행할 수 없는 API가 검색에는 걸리는 불일치를 만들지 않는다.
+- 인증(`authenticate`)만 요구, 역할 제한 없음 — 원본 문서 자체가 전 역할 공개 정보라 접근제어 대상이 아니다.
+- `top_k` 1~20(기본 5). `CLAUDE.md`는 비공개 문서(`.gitignore` 대상)라 신뢰 경계 검토 전까지 색인 대상에서 제외(§1-1).
 
 ### 데이터 흐름
 
-**증분 경로(생성/수정 시, push)**:
+**증분 없음 — 사람이 직접 파일을 수정**: `docs/*.md`/`README.md`는 DB 행이 아니라 정적 파일이라, API/감사로그처럼 CRUD를 트리거로 삼는 아웃박스 push 경로 자체가 성립하지 않는다(아래 "아웃박스 동기화" 참고).
+
+**백필/자가치유(pull, 전체 재구축)**: 파일이 바뀌었는지는 별도 이벤트로 알 수 없으므로, 부팅 시(및 `npm run build-index` 수동 실행 시)마다 파일 해시를 비교해 변경 여부를 확인한다.
+
+```mermaid
+flowchart TD
+  A["rag_server 부팅 / npm run build-index"] --> B["docs/*.md + README.md 파일 해시 계산"]
+  B --> C{"매니페스트와 동일한가?"}
+  C -- 예 --> D["재인덱싱 스킵"]
+  C -- 아니오 --> E["청킹 + heading 결합 임베딩"]
+  E --> F["새 물리 컬렉션에 upsert"]
+  F --> G["alias를 새 컬렉션으로 원자적 스왑"]
+  G --> H["매니페스트 갱신"]
 ```
-관리자(SA/DEV)가 API CRUD
-  → SP_CREATE_API 등 6개 SP가 같은 트랜잭션 안에서 api_index_sync_queue에 큐 등록(아웃박스 동기화)
-  → server/의 크론 워커(apiIndexSync.job.ts)가 주기적으로 큐를 비움
-    → getApi(apiId, 역할10 컨텍스트)로 완성된 데이터(API+request+response 전체) 조립
-    → rag_server POST /apis/reindex 로 push
-  → rag_server가 받은 데이터를 그대로 임베딩+upsert (point id = api_id)
-```
 
-**백필/자가치유 경로(전체 재구축, pull)**:
-```
-rag_server 부팅 시 gm_apis 컬렉션이 비어있음(최초 배포 또는 외부에서 컬렉션 삭제된 경우)
-  → rag_server가 server/ GET /internal/apis 호출(X-API-Key 인증, 방향이 반대)
-    → server/가 SP_GET_PROJECT_LIST(role_code=10) → 프로젝트별 SP_GET_API_LIST → API별 SP_GET_API를
-      SUPER_ADMIN 컨텍스트로 조합해 전체 활성 API 스냅샷 반환(새 SP 없이 기존 SP 재사용)
-  → rag_server가 전량 재구축(rebuildAndSwap, §3.3과 동일한 alias 원자적 스왑)
-```
-이 pull 호출은 rag_server의 `bootstrapWithRetry()`(부팅 시 지수 백오프 재시도, §3.5)에 그대로 편입된다 — 새 재시도 루프를 따로 만들지 않는다. `npm run build-index-apis`(CLI, 아래 "API" 참고)도 동일 경로를 무조건 실행한다.
+비교 대상은 파일 해시(+임베딩 모델명)를 담은 매니페스트(`data/index-manifest.json`)다. 임베딩 텍스트는 `heading + "\n" + text`(청크 정체성 확보용 — 표·의사코드 위주라 본문만으로는 검색 키워드가 부족한 청크 대응), 마크다운 표는 파이프 없는 평문으로 변환해 임베딩하되 표시용 `text`는 원본 마크다운을 그대로 유지한다(§3.1).
 
-두 경로는 상호 보완적이다 — 아웃박스는 "이후 변경분"의 근실시간 반영을, pull은 "처음 채우기"와 "외부에서 인덱스가 망가졌을 때 자가치유"를 담당한다.
+### 컬렉션 구조
 
-### 스코핑 — `project_id` × `role_code` × `api_stage`
+단일 컬렉션. 접근제어 자체가 없어 Phase 2/3처럼 payload 기반 필터를 둘 이유가 없다. alias(`gm_docs`) → 물리 컬렉션(`gm_docs_<timestamp>`) 원자적 스왑 구조(§3.3)라 재인덱싱 중에도 검색은 항상 완전한 인덱스만 본다. payload는 `file`/`heading`/`text`(전부 표시용).
 
-1. `GET /api-search?q=...&project_id=...`가 `authenticate`를 통과하면 `req.user = {user_id, role_code, ...}` 확보. `project_id`는 헤더에서 선택된 프로젝트로 **강제 스코핑**되는 필수 파라미터다(다른 프로젝트 종속 화면(`GET /apis` 등)과 동일 원칙 — SUPER_ADMIN도 예외 없이 하나의 project_id로 좁혀서 검색한다, `client/`도 "전체 프로젝트"(`selectedProjectId=null`) 상태에서는 이 API를 호출하지 않고 "프로젝트를 선택하세요"만 보여준다). 누락 시 30001.
-2. `callerRoleCode === 10`(SUPER_ADMIN)이면 `[{project_id, role_code: 10}]` 한 항목으로 고정(그 프로젝트 안에서는 무제한과 동치 — `role_code=10`이 모든 `api_stage`를 통과시킴). 아니면 `resolveApiProjectRoles(callerUserId)`가 메인 DB에서 `SP_GET_USER_ROLE_LIST(callerUserId, null, null, 1, null)`로 활성 `user_role` 전체를 조회한 뒤 요청받은 `project_id`로 필터링해 `{project_id, role_code}[]`(0~1개)로 변환 — `logAudit.service.ts`의 `resolveAllowedProjectIds()`와 동일한 선례(물리적으로 분리된 log_audit DB에 `server/`가 계산한 스코프를 그대로 신뢰해 넘기는 패턴)를 따르되, role_code 상한 없이(`GET /apis`가 전 역할 조회 가능이라 log_audit의 `<=30`과 다름) role_code 자체도 함께 보존한다. 호출자가 그 project_id에 실제 활성 배정이 없으면 빈 배열이 되어 rag_server가 즉시 빈 결과를 반환한다(강제 스코핑이 인가 우회를 의미하지 않음 — 접근권한 없는 프로젝트를 지정해도 에러 대신 조용히 빈 결과).
-3. `server/`가 rag_server `POST /apis/search`에 `{query, top_k, project_roles}`를 실어 호출(`project_roles: {project_id, role_code}[] | null`). **rag_server는 이 값을 그대로 신뢰한다** — JWT·role을 몰라도 되고, "호출자가 이미 검증한 프로젝트별 실제 권한"으로만 받아들인다.
-4. **역할×스테이지 실행 가능 규칙**(`client/src/components/layout/Sidebar.tsx`의 `canExecuteStage()`, `SP_CREATE_API_EXECUTION`의 검사와 동일해야 함):
-   ```
-   api_stage=20(개발)    → SUPER_ADMIN(10), DEVELOPER(20)만
-   api_stage=30(스테이징)  → SUPER_ADMIN(10), DEVELOPER(20), APPROVER(30)
-   api_stage=40(운영)     → 전체 역할
-   ```
-   이 세 경우가 정확히 `project_role_code <= api_stage`와 동치임을 검증했다(10/20/30/40 각각의 20·30·40 대입 결과가 표와 전부 일치). 이 동치 관계가 성립하는 한 rag_server는 스테이지별 화이트리스트 없이 `api_stage` 하나만 payload에 저장하고 부등식 비교로 게이트를 재현할 수 있다 — `Sidebar.tsx`의 세 경우가 나중에 바뀌면(예: 새 role 추가) 이 동치 관계도 재검증해야 한다.
-5. rag_server는 `project_roles`를 Qdrant `should`(OR) 필터로 변환:
-   ```
-   filter: {
-     must: [{ key: 'status', match: { value: 1 } }],
-     should: [
-       { must: [{key:'project_id', match:{value: 1}}, {key:'api_stage', range:{gte: 20}}] },
-       { must: [{key:'project_id', match:{value: 2}}, {key:'api_stage', range:{gte: 40}}] },
-     ],
-   }
-   ```
-   SUPER_ADMIN(`project_roles: null`)은 `should` 없이 `status=1` 필터만 적용. 이 필터링은 Qdrant 엔진 내부에서 벡터 유사도 계산과 함께 적용되므로, 접근 불가한 프로젝트/실행 불가한 스테이지의 청크는 애초에 결과 후보 자체에 오르지 않는다(클라이언트 사이드 필터링이 아니다).
-6. **Fail-closed** — `project_roles` 필드가 요청에 없거나(undefined) 배열/`null`이 아니면 rag_server는 무제한으로 해석하지 않고 즉시 400으로 거부한다. 이번 범위(server/ 프록시만 구현)에선 항상 명시적으로 값을 보내 실무에선 안 걸리지만, 이후 MCP가 rag_server를 직접 호출하게 될 때 이 필드를 빠뜨려 조용히 전체 노출되는 사고를 막는 방어선이다.
+### 아웃박스 동기화
 
-### 컬렉션 구조 — 단일 `gm_apis` (스테이지·역할별 분리 안 함)
-
-**검토한 대안**: 스테이지(또는 역할)별로 컬렉션을 쪼개고(`gm_apis_20`/`gm_apis_30`/`gm_apis_40`), 호출자의 역할에 따라 검색할 컬렉션 집합을 정하는 방식.
-
-**단일 컬렉션 + payload 필터를 택한 이유**:
-- 스테이지 유효성 규칙이 정확히 `role_code <= api_stage` 범위 조건 하나로 표현되므로(위 "스코핑"), Qdrant의 `range` 필터가 이미 이걸 네이티브로 처리한다 — 컬렉션 분리는 Qdrant가 이미 하는 일을 애플리케이션 레벨에서 재구현하는 셈이다.
-- **프로젝트 스코핑과 스테이지 스코핑이 독립 축이 아니다** — 같은 사용자가 A프로젝트에선 DEVELOPER, B프로젝트에선 OPERATOR일 수 있어(role_code는 프로젝트별), 컬렉션을 쪼개도 "이 프로젝트에선 이 컬렉션들만"이라는 프로젝트별 조건이 어차피 남는다 — 컬렉션 분리가 프로젝트 스코핑 문제를 전혀 단순화하지 못한다.
-- 프로젝트×역할 조합별로 쪼개면 컬렉션 수 = 프로젝트 수 × 스테이지 티어 수(사실상 3 — SUPER_ADMIN/DEVELOPER는 스테이지 가시성이 동일해 구분 실익이 없다)로, 프로젝트가 늘어날수록 컬렉션 수가 무한정 늘어난다. Qdrant 컬렉션은 각각 자체 HNSW 인덱스·메모리를 갖는 구조라 "데이터 양"이 아니라 "엔티티 개수"에 비례해 컬렉션이 늘어나는 건 실질적인 운영 부담이다(재구축·헬스체크·alias 스왑 로직이 컬렉션 개수만큼 반복돼야 함).
-- 컬렉션을 쪼개면 검색 1회가 최대 3개 컬렉션에 대한 개별 질의 + 애플리케이션 레벨 점수 병합·재정렬이 필요해진다(단일 컬렉션은 1회 질의로 Qdrant가 이미 정렬된 top-k를 반환).
-- API의 `api_stage`가 나중에 바뀌면(예: 20→30 승급) 컬렉션 분리는 포인트를 컬렉션 간 이동(삭제+재삽입)해야 하지만, 단일 컬렉션은 같은 point id에 payload만 갱신하면 끝난다.
-
-**payload 스키마**(신규): `project_id`(INT), `api_stage`(INT), `status`(INT) — 검색 시 필터 조건, `api_id`/`api_name`/`api_code`/`endpoint`/`project_name`은 표시용.
-
-### 아웃박스 동기화 — 신뢰성 보장 (`api_index_sync_queue`)
-
-단순 fire-and-forget은 "server/가 죽거나 rag_server가 그 순간 응답 없으면 영구 유실"이라 위 "확정된 방향"의 신뢰성 요구를 만족하지 못한다. **DB에 영속하는 큐 + 주기적 워커**로 "언젠가는 반드시 도달한다"를 보장한다 — 무기한 재시도(별도 dead-letter 없음, 시간차는 허용되지만 결국은 반드시 일치해야 한다는 요구사항에 따름).
-
-**`api_index_sync_queue` 테이블**(메인 `gm_platform` DB, 신규):
-
-| 컬럼 | 설명 |
-|------|------|
-| `sync_id` | PK |
-| `api_id` | 대상 API ID, UNIQUE(같은 API가 짧은 시간에 여러 번 수정돼도 큐에 1건만 남도록 dedup) |
-| `attempt_count` | 실패 시도 횟수(진단용, cutoff 없음) |
-| `last_error` | 마지막 실패 사유(진단용) |
-| `created_at` / `updated_at` | |
-
-**기존 SP 6개 수정**(`SP_CREATE_API`/`SP_UPDATE_API`/`SP_CREATE_API_REQUEST`/`SP_UPDATE_API_REQUEST`/`SP_CREATE_API_RESPONSE`/`SP_UPDATE_API_RESPONSE`) — 각 SP의 **동일 트랜잭션 안**에 큐 등록(`INSERT ... ON DUPLICATE KEY UPDATE attempt_count=0`)을 추가한다. 같은 트랜잭션에 넣는 이유: API 변경과 큐 등록이 원자적으로 묶여야 "API는 바뀌었는데 큐 등록은 실패해서 영영 동기화 안 됨" 같은 창이 생기지 않는다 — 감사 로그의 "별도 트랜잭션, fire-and-forget" 패턴보다 더 강한 보장이 필요해 의도적으로 다르게 갔다.
-
-**신규 SP 3개**(큐 조작 전용, 호출자 접근제어 없음 — 내부 워커 전용): `SP_GET_PENDING_API_INDEX_SYNC(IN i_limit INT)`(`updated_at`도 함께 반환), `SP_DELETE_API_INDEX_SYNC(IN i_sync_id BIGINT, IN i_expected_updated_at DATETIME)`, `SP_MARK_API_INDEX_SYNC_FAILED(IN i_sync_id BIGINT, IN i_error VARCHAR(500))`. `SP_DELETE_API_INDEX_SYNC`의 `i_expected_updated_at`은 낙관적 동시성 가드다 — 워커가 조회한 뒤 push하는 사이(왕복 시간) 도메인 SP가 같은 `api_id`를 다시 수정하면 `ON DUPLICATE KEY UPDATE`로 같은 `sync_id` 행이 재큐잉되는데, 이 가드 없이 `sync_id`만으로 삭제하면 방금 push한 구버전 성공을 이유로 재큐잉된 최신 변경분까지 함께 지워버려 그 변경이 `gm_apis`에 영영 반영되지 않는 레이스가 있었다(점검 중 발견·수정). `WHERE sync_id=? AND updated_at=?`로 걸어 조회 이후 재큐잉된 행(`ROW_COUNT()=0`)은 삭제하지 않고 다음 tick 재처리에 맡긴다.
-
-**`server/src/jobs/apiIndexSync.job.ts`**(신규) — `sessionCleanup.job.ts`와 동일하게 `config/db.ts`의 `runExclusive` advisory lock으로 스케일아웃 시 인스턴스 간 중복 실행을 막는다. 다만 스케줄링 자체는 `node-cron`이 아니라 재귀 `setTimeout`을 쓴다 — 이 워커는 특정 시각에 맞춘 크론이 아니라 고정 주기(ms) 폴링이고, 재귀 구조라 한 tick이 `API_INDEX_SYNC_INTERVAL_MS`(기본 15000)보다 오래 걸려도(대량 백로그 등) 다음 tick과 겹치지 않는다(`setInterval`이라면 겹칠 수 있음). 매 tick: pending 조회(최대 20건/tick) → 각 건마다 `getApi(apiId, 역할10 컨텍스트)`+`getProject`로 완성된 데이터 조립 → rag_server `POST /apis/reindex`로 push → 성공 시 큐에서 삭제, 실패 시 `attempt_count`/`last_error` 갱신 후 다음 tick에 재시도(행 단위 개별 try/catch라 한 건 실패가 나머지 건을 막지 않음). `RAG_ENABLED=false`면 `app.ts`가 이 함수 자체를 호출하지 않는다(`doc-search`/`internal` 라우트 조건부 등록과 동일 패턴).
+해당 없음 — 문서는 사람이 직접 수정하는 정적 파일이라 건별 증분 반영이 필요한 쓰기 경로 자체가 없다. 위 "데이터 흐름"의 파일 해시 비교 기반 전체 재구축이 유일한 갱신 경로다.
 
 ### API
 
-**rag_server**
+| 엔드포인트 | 설명 |
+|---|---|
+| `POST /search`(rag_server) | `{query, top_k?}` → `[{file, heading, text, score}]`. `apiKeyAuth`. |
+| `GET /doc-search`(server/) | `authenticate`만 요구. `RAG_ENABLED=false`면 라우트 자체 미등록. |
+
+구현 범위: rag_server 코어 → MCP tool(`search_docs`) → `server/` 프록시(`GET /doc-search`) → `client/` 검색 UI(`/doc-search`, 전 역할 메인 메뉴).
+
+## 10.2 API 정의 (`api`/`api_request`/`api_response`) — Phase 2 (완료)
+
+컬렉션 `gm_apis`. 프로젝트별 API 정의(요청/응답 파라미터 포함)를 자연어로 검색한다. Phase 1과 근본적으로 다른 지점 둘: (1) API 정의는 DB 행이라 정적 파일 해시 비교가 안 통해 push 기반으로 전환, (2) `project_id`+`api_stage` 두 축의 접근제어가 걸려 있어 검색 결과에도 이 스코핑을 재현해야 한다.
+
+### 제한 (스코핑)
+
+- `GET /api-search?q=...&project_id=...` — `authenticate`만 요구(전 역할, `GET /apis`와 동일 범위)하되 `project_id`는 헤더에서 선택된 프로젝트로 **강제 스코핑**되는 필수 파라미터다(다른 프로젝트 종속 화면과 동일 원칙 — SUPER_ADMIN도 예외 없음, 누락 시 30001).
+- 그 프로젝트 안에서 호출자의 실제 `role_code`로 다시 필터링 — `role_code <= api_stage`인 API만 노출된다(`api_stage=20`은 SA/DEV, `30`은 +APV, `40`은 전체 역할 — `Sidebar.tsx`의 `canExecuteStage()`/`SP_CREATE_API_EXECUTION`과 동일 규칙). 실행할 수 없는 API가 검색엔 걸리는 불일치를 막기 위함.
+- 호출자가 그 `project_id`에 실제 배정이 없으면 에러 대신 빈 결과(강제 스코핑이 인가 우회를 뜻하지 않음).
+
+### 데이터 흐름
+
+**증분(push, 생성/수정 시)**:
+
+```mermaid
+sequenceDiagram
+  participant Admin as 관리자(SA/DEV)
+  participant SP as SP 6개
+  participant Queue as api_index_sync_queue
+  participant Worker as apiIndexSync.job.ts
+  participant Rag as rag_server
+
+  Admin->>SP: API CRUD
+  SP->>Queue: 같은 트랜잭션에서 큐 등록
+  loop 주기적 폴링(기본 15초)
+    Worker->>Queue: pending 조회
+    Worker->>Worker: getApi()로 완성된 데이터(API+request+response) 조립
+    Worker->>Rag: POST /apis/reindex
+    Rag-->>Worker: 200
+    Worker->>Queue: 성공 시 큐에서 삭제
+  end
+```
+
+**백필/자가치유(pull, 전체 재구축)**:
+
+```mermaid
+flowchart TD
+  A["rag_server 부팅"] --> B{"gm_apis 컬렉션이 비어있는가?"}
+  B -- 아니오 --> Z["스킵(증분 반영에 맡김)"]
+  B -- 예 --> C["GET /internal/apis 호출"]
+  C --> D["SP_GET_PROJECT_LIST(role=10)\n→ 프로젝트별 SP_GET_API_LIST\n→ API별 SP_GET_API"]
+  D --> E["전체 활성 API 스냅샷 반환"]
+  E --> F["새 물리 컬렉션에 upsert"]
+  F --> G["alias 원자적 스왑"]
+```
+
+새 SP 없이 기존 조회 SP를 SUPER_ADMIN 컨텍스트로 조합해 재사용한다. `bootstrapWithRetry()`(§3.5)에 편입, `npm run build-index-apis`도 동일 경로.
+
+### 컬렉션 구조
+
+단일 컬렉션 `gm_apis` + payload 필터(`project_id`/`api_stage`/`status`) — 스테이지·역할별로 쪼개지 않는다. `role_code <= api_stage`가 Qdrant `range` 필터로 그대로 표현되고, 같은 사용자가 프로젝트마다 역할이 달라 컬렉션을 나눠도 프로젝트별 조건은 어차피 남기 때문. 스코핑은 프로젝트별 `{project_id 일치} AND {api_stage >= role_code}` 조건을 Qdrant `should`(OR)로 묶어 재현하며, `project_roles: null`(SUPER_ADMIN)이면 `status=1` 필터만 적용한다. `project_roles` 필드 자체가 없으면 무제한으로 해석하지 않고 400(fail-closed).
+
+### 아웃박스 동기화
+
+`api_index_sync_queue`(메인 DB, `api_id` UNIQUE) — API 쓰기 SP 6개가 도메인 변경과 **같은 트랜잭션**에 큐를 등록(`ON DUPLICATE KEY UPDATE` dedup)해, "API는 바뀌었는데 큐 등록은 실패" 창을 없앤다. `server/`의 재귀 `setTimeout` 폴링 워커(기본 15초, `runExclusive` advisory lock으로 인스턴스 간 중복 방지)가 주기적으로 비우고, 실패 시 무기한 재시도(dead-letter 없음). 삭제에는 `updated_at` 일치를 확인하는 낙관적 동시성 가드를 둬, 워커가 push하는 사이 같은 API가 다시 수정돼 재큐잉되면 최신 변경분을 지우지 않도록 방어한다.
+
+### API
 
 | 엔드포인트 | 설명 |
 |---|---|
-| `POST /apis/search` | 요청 `{query, top_k?, project_roles: {project_id, role_code}[] \| null}`(위 "스코핑"). 응답 `data`: `[{api_id, project_id, project_name, api_name, api_code, endpoint, score}]`. `project_roles` 누락/형식 오류 시 400(fail-closed). `apiKeyAuth` 재사용. |
-| `POST /apis/reindex` | server/의 아웃박스 워커가 완성된 API 데이터(위 "데이터 흐름" push 경로)를 통째로 넘기는 내부 엔드포인트. `apiKeyAuth` 재사용. |
+| `POST /apis/search`(rag_server) | `{query, top_k?, project_roles: {project_id, role_code}[] \| null}` → `[{api_id, project_id, project_name, api_name, api_code, endpoint, score}]`. `project_roles` 누락/형식 오류 시 400. `apiKeyAuth`. |
+| `POST /apis/reindex`(rag_server) | 아웃박스 워커 전용 push 수신. `apiKeyAuth`. |
+| `GET /api-search`(server/) | `q`/`project_id` 필수. |
+| `GET /internal/apis`(server/) | rag_server 전용 pull 경로, `ragKeyAuth`. |
 
-**server/**
+`npm run build-index-apis`(rag_server CLI) — 전체 재구축 수동 실행. 환경변수: `QDRANT_APIS_COLLECTION`(rag_server, 기본 `gm_apis`), `API_INDEX_SYNC_INTERVAL_MS`(server, 기본 `15000`).
 
-| 엔드포인트 | 설명 |
-|---|---|
-| `GET /api-search` | `authenticate`만 요구(전 역할 — `GET /apis`와 동일 범위). `q`/`project_id` 둘 다 필수(`project_id`는 헤더 선택 프로젝트로 강제 스코핑, 위 "스코핑" 참고). `RAG_ENABLED=false`면 `/doc-search`와 동일하게 라우트 자체 미등록. |
-| `GET /internal/apis` | rag_server 전용 내부 엔드포인트(위 "데이터 흐름" pull 경로). 방향이 반대(rag_server→server/)라 새 미들웨어 `middleware/ragKeyAuth.ts`(`apiKeyAuth.ts`와 동일 패턴, `X-API-Key`를 `env.rag.apiKey`와 상수시간 비교)로 검증 — server/에 "JWT도 완전 공개도 아닌" 라우트가 처음 생기는 지점. |
-
-`npm run build-index-apis`(rag_server CLI) — 위 "데이터 흐름" pull 경로를 무조건 실행하는 수동 전체 재구축.
-
-**환경변수 추가분**
-
-| 변수 | 위치 | 설명 | 기본값 |
-|------|------|------|--------|
-| `QDRANT_APIS_COLLECTION` | `rag_server/.env` | `gm_apis` alias명(위 "컬렉션 구조") | `gm_apis` |
-| `API_INDEX_SYNC_INTERVAL_MS` | `server/.env` | 아웃박스 워커 주기(위 "아웃박스 동기화") | `15000` |
-
-### Stage 진행 상황
-
-설계는 확정됐고(위 전체) Stage A~D + MCP tool 구현·검증 완료.
-
-**Stage A — rag_server 코어 (완료)**
-- ✅ `store.ts` 컬렉션 파라미터화(`gm_docs`/`gm_apis` 공용, 새 파일로 복제 안 함 — 기존 `reindex.ts`/`docSearch.service.ts`는 무변경)
-- ✅ `gm_apis` 인덱싱(`index/apiReindex.ts` — `upsertOneApi`로 push 수신 증분 upsert, `rebuild`로 pull 기반 전체 재구축, `apiReindexIfChanged`로 부팅 자가치유)
-- ✅ `POST /apis/search`(`services/apiSearch.service.ts`의 project_roles→Qdrant `should` 필터 변환, fail-closed 검증)/`POST /apis/reindex`
-- ✅ `npm run build-index-apis` CLI(`index/buildApis.ts`), `app.ts`의 `bootstrapWithRetry()`에 `apiReindexIfChanged()` 편입(새 재시도 루프 없음)
-
-**Stage B — 아웃박스 동기화 (완료)**
-- ✅ `api_index_sync_queue` 테이블 + SP 6개 수정(같은 트랜잭션 내 `ON DUPLICATE KEY UPDATE` dedup) + SP 3개 신규(`SP_GET_PENDING_API_INDEX_SYNC`/`SP_DELETE_API_INDEX_SYNC`/`SP_MARK_API_INDEX_SYNC_FAILED`)
-- ✅ `server/src/jobs/apiIndexSync.job.ts`(재귀 `setTimeout` 폴링 → `getApi`+`getProject` 조립 → `POST /apis/reindex` push, `RAG_ENABLED=true`일 때만 등록)
-
-**Stage C — GM Platform `server/` 프록시 (완료)**
-- ✅ `GET /internal/apis`(`services/internal.service.ts` — `SP_GET_PROJECT_LIST(role_code=10)` → 프로젝트별 `SP_GET_API_LIST` → API별 `SP_GET_API` 조합, 새 SP 없음) + `middleware/ragKeyAuth.ts`
-- ✅ `GET /api-search`(`services/apiSearch.service.ts`의 `resolveApiProjectRoles` — 기존 `userRoleService.getUserRoleList` 재사용, 새 SP 없음, 메인 DB `SP_GET_USER_ROLE_LIST` 기준 프로젝트별 실제 role_code 계산 후 rag_server에 전달) + Swagger 문서 반영(`ApiSearch` 태그, `RAG_ENABLED=false` 시 `apiSearch.ts`/`internal.ts`도 글롭 제외)
-- ✅ `tests/api_test.ps1` 14C 섹션(스모크 + 프로젝트/역할 교차 스코핑 회귀, 13A 스코프 프로젝트/사용자 재사용) — 전체 713/713 PASS
-
-**Stage D — `client/` 검색 UI (완료)**
-- ✅ `client/src/api/apiSearch.api.ts` — `GET /api-search` 호출 함수
-- ✅ `pages/main/api-search/ApiSearchPage.tsx` — Phase 1의 `DocSearchPage`와 동일 패턴(검색창 + 결과 카드, 레이스 방지용 `requestIdRef`), 단 `globalStore.selectedProjectId`가 없으면(SUPER_ADMIN "전체 프로젝트" 상태) 검색창 자체를 숨기고 "프로젝트를 선택하세요"만 표시(위 "스코핑" 1번 — `project_id` 필수). 결과 카드는 `api_name`+유사도, `api_code`+`endpoint`만 표시 — 한 프로젝트로 스코핑되면 모든 결과의 `project_name`이 동일해 카드마다 반복 표시할 필요가 없고(헤더에 이미 선택된 프로젝트가 항상 보임), 문서 검색과 달리 결과 자체에 request/response 파라미터 상세도 없음(§10.2 payload 스키마상 원래 없는 필드) — 상세가 필요하면 `api_id`로 기존 `GET /apis/:api_id`를 별도 호출해야 한다.
-- ✅ `router/index.tsx`/`Sidebar.tsx` — `/api-search` 라우트·"API 검색" 메뉴 등록(전 역할 공용, `MAIN_MENU`), `RAG_ENABLED` 게이팅은 문서 검색과 같은 빌드타임 값 재사용(새 env 없음)
-
-**MCP tool `search_apis` (완료)**
-- ✅ `mcp_server_dev`/`mcp_server_pc` 양쪽에 `tools/searchApis.ts` 추가. `search_docs`(rag_server를 `X-API-Key`로 직접 호출)와 달리 **rag_server를 직접 부르지 않고 GM Platform의 `GET /api-search`를 `gmClient.request()`로 호출**한다 — `project_id`×`role_code` 스코핑 계산이 GM Platform 서버 안에서만 이뤄지므로(위 "유저 스코핑"), `list_apis`와 동일한 인증 프록시 경로를 그대로 재사용한 것. `project_id`는 tool 입력값으로 필수 요구(GM Platform의 강제 스코핑과 동일).
-- ✅ 두 서버 모두 `env.ragEnabled`일 때만 `search_docs`와 함께 등록, role 게이팅 없음(결과 자체가 GM Platform에서 이미 호출자의 실제 권한으로 좁혀져 나옴).
+구현 범위: rag_server 코어 → 아웃박스 동기화 → `server/` 프록시(`GET /api-search`) → `client/` 검색 UI(`/api-search`, `project_id` 없으면 검색창 자체를 숨기고 "프로젝트를 선택하세요" 표시) → MCP tool(`search_apis`, GM Platform을 경유해 rag_server를 직접 호출하지 않음).
 
 ## 10.3 감사로그 (`log_audit`) — Phase 3 (완료)
 
-`log_audit`은 이미 물리적으로 분리된 별도 DB(`gm_platform_log`, `database_log/`)에 있어, API 정의(Phase 2)와 근본적으로 다른 지점이 있다. 아래는 그 차이에 맞게 갈라진 설계 결정과 구현 결과다(rag_server 코어·`server/` 프록시를 먼저 검증한 뒤 MCP tool·`client/` UI를 후속으로 진행 — Phase 2와 동일한 순서, 아래 "Stage 진행 상황" 참고).
+컬렉션 `gm_logs`. 감사 로그의 변경 diff를 자연어 문장으로 만들어 검색한다. `log_audit`이 이미 물리적으로 분리된 별도 DB(`gm_platform_log`, `database_log/`)에 있어 Phase 2와 근본적으로 다른 지점이 있다(아래 "아웃박스 동기화" 참고).
 
-### 확정된 방향
+### 제한 (스코핑)
 
-1. **컬렉션** — 새 컬렉션 `gm_apis`와 완전히 분리된 `gm_logs` 하나. `store.ts`의 범용 헬퍼(`rebuildCollectionAndSwap`/`upsertPoints`/`searchCollection`/`withSocketRetry`)를 그대로 재사용.
-2. **아웃박스 큐는 메인 DB가 아니라 `database_log`(log_audit과 같은 물리 DB)에 둔다** — Phase 2와 다른 지점. `log_audit` 자체는 도메인 쓰기와 별개 트랜잭션(fire-and-forget)으로 기록되므로 "도메인 변경과 큐 등록의 원자성"은 애초에 목표가 아니다. 여기서 지켜야 할 원자성은 "log_audit 행이 존재하면 그 큐 항목도 반드시 존재한다"이고, 이건 큐가 log_audit과 같은 DB에 있어야만 `SP_INSERT_LOG_AUDIT`의 같은 트랜잭션 안에서 보장할 수 있다.
-3. **큐는 Phase 2보다 단순하다** — `log_audit`은 Append-Only라 같은 `log_audit_id`가 재큐잉되는 경우가 구조적으로 없다(API처럼 UPDATE로 같은 PK가 여러 번 바뀌는 게 아니라, 변경이 생길 때마다 새 로그 행이 생성됨). 따라서 Phase 2가 겪은 "조회 이후 재큐잉되어 낡은 데이터를 지워버리는" TOCTOU가 원천적으로 없어, `SP_DELETE_LOG_AUDIT_INDEX_SYNC`에 Phase 2의 `i_expected_updated_at` 같은 낙관적 동시성 가드가 불필요하다 — `sync_id` 하나만으로 삭제한다.
-4. **임베딩 텍스트는 `server/`가 완성해서 push한다(diff 문장화)** — `before_json`/`after_json`을 그대로 rag_server에 넘기지 않는다. 대신 `server/`가 두 JSON을 필드 단위로 비교해 `"필드: 이전값 → 이후값"` 형태의 사람이 읽는 문장으로 합성하고(CREATE는 `"필드명=값"` 나열), rag_server는 그 완성된 텍스트를 그대로 임베딩만 한다 — before/after JSON 원본은 Qdrant에 절대 저장하지 않는다(원문이 필요하면 기존 `GET /log-audits/:id`로 드릴다운).
-5. **스코핑은 기존 `logAudit.service.ts`의 스코핑 규칙을 그대로 재사용**한다 — project_id 있는 로그는 호출자가 role_code≤30으로 실제 배정된 프로젝트 집합에 속하는지(멤버십 매치, Phase 2처럼 스테이지별 range 조건이 없어 더 단순함), project_id 없는 로그는 호출자 회사와 일치하는지.
-6. **`GET /log-audit-search`는 전 역할이 아니라 기존 `GET /log-audits`와 동일하게 SUPER_ADMIN/DEVELOPER/APPROVER로 제한**한다 — doc-search/api-search가 "전체 역할"인 건 원본 리소스가 전 역할 공개이기 때문이고, 감사로그는 원본 자체가 이미 3개 역할로 제한돼 있으니 검색도 동일 범위를 따른다.
-7. **물량 문제 대응** — 전체 스냅샷 조회(부팅 자가치유·`build-index-logs` CLI)는 Phase 2처럼 한 번에 전체를 pull하지 않고 `GET /internal/log-audits?page=&page_size=`로 페이지네이션한다(rag_server가 페이지를 순회하며 pull). 증분(아웃박스)은 한 건씩이라 물량 문제가 없다. 보존기간(retention)/오래된 로그 자동 정리는 이번 범위에 넣지 않았다 — 내부 전용 저트래픽 도구라 지금 규모에서 조기 최적화하지 않는다는 기존 원칙을 그대로 따른다.
+- `GET /log-audit-search`는 `GET /log-audits`와 동일하게 SUPER_ADMIN/DEVELOPER/APPROVER 전용(원본 리소스 자체가 이미 3개 역할로 제한).
+- 검색 대상은 호출자가 role_code≤30으로 실제 배정된 프로젝트 로그(멤버십 매치) + 본인 소속 회사 로그(project_id 없는 로그, 예: company/user 테이블 변경)로 스코핑 — `logAudit.service.ts`의 기존 규칙 재사용.
+- 헤더에서 선택된 `project_id`/`company_id`(둘 다 선택)로 검색 범위를 추가로 좁힐 수 있으나, 위 권한 스코프를 넓히지는 못한다 — rag_server가 항상 권한 필터와 AND로 결합(`project_id`가 있으면 `company_id`는 무시).
+- diff가 없는(정보량 없는) 로그는 애초에 색인하지 않는다 — 예: 비밀번호 변경은 `password_hash`가 감사로그 스냅샷 자체에 포함되지 않아 diff가 항상 빈다. 짧고 정형화된(템플릿 같은) diff가 대량 축적되면 임베딩 공간의 "허브"가 되어 무관한 질의에도 상위권을 차지하는 현상은 §3.1의 anisotropy/hubness와 동일 범주로, 완전히 해결되지는 않은 알려진 한계다.
 
 ### 데이터 흐름
 
-**증분 경로(생성/수정 시, push)**:
-```
-어떤 CUD 작업이든 SP_INSERT_LOG_AUDIT 호출(감사로그 기록)
-  → 같은 트랜잭션 안에서 log_audit_index_sync_queue(database_log)에 큐 등록
-  → server/의 워커(logAuditIndexSync.job.ts)가 주기적으로 큐를 비움
-    → getLogAudit(logAuditId, 역할10 컨텍스트)로 before_json/after_json 포함 전체 행 조회
-    → auditDiffText.ts로 diff 문장화(embed_text 생성)
-    → rag_server POST /log-audits/reindex 로 push(before_json/after_json 원본은 포함하지 않음)
-  → rag_server가 받은 embed_text를 그대로 임베딩+upsert (point id = log_audit_id)
+**증분(push, 생성/수정 시)**:
+
+```mermaid
+sequenceDiagram
+  participant CUD as 임의의 CUD 작업
+  participant SP as SP_INSERT_LOG_AUDIT
+  participant Queue as log_audit_index_sync_queue(database_log)
+  participant Worker as logAuditIndexSync.job.ts
+  participant Rag as rag_server
+
+  CUD->>SP: 감사로그 기록
+  SP->>Queue: 같은 트랜잭션에서 큐 등록
+  loop 주기적 폴링(기본 15초)
+    Worker->>Queue: pending 조회
+    Worker->>Worker: getLogAudit()로 before/after 조회 → diff 문장화(embed_text)
+    alt diff 있음
+      Worker->>Rag: POST /log-audits/reindex
+      Rag-->>Worker: 200
+    else diff 없음
+      Worker->>Worker: push 스킵(정보량 없음)
+    end
+    Worker->>Queue: 큐에서 삭제
+  end
 ```
 
-**백필/자가치유 경로(전체 재구축, pull, 페이지네이션)**:
+**백필/자가치유(pull, 전체 재구축, 페이지네이션)**:
+
+```mermaid
+flowchart TD
+  A["rag_server 부팅"] --> B{"gm_logs 컬렉션이 비어있는가?"}
+  B -- 아니오 --> Z["스킵"]
+  B -- 예 --> C["page = 1"]
+  C --> D["GET /internal/log-audits?page&page_size"]
+  D --> E["행마다 diff 문장화(embed_text)"]
+  E --> F{"page × page_size\n>= total_count?"}
+  F -- 아니오 --> G["page += 1"] --> D
+  F -- 예 --> H["전체 upsert + alias 원자적 스왑"]
 ```
-rag_server 부팅 시 gm_logs 컬렉션이 비어있음
-  → rag_server가 server/ GET /internal/log-audits?page=&page_size= 를 페이지 단위로 순회 호출(X-API-Key 인증)
-    → server/가 SP_GET_LOG_AUDIT_SYNC_SNAPSHOT(database_log, 접근제어 없음, before_json/after_json 포함)로
-      페이지를 조회한 뒤 각 행을 diff 문장화해 embed_text로 변환, before/after 원본은 응답에서 제거
-  → rag_server가 전량 재구축(rebuildAndSwap, §3.3과 동일한 alias 원자적 스왑)
-```
-이 pull 호출도 `bootstrapWithRetry()`(§3.5)에 그대로 편입된다. `npm run build-index-logs`(CLI)도 동일 경로를 무조건 실행한다.
+
+before/after JSON 원본은 전달·저장하지 않는다(embed_text만). API 정의보다 물량이 훨씬 클 수 있어 Phase 2(단일 호출)와 달리 페이지네이션한다. `bootstrapWithRetry()`에 편입, `npm run build-index-logs`도 동일 경로.
+
+### 컬렉션 구조
+
+단일 컬렉션 `gm_logs`, Phase 1/2와 같은 alias 스왑 구조·범용 헬퍼(`rebuildCollectionAndSwap`/`upsertPoints`/`searchCollection`)를 재사용. payload에 `project_id`/`company_id`(필터용)와 `table_name`/`target_name`/`action_type`/`created_by_name`/`embed_text`(표시용)를 함께 저장 — `gm_docs`가 청크 본문을 payload에 저장하는 것과 동일하게, 검색 결과에서 "왜 이 결과가 검색됐는지"를 상세 조회 없이 바로 보여주기 위해 diff 문장(`embed_text`)까지 그대로 노출한다.
+
+### 아웃박스 동기화
+
+`log_audit_index_sync_queue`가 메인 DB가 아니라 **`log_audit`과 같은 물리 DB(`database_log`)** 에 있다 — 감사로그 자체가 이미 별도 DB로 분리돼 있어, "log_audit 행이 존재하면 큐 항목도 반드시 존재한다"를 같은 트랜잭션으로 보장하려면 여기 둘 수밖에 없다(`log_audit` 자체는 도메인 쓰기와 별개 트랜잭션인 fire-and-forget이라 그 원자성까지는 목표가 아님). `log_audit`이 Append-Only(같은 PK가 재수정되지 않음)라 Phase 2가 필요했던 재큐잉 낙관적 동시성 가드가 구조적으로 불필요 — `sync_id`만으로 삭제한다. 나머지 워커 동작(주기적 폴링, 무기한 재시도)은 Phase 2와 동일.
 
 ### API
 
-**rag_server**
-
 | 엔드포인트 | 설명 |
 |---|---|
-| `POST /log-audits/search` | 요청 `{query, top_k?, scope: {allowed_project_ids, caller_company_id} \| null, project_id?: number \| null, company_id?: number \| null}`. `scope`가 `null`이면 SUPER_ADMIN(무제한). `project_id`/`company_id`(둘 다 선택, 헤더에서 선택된 값)는 검색 범위를 **좁히기만** 한다 — `scope`의 권한 필터와 항상 AND로 결합되어 권한 밖으로 넓어질 수 없다(`project_id`가 있으면 `company_id`는 무시). 응답 `data`: `[{log_audit_id, table_name, target_id, target_name, action_type, project_name, created_by_name, created_at, embed_text, score}]`(`embed_text`는 diff 문장화 결과 — Qdrant payload에 저장해두고 그대로 노출, "왜 이 결과가 검색됐는지"를 상세 조회 없이 바로 보여주기 위함). `apiKeyAuth` 재사용. |
-| `POST /log-audits/reindex` | server/의 아웃박스 워커가 완성된 감사 로그 데이터(embed_text 포함)를 넘기는 내부 엔드포인트. `apiKeyAuth` 재사용. |
+| `POST /log-audits/search`(rag_server) | `{query, top_k?, scope: {allowed_project_ids, caller_company_id} \| null, project_id?, company_id?}` → `[{log_audit_id, table_name, target_id, target_name, action_type, project_name, created_by_name, created_at, embed_text, score}]`. `apiKeyAuth`. |
+| `POST /log-audits/reindex`(rag_server) | 아웃박스 워커 전용 push 수신. `apiKeyAuth`. |
+| `GET /log-audit-search`(server/) | SA/DEV/APV 전용, `q` 필수, `project_id`/`company_id` 선택(헤더 값). |
+| `GET /internal/log-audits?page=&page_size=`(server/) | rag_server 전용 pull 경로(페이지네이션), `ragKeyAuth`. |
 
-**server/**
+`npm run build-index-logs`(rag_server CLI) — 전체 재구축 수동 실행. 환경변수: `QDRANT_LOGS_COLLECTION`(rag_server, 기본 `gm_logs`), `LOG_AUDIT_INDEX_SYNC_INTERVAL_MS`(server, 기본 `15000`).
 
-| 엔드포인트 | 설명 |
-|---|---|
-| `GET /log-audit-search` | `authenticate`+`requireRole(SUPER_ADMIN, DEVELOPER, APPROVER)`. `q` 필수, `project_id`/`company_id`는 선택(헤더에서 선택된 값, `client/`가 보냄) — 없으면 호출자가 접근 가능한 전체가 검색 대상, 있으면 그 안에서 좁혀진다(api-search처럼 강제 스코핑은 아님, doc/company/user 로그처럼 project_id 없는 대상도 검색해야 해서). `RAG_ENABLED=false`면 라우트 자체 미등록. |
-| `GET /internal/log-audits?page=&page_size=` | rag_server 전용 내부 엔드포인트(위 "데이터 흐름" pull 경로), `ragKeyAuth`로 보호. 내부 배치 전용 페이지 크기라 공개 API의 20/30/50/100 제약과 무관. |
-
-`npm run build-index-logs`(rag_server CLI) — 전체 재구축을 무조건 실행하는 수동 CLI.
-
-**환경변수 추가분**
-
-| 변수 | 위치 | 설명 | 기본값 |
-|------|------|------|--------|
-| `QDRANT_LOGS_COLLECTION` | `rag_server/.env` | `gm_logs` alias명 | `gm_logs` |
-| `LOG_AUDIT_INDEX_SYNC_INTERVAL_MS` | `server/.env` | 아웃박스 워커 주기 | `15000` |
-
-### Stage 진행 상황
-
-**rag_server 코어 + `server/` 프록시 (완료)**
-- ✅ DB: `database_log/tables/log_audit_index_sync_queue.sql`(신규) + `SP_INSERT_LOG_AUDIT` 트랜잭션화(같은 트랜잭션에 큐 등록) + SP 3개 신규(`SP_GET_PENDING_LOG_AUDIT_INDEX_SYNC`/`SP_DELETE_LOG_AUDIT_INDEX_SYNC`/`SP_MARK_LOG_AUDIT_INDEX_SYNC_FAILED`) + `SP_GET_LOG_AUDIT_SYNC_SNAPSHOT`(전체 pull 전용, before/after 포함)
-- ✅ `rag_server`: `store.ts`에 `gm_logs` 섹션 추가(공용 헬퍼 재사용) · `index/logAuditReindex.ts`(push 증분 upsert, 페이지네이션 pull 전체 재구축, 부팅 자가치유) · `services/logAuditSearch.service.ts`(scope→Qdrant `should` 필터 변환) · `POST /log-audits/search`·`POST /log-audits/reindex` · `npm run build-index-logs` CLI · `bootstrapWithRetry()`에 `logAuditReindexIfChanged()` 편입
-- ✅ `server/`: `utils/auditDiffText.ts`(diff 문장화) · `db/logAuditIndexSync.db.ts`·`jobs/logAuditIndexSync.job.ts`(아웃박스 워커, `logAudit.db.ts`의 기존 `getLogAudit` 재사용) · `logAudit.service.ts`의 `resolveAllowedProjectIds` export 후 재사용 · `services/logAuditSearch.service.ts`·`GET /log-audit-search`(SA/DEV/APV 제한) · `internal.service.ts`/`internal.controller.ts`/`GET /internal/log-audits`(페이지네이션) · Swagger 문서 반영(`LogAuditSearch` 태그, `RAG_ENABLED=false` 시 글롭 제외)
-- ✅ `tests/api_test.ps1` 14D 섹션(스모크 + 역할 제한(OPERATOR 20001) + 프로젝트 스코핑, 13A/14A 스코프 프로젝트·사용자·로그 재사용)
-
-**MCP tool `search_log_audits` (완료)**
-- ✅ `mcp_server_dev`/`mcp_server_pc` 양쪽에 `tools/searchLogAudits.ts` 추가. `search_apis`와 동일하게 rag_server를 직접 부르지 않고 GM Platform의 `GET /log-audit-search`를 `gmClient.request()`로 호출한다(스코핑 계산이 GM Platform 서버 안에서만 이뤄지므로). `project_id` 파라미터는 없음(단일 프로젝트로 강제 스코핑하지 않음).
-- ✅ `GET /log-audit-search` 자체가 SUPER_ADMIN/DEVELOPER/APPROVER 전용이라, `search_docs`/`search_apis`(role 게이팅 없음)와 달리 두 서버 모두 `APPROVAL_CAPABLE_ROLES`([10,20,30], 승인/반려 tool과 동일 그룹) 안에서만 `env.ragEnabled`와 함께 등록한다.
-
-**Stage D — `client/` 검색 UI (완료)**
-- ✅ `client/src/api/logAuditSearch.api.ts` — `GET /log-audit-search` 호출 함수
-- ✅ `pages/admin/audit-logs/AuditLogSearchPage.tsx` — `DocSearchPage`/`ApiSearchPage`와 동일 패턴(검색창 + 결과 카드, 레이스 방지용 `requestIdRef`). `GET /log-audit-search` 자체가 SA/DEV/APV 전용이라 `/doc-search`·`/api-search`(전 역할, `MainLayout` 메인 메뉴)와 달리 `/admin/audit-logs/search`로 관리 영역(`AdminLayout`) 안에 배치했다 — 상위 `/admin` 라우트의 `RoleGuard allow=[SA,DEV,APV]`를 그대로 상속해 별도 nested guard가 필요 없다(기존 `audit-logs` 목록·상세와 동일).
-- ✅ `router/index.tsx`/`Sidebar.tsx` — `audit-logs/search` 라우트·"감사로그 검색" 메뉴를 `audit-logs` 바로 아래 등록(`RAG_ENABLED` 게이팅, 문서/API 검색과 같은 빌드타임 값 재사용).
-- ✅ `action_type`/`table_name` 라벨 맵이 `AuditLogListPage.tsx`/`AuditLogDetailPage.tsx`에 중복 정의돼 있던 것을 이번에 발견해 `constants/statusMaps.ts`(기존 `ACTIVE_STATUS_MAP`이 있던 공유 상수 파일)로 통합하고 세 화면 모두 그걸 import하도록 정리했다 — 새 검색 화면이 세 번째 중복을 만들 뻔한 게 계기.
-
-**검색 결과에 diff 문장 노출 + 정확도 조사 (완료)**
-- ✅ Qdrant payload(`gm_logs`)에 `embed_text`(diff 문장화 결과)를 함께 저장해 검색 결과 카드에 "왜 이 결과가 검색됐는지"를 상세 조회 없이 바로 보여준다(`gm_docs`가 청크 본문을 payload에 저장하는 것과 동일 패턴). 기존 인덱싱된 포인트는 `npm run build-index-logs` 강제 재인덱싱으로 백필.
-- ✅ diff가 완전히 빈(before/after가 SKIP_FIELDS 제외 완전히 동일한, 예: 비밀번호 변경 — `password_hash`는 애초에 스냅샷 미포함) 감사로그는 색인하지 않는다(`auditDiffText.ts`의 `hasMeaningfulDiff()`) — `logAuditIndexSync.job.ts`(증분, push 스킵 후 큐만 삭제)와 `internal.service.ts`(전체 pull, `items` 필터링)/`logAuditReindex.ts`(pull 루프 종료 조건을 필터링과 무관한 `page*PAGE_SIZE>=total_count` 기준으로 조정) 양쪽에 적용. 정보량 없는 제네릭 문장(예: "사용자 수정: X\n작업자: Y")이 대량 반복돼 임베딩 공간의 "허브"가 되던 것을 제거 — 재구축 시 3882건 → 3255건(627건 제외).
-- ⚠️ **(알려진 한계, 미해결) 한 필드짜리 극도로 짧고 정형화된 diff의 허브 현상** — 위 수정 후에도, `api_stage: 20 → 40`처럼 한 필드만 바뀌는 극도로 짧고 정형화된(템플릿 같은) diff 문장이 테스트 반복 실행으로 대량 축적되면, 그 자체가 질의 내용과 무관하게 임베딩 공간의 허브가 되어 상위권을 차지하는 현상이 남아있다(예: 프로젝트 스코프가 좁혀진 계정으로 "회사 변경" 검색 시 무관한 "API 수정" 결과가 최상위). §3.1의 문서검색 anisotropy(hubness)와 동일 범주 — 완전히 없애려면 모델 교체·임베딩 텍스트(청크) 재설계 수준의 추가 실험이 필요하다고 판단해 여기서 마무리.
-
-**결과 카드 UX 개선 — 상세 이동 → 인라인 확장, 헤더 회사/프로젝트로 검색 범위 좁히기 (완료)**
-- ✅ 결과 카드 클릭 시 `GET /log-audits/:id`로 이동하던 동작을 제거하고, `embed_text` 문단에 antd `Typography.Paragraph`의 `ellipsis={{rows:2, expandable:true, symbol:'더보기'}}`를 적용해 카드 안에서 바로 펼쳐보게 했다(별도 상태 관리 없이 antd 내장 기능).
-- ✅ `GET /log-audit-search`/`POST /log-audits/search`에 선택 파라미터 `project_id`/`company_id`(헤더에서 선택된 값)를 추가해 검색 범위를 헤더의 회사/프로젝트로 좁힐 수 있게 했다 — `rag_server`의 `logAuditSearch.service.ts`가 이 값을 권한 스코프(`buildScopeFilter`)와 항상 AND(`must`)로 결합해(`buildFilter`), 헤더 값이 권한을 벗어나도 결과가 0건이 될 뿐 권한 밖 데이터가 노출되지 않는다(client가 보내는 값을 신뢰하지 않고 서버가 항상 교집합으로만 적용). `project_id`가 있으면 `company_id`는 무시(더 좁은 조건 우선). `client/`의 `AuditLogSearchPage.tsx`는 `globalStore.selectedProjectId`/`selectedCompanyId`를 검색 시점에 그대로 실어 보내고, 현재 검색 범위를 "검색 범위: OOO" 텍스트로 화면에 표시한다.
-- ✅ **헤더 잠금 재검토 — 잠금 해제 유지로 확정** — 이 화면이 실제로 헤더 선택을 쓰게 되면서 "검색 도중 헤더를 바꾸면 결과가 어긋나 보일 수 있다"는 우려가 생겼지만, `/api-search`(project_id로 강제 스코핑됨에도 헤더를 잠그지 않는 기존 선례)와 동일하게 잠금 해제를 유지하기로 했다 — 헤더를 바꿔도 다음 검색부터 새 범위가 자연스럽게 적용되며, 관리 화면(등록·수정 등 작업 상태 보호가 필요한 화면)과 달리 검색은 매번 새로 조회하는 성격이라 잠글 필요성이 낮다고 판단.
+구현 범위: rag_server 코어 → 아웃박스 동기화 → `server/` 프록시(`GET /log-audit-search`) → MCP tool(`search_log_audits`, `APPROVAL_CAPABLE_ROLES`에서만 등록) → `client/` 검색 UI(`/admin/audit-logs/search`, 결과 카드는 상세 이동 대신 `embed_text`를 인라인 "더보기"로 확장).
 
 ## 범위 밖 (공통)
 
