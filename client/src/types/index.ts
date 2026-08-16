@@ -259,5 +259,6 @@ export interface LogAuditSearchResult {
   project_name: string | null;
   created_by_name: string | null;
   created_at: string;
+  embed_text: string;
   score: number;
 }

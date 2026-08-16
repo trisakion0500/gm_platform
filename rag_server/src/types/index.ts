@@ -85,8 +85,11 @@ export interface ApiReindexPushBody {
 
 /**
  * gm_logs Qdrant 포인트 payload — 필터용(project_id/company_id)과 표시용 필드를 함께 담는다.
- * before_json/after_json 원본은 저장하지 않는다(server/가 diff를 문장화한 embed_text만 임베딩,
- * 원문이 필요하면 GET /log-audits/:id로 드릴다운 — docs/21_RAG_SERVER.md §10.3).
+ * before_json/after_json 원본은 저장하지 않는다 — 필요하면 GET /log-audits/:id로 드릴다운
+ * (docs/21_RAG_SERVER.md §10.3). embed_text(diff 문장화 결과)는 검색 결과 카드에 "왜 이 결과가
+ * 검색됐는지"를 바로 보여주기 위해 저장한다(gm_docs가 청크 본문을 payload에 저장해 그대로 응답에
+ * 노출하는 것과 동일 패턴) — 구조가 바뀌면(diff 문장화 로직 변경 등) 재인덱싱 전까지 옛 문구가
+ * payload에 남아있을 수 있다는 게 이 방식의 유일한 단점.
  */
 export interface LogAuditPointPayload {
   log_audit_id: number;
@@ -99,6 +102,7 @@ export interface LogAuditPointPayload {
   action_type: number;
   created_by_name: string | null;
   created_at: string;
+  embed_text: string;
 }
 
 /** rebuildLogsAndSwap/upsertLogPoints에 넘기는 포인트 — point id = log_audit_id */
@@ -118,6 +122,7 @@ export interface LogAuditSearchHit {
   project_name: string | null;
   created_by_name: string | null;
   created_at: string;
+  embed_text: string;
   score: number;
 }
 

@@ -27,9 +27,19 @@ function isValidScope(value: unknown): value is LogAuditScopeFilter | null {
 }
 
 /**
+ * body.project_id/company_id(헤더 선택 좁히기용, 둘 다 선택)가 number 또는 null/undefined인지 확인한다.
+ * @param value 검증할 값
+ * @returns number | null | undefined 형태이면 true
+ */
+function isValidNarrowId(value: unknown): value is number | null | undefined {
+  return value === undefined || value === null || typeof value === "number";
+}
+
+/**
  * POST /log-audits/search — 감사 로그 자연어 검색(project_id×company_id 스코핑, docs/21_RAG_SERVER.md §10.3)
- * @param req body: { query: string, top_k?: number, scope: {allowed_project_ids, caller_company_id} | null }
- * @param res 200 — [{ log_audit_id, table_name, target_id, target_name, action_type, project_name, created_by_name, created_at, score }]
+ * @param req body: { query: string, top_k?: number, scope: {allowed_project_ids, caller_company_id} | null,
+ *                     project_id?: number | null, company_id?: number | null }
+ * @param res 200 — [{ log_audit_id, table_name, target_id, target_name, action_type, project_name, created_by_name, created_at, embed_text, score }]
  * @param next 오류 전달
  * @returns void
  */
@@ -64,7 +74,18 @@ export async function search(req: Request, res: Response, next: NextFunction): P
       return;
     }
 
-    const results = await logAuditSearchService.search(query, topK, rawScope);
+    // 헤더 선택 좁히기 — 둘 다 선택 필드(없으면 "전체", scope 그대로). project_id/company_id 둘 다
+    // 없거나 형식이 틀리면 400, 있으면 buildFilter가 scope와 AND로 결합한다(logAuditSearch.service.ts).
+    const rawProjectId: unknown = req.body?.project_id;
+    const rawCompanyId: unknown = req.body?.company_id;
+    if (!isValidNarrowId(rawProjectId) || !isValidNarrowId(rawCompanyId)) {
+      fail(res, ERROR_MAP.INVALID_VALUE);
+      return;
+    }
+    const narrowProjectId = typeof rawProjectId === "number" ? rawProjectId : null;
+    const narrowCompanyId = typeof rawCompanyId === "number" ? rawCompanyId : null;
+
+    const results = await logAuditSearchService.search(query, topK, rawScope, narrowProjectId, narrowCompanyId);
     success(res, results);
   } catch (err) {
     next(err);

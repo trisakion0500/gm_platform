@@ -455,14 +455,14 @@ rag_server 부팅 시 gm_logs 컬렉션이 비어있음
 
 | 엔드포인트 | 설명 |
 |---|---|
-| `POST /log-audits/search` | 요청 `{query, top_k?, scope: {allowed_project_ids, caller_company_id} \| null}`. `scope`가 `null`이면 SUPER_ADMIN(무제한). 응답 `data`: `[{log_audit_id, table_name, target_id, target_name, action_type, project_name, created_by_name, created_at, score}]`. `apiKeyAuth` 재사용. |
+| `POST /log-audits/search` | 요청 `{query, top_k?, scope: {allowed_project_ids, caller_company_id} \| null, project_id?: number \| null, company_id?: number \| null}`. `scope`가 `null`이면 SUPER_ADMIN(무제한). `project_id`/`company_id`(둘 다 선택, 헤더에서 선택된 값)는 검색 범위를 **좁히기만** 한다 — `scope`의 권한 필터와 항상 AND로 결합되어 권한 밖으로 넓어질 수 없다(`project_id`가 있으면 `company_id`는 무시). 응답 `data`: `[{log_audit_id, table_name, target_id, target_name, action_type, project_name, created_by_name, created_at, embed_text, score}]`(`embed_text`는 diff 문장화 결과 — Qdrant payload에 저장해두고 그대로 노출, "왜 이 결과가 검색됐는지"를 상세 조회 없이 바로 보여주기 위함). `apiKeyAuth` 재사용. |
 | `POST /log-audits/reindex` | server/의 아웃박스 워커가 완성된 감사 로그 데이터(embed_text 포함)를 넘기는 내부 엔드포인트. `apiKeyAuth` 재사용. |
 
 **server/**
 
 | 엔드포인트 | 설명 |
 |---|---|
-| `GET /log-audit-search` | `authenticate`+`requireRole(SUPER_ADMIN, DEVELOPER, APPROVER)`. `q` 필수, `project_id` 파라미터는 없다(단일 프로젝트로 강제 스코핑하지 않고 호출자가 접근 가능한 프로젝트 전체가 한 번에 검색 대상). `RAG_ENABLED=false`면 라우트 자체 미등록. |
+| `GET /log-audit-search` | `authenticate`+`requireRole(SUPER_ADMIN, DEVELOPER, APPROVER)`. `q` 필수, `project_id`/`company_id`는 선택(헤더에서 선택된 값, `client/`가 보냄) — 없으면 호출자가 접근 가능한 전체가 검색 대상, 있으면 그 안에서 좁혀진다(api-search처럼 강제 스코핑은 아님, doc/company/user 로그처럼 project_id 없는 대상도 검색해야 해서). `RAG_ENABLED=false`면 라우트 자체 미등록. |
 | `GET /internal/log-audits?page=&page_size=` | rag_server 전용 내부 엔드포인트(위 "데이터 흐름" pull 경로), `ragKeyAuth`로 보호. 내부 배치 전용 페이지 크기라 공개 API의 20/30/50/100 제약과 무관. |
 
 `npm run build-index-logs`(rag_server CLI) — 전체 재구축을 무조건 실행하는 수동 CLI.
@@ -488,9 +488,19 @@ rag_server 부팅 시 gm_logs 컬렉션이 비어있음
 
 **Stage D — `client/` 검색 UI (완료)**
 - ✅ `client/src/api/logAuditSearch.api.ts` — `GET /log-audit-search` 호출 함수
-- ✅ `pages/admin/audit-logs/AuditLogSearchPage.tsx` — `DocSearchPage`/`ApiSearchPage`와 동일 패턴(검색창 + 결과 카드, 레이스 방지용 `requestIdRef`). `GET /log-audit-search` 자체가 SA/DEV/APV 전용이라 `/doc-search`·`/api-search`(전 역할, `MainLayout` 메인 메뉴)와 달리 `/admin/audit-logs/search`로 관리 영역(`AdminLayout`) 안에 배치했다 — 상위 `/admin` 라우트의 `RoleGuard allow=[SA,DEV,APV]`를 그대로 상속해 별도 nested guard가 필요 없다(기존 `audit-logs` 목록·상세와 동일). 결과 카드 클릭 시 `GET /log-audits/:id`(기존 상세 화면)로 드릴다운.
-- ✅ `router/index.tsx`/`Sidebar.tsx` — `audit-logs/search` 라우트·"감사로그 검색" 메뉴를 `audit-logs` 바로 아래 등록(`RAG_ENABLED` 게이팅, 문서/API 검색과 같은 빌드타임 값 재사용). 관리 화면 헤더 잠금(`ADMIN_LIST_PATHS`)에는 포함하지 않음 — 목록 화면이 아니라 검색 화면이라 기존 원칙(목록만 예외, 나머지 `/admin/*` 잠금)을 그대로 따름.
+- ✅ `pages/admin/audit-logs/AuditLogSearchPage.tsx` — `DocSearchPage`/`ApiSearchPage`와 동일 패턴(검색창 + 결과 카드, 레이스 방지용 `requestIdRef`). `GET /log-audit-search` 자체가 SA/DEV/APV 전용이라 `/doc-search`·`/api-search`(전 역할, `MainLayout` 메인 메뉴)와 달리 `/admin/audit-logs/search`로 관리 영역(`AdminLayout`) 안에 배치했다 — 상위 `/admin` 라우트의 `RoleGuard allow=[SA,DEV,APV]`를 그대로 상속해 별도 nested guard가 필요 없다(기존 `audit-logs` 목록·상세와 동일).
+- ✅ `router/index.tsx`/`Sidebar.tsx` — `audit-logs/search` 라우트·"감사로그 검색" 메뉴를 `audit-logs` 바로 아래 등록(`RAG_ENABLED` 게이팅, 문서/API 검색과 같은 빌드타임 값 재사용).
 - ✅ `action_type`/`table_name` 라벨 맵이 `AuditLogListPage.tsx`/`AuditLogDetailPage.tsx`에 중복 정의돼 있던 것을 이번에 발견해 `constants/statusMaps.ts`(기존 `ACTIVE_STATUS_MAP`이 있던 공유 상수 파일)로 통합하고 세 화면 모두 그걸 import하도록 정리했다 — 새 검색 화면이 세 번째 중복을 만들 뻔한 게 계기.
+
+**검색 결과에 diff 문장 노출 + 정확도 조사 (완료)**
+- ✅ Qdrant payload(`gm_logs`)에 `embed_text`(diff 문장화 결과)를 함께 저장해 검색 결과 카드에 "왜 이 결과가 검색됐는지"를 상세 조회 없이 바로 보여준다(`gm_docs`가 청크 본문을 payload에 저장하는 것과 동일 패턴). 기존 인덱싱된 포인트는 `npm run build-index-logs` 강제 재인덱싱으로 백필.
+- ✅ diff가 완전히 빈(before/after가 SKIP_FIELDS 제외 완전히 동일한, 예: 비밀번호 변경 — `password_hash`는 애초에 스냅샷 미포함) 감사로그는 색인하지 않는다(`auditDiffText.ts`의 `hasMeaningfulDiff()`) — `logAuditIndexSync.job.ts`(증분, push 스킵 후 큐만 삭제)와 `internal.service.ts`(전체 pull, `items` 필터링)/`logAuditReindex.ts`(pull 루프 종료 조건을 필터링과 무관한 `page*PAGE_SIZE>=total_count` 기준으로 조정) 양쪽에 적용. 정보량 없는 제네릭 문장(예: "사용자 수정: X\n작업자: Y")이 대량 반복돼 임베딩 공간의 "허브"가 되던 것을 제거 — 재구축 시 3882건 → 3255건(627건 제외).
+- ⚠️ **(알려진 한계, 미해결) 한 필드짜리 극도로 짧고 정형화된 diff의 허브 현상** — 위 수정 후에도, `api_stage: 20 → 40`처럼 한 필드만 바뀌는 극도로 짧고 정형화된(템플릿 같은) diff 문장이 테스트 반복 실행으로 대량 축적되면, 그 자체가 질의 내용과 무관하게 임베딩 공간의 허브가 되어 상위권을 차지하는 현상이 남아있다(예: 프로젝트 스코프가 좁혀진 계정으로 "회사 변경" 검색 시 무관한 "API 수정" 결과가 최상위). §3.1의 문서검색 anisotropy(hubness)와 동일 범주 — 완전히 없애려면 모델 교체·임베딩 텍스트(청크) 재설계 수준의 추가 실험이 필요하다고 판단해 여기서 마무리.
+
+**결과 카드 UX 개선 — 상세 이동 → 인라인 확장, 헤더 회사/프로젝트로 검색 범위 좁히기 (완료)**
+- ✅ 결과 카드 클릭 시 `GET /log-audits/:id`로 이동하던 동작을 제거하고, `embed_text` 문단에 antd `Typography.Paragraph`의 `ellipsis={{rows:2, expandable:true, symbol:'더보기'}}`를 적용해 카드 안에서 바로 펼쳐보게 했다(별도 상태 관리 없이 antd 내장 기능).
+- ✅ `GET /log-audit-search`/`POST /log-audits/search`에 선택 파라미터 `project_id`/`company_id`(헤더에서 선택된 값)를 추가해 검색 범위를 헤더의 회사/프로젝트로 좁힐 수 있게 했다 — `rag_server`의 `logAuditSearch.service.ts`가 이 값을 권한 스코프(`buildScopeFilter`)와 항상 AND(`must`)로 결합해(`buildFilter`), 헤더 값이 권한을 벗어나도 결과가 0건이 될 뿐 권한 밖 데이터가 노출되지 않는다(client가 보내는 값을 신뢰하지 않고 서버가 항상 교집합으로만 적용). `project_id`가 있으면 `company_id`는 무시(더 좁은 조건 우선). `client/`의 `AuditLogSearchPage.tsx`는 `globalStore.selectedProjectId`/`selectedCompanyId`를 검색 시점에 그대로 실어 보내고, 현재 검색 범위를 "검색 범위: OOO" 텍스트로 화면에 표시한다.
+- ✅ **헤더 잠금 재검토 — 잠금 해제 유지로 확정** — 이 화면이 실제로 헤더 선택을 쓰게 되면서 "검색 도중 헤더를 바꾸면 결과가 어긋나 보일 수 있다"는 우려가 생겼지만, `/api-search`(project_id로 강제 스코핑됨에도 헤더를 잠그지 않는 기존 선례)와 동일하게 잠금 해제를 유지하기로 했다 — 헤더를 바꿔도 다음 검색부터 새 범위가 자연스럽게 적용되며, 관리 화면(등록·수정 등 작업 상태 보호가 필요한 화면)과 달리 검색은 매번 새로 조회하는 성격이라 잠글 필요성이 낮다고 판단.
 
 ## 범위 밖 (공통)
 

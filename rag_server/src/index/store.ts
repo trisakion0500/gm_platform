@@ -366,6 +366,7 @@ export async function searchLogs(
       project_name: payload.project_name,
       created_by_name: payload.created_by_name,
       created_at: payload.created_at,
+      embed_text: payload.embed_text,
       score: hit.score,
     };
   });

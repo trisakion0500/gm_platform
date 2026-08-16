@@ -47,6 +47,21 @@ export function buildDiffText(beforeJson: string | null, afterJson: string): str
 }
 
 /**
+ * diff가 실제로 의미 있는 내용을 담고 있는지 확인한다. before/after가 SKIP_FIELDS를 제외하면 완전히
+ * 동일하면(예: 비밀번호 변경 — password_hash는 애초에 감사로그 스냅샷에 포함되지 않아 diff가 항상 빈다)
+ * false를 반환한다 — 정보량 없는 제네릭 embed_text("사용자 수정: X\n작업자: Y")가 gm_logs 코퍼스에
+ * 대량으로 쌓여 임베딩 공간의 "허브"(질의 내용과 무관하게 거의 모든 검색에서 비정상적으로 높은 유사도를
+ * 받는 포인트)가 되는 걸 막기 위해 이런 행은 애초에 색인하지 않는다(logAuditIndexSync.job.ts/internal.service.ts).
+ * @author trisakion
+ * @param beforeJson 변경 전 데이터 JSON 문자열 (CREATE 시 null)
+ * @param afterJson 변경 후 데이터 JSON 문자열
+ * @returns 의미 있는 diff가 있으면 true
+ */
+export function hasMeaningfulDiff(beforeJson: string | null, afterJson: string): boolean {
+  return buildDiffText(beforeJson, afterJson).length > 0;
+}
+
+/**
  * 감사 로그 1건의 gm_logs 임베딩 입력 텍스트를 구성한다(diff 문장화, docs/21_RAG_SERVER.md §10.3 "임베딩 텍스트").
  * rag_server는 이 결과(embed_text)를 그대로 받아 "passage: " 프리픽스만 붙여 임베딩할 뿐, before_json/after_json
  * 원본은 전혀 모른다(MSA 경계 — Phase 2가 "완성된 데이터를 만들어 push"한 것과 동일 원칙).

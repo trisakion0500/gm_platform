@@ -33,6 +33,7 @@ function toPayload(item: LogAuditReindexPushBody): LogAuditPointPayload {
     action_type: item.action_type,
     created_by_name: item.created_by_name,
     created_at: item.created_at,
+    embed_text: item.embed_text,
   };
 }
 
@@ -100,7 +101,10 @@ async function pullLogAuditSnapshot(): Promise<LogAuditReindexPushBody[]> {
       throw new Error(`GET /internal/log-audits 실패: result=${body.result} message=${body.message}`);
 
     all.push(...body.data.items);
-    if (all.length >= body.data.total_count || body.data.items.length === 0)
+    // server/가 diff 없는(정보량 없는) 행을 items에서 걸러내므로(hasMeaningfulDiff, internal.service.ts)
+    // all.length는 total_count보다 항상 작거나 같을 수 있다 — "마지막 페이지를 지났는지"는 필터링과
+    // 무관한 원본 페이지네이션 커서(page*PAGE_SIZE)로만 판정한다.
+    if (page * PAGE_SIZE >= body.data.total_count)
       break;
     page++;
   }

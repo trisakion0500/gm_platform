@@ -13,7 +13,7 @@ import { LogAuditSearchHit, LogAuditScopeFilter, LogAuditReindexPushBody } from 
  * @param scope 요청자의 스코핑 정보, SUPER_ADMIN이면 null
  * @returns Qdrant filter 객체
  */
-function buildFilter(scope: LogAuditScopeFilter | null): Record<string, unknown> {
+function buildScopeFilter(scope: LogAuditScopeFilter | null): Record<string, unknown> {
   if (scope === null)
     return {};
 
@@ -31,19 +31,55 @@ function buildFilter(scope: LogAuditScopeFilter | null): Record<string, unknown>
 }
 
 /**
- * 질의를 임베딩한 뒤 gm_logs에서 프로젝트×회사 스코핑을 적용해 검색한다.
+ * 권한 스코프(buildScopeFilter)에 헤더 선택(narrowProjectId/narrowCompanyId)을 AND로 결합해
+ * 검색 범위를 좁힌다. 헤더 값은 클라이언트가 보내는 값이라 신뢰하지 않고, 항상 권한 필터와의
+ * 교집합으로만 작용하게 한다 — narrow가 권한 밖 프로젝트/회사를 가리켜도 결과가 0건이 될 뿐
+ * 권한을 벗어난 데이터가 노출되지는 않는다. narrowProjectId가 있으면 narrowCompanyId는 무시한다
+ * (프로젝트가 회사보다 더 좁은 조건이므로 — client/AuditLogSearchPage.tsx도 이 우선순위로 보낸다).
+ * @param scope 요청자의 스코핑 정보, SUPER_ADMIN이면 null
+ * @param narrowProjectId 헤더에서 선택된 project_id(좁히기), 없으면 null
+ * @param narrowCompanyId 헤더에서 선택된 company_id(좁히기), 없으면 null
+ * @returns Qdrant filter 객체
+ */
+function buildFilter(
+  scope: LogAuditScopeFilter | null,
+  narrowProjectId: number | null,
+  narrowCompanyId: number | null,
+): Record<string, unknown> {
+  const narrowCondition =
+    narrowProjectId !== null
+      ? { key: "project_id", match: { value: narrowProjectId } }
+      : narrowCompanyId !== null
+        ? { key: "company_id", match: { value: narrowCompanyId } }
+        : null;
+
+  const scopeFilter = buildScopeFilter(scope);
+  if (narrowCondition === null)
+    return scopeFilter;
+  if (Object.keys(scopeFilter).length === 0)
+    return { must: [narrowCondition] };
+  // Qdrant는 must 배열 원소로 단일 조건뿐 아니라 중첩 Filter(scopeFilter의 should 절)도 허용한다.
+  return { must: [scopeFilter, narrowCondition] };
+}
+
+/**
+ * 질의를 임베딩한 뒤 gm_logs에서 프로젝트×회사 스코핑(+헤더 선택 좁히기)을 적용해 검색한다.
  * @param query 검색어
  * @param topK 반환할 최대 개수
  * @param scope 요청자의 스코핑 정보, SUPER_ADMIN이면 null
+ * @param narrowProjectId 헤더에서 선택된 project_id(좁히기), 없으면 null
+ * @param narrowCompanyId 헤더에서 선택된 company_id(좁히기), 없으면 null
  * @returns 유사도 내림차순 검색 결과
  */
 export async function search(
   query: string,
   topK: number,
   scope: LogAuditScopeFilter | null,
+  narrowProjectId: number | null,
+  narrowCompanyId: number | null,
 ): Promise<LogAuditSearchHit[]> {
   const vector = await embed(`query: ${query}`);
-  return searchLogsInStore(vector, topK, buildFilter(scope));
+  return searchLogsInStore(vector, topK, buildFilter(scope, narrowProjectId, narrowCompanyId));
 }
 
 /**

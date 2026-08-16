@@ -3,7 +3,7 @@ import { env } from '../config/env';
 import { runExclusive } from '../config/db';
 import * as logAuditIndexSyncDb from '../db/logAuditIndexSync.db';
 import * as logAuditDb from '../db/logAudit.db';
-import { buildEmbedText } from '../utils/auditDiffText';
+import { buildEmbedText, hasMeaningfulDiff } from '../utils/auditDiffText';
 import { LogAuditReindexPushBody, LogAuditSyncSnapshotRow } from '../types';
 import logger from '../utils/logger';
 
@@ -20,12 +20,14 @@ const ERROR_MESSAGE_MAX_LENGTH = 500;
 /**
  * log_audit_id로 완성된 감사 로그 데이터를 조립해 rag_server가 요구하는 LogAuditReindexPushBody
  * 형태로 반환한다. before_json/after_json은 diff 문장화(auditDiffText.ts)만 거치고 그 자체는
- * push 본문에 포함하지 않는다(MSA 경계).
+ * push 본문에 포함하지 않는다(MSA 경계). diff가 없는(정보량 없는) 로그는 gm_logs 코퍼스를
+ * 오염시키는 "허브" 포인트가 되는 걸 막기 위해 색인하지 않고 null을 반환한다(auditDiffText.ts의
+ * hasMeaningfulDiff 참고 — internal.service.ts의 pull 경로와 동일한 판정 기준).
  * @author trisakion
  * @param logAuditId 대상 감사 로그 ID
- * @returns rag_server push용 완성된 감사 로그 데이터
+ * @returns rag_server push용 완성된 감사 로그 데이터, 색인할 필요 없는 로그면 null
  */
-async function buildPushBody(logAuditId: number): Promise<LogAuditReindexPushBody> {
+async function buildPushBody(logAuditId: number): Promise<LogAuditReindexPushBody | null> {
   const row = await logAuditDb.getLogAudit(logAuditId, SYSTEM_ROLE_CODE, '', 0);
   const snapshot: LogAuditSyncSnapshotRow = {
     log_audit_id: row.log_audit_id,
@@ -41,6 +43,8 @@ async function buildPushBody(logAuditId: number): Promise<LogAuditReindexPushBod
     created_by_name: row.created_by_name,
     created_at: row.created_at,
   };
+  if (!hasMeaningfulDiff(snapshot.before_json, snapshot.after_json))
+    return null;
   return {
     log_audit_id: snapshot.log_audit_id,
     company_id: snapshot.company_id,
@@ -75,8 +79,8 @@ async function pushToRagServer(body: LogAuditReindexPushBody): Promise<void> {
 
 /**
  * 대기 중인 큐를 최대 BATCH_SIZE건 조회해 각각 rag_server에 push한다.
- * 성공한 행은 큐에서 삭제, 실패한 행은 attempt_count/last_error만 갱신하고 다음 tick에 재시도한다
- * (무기한 재시도 — apiIndexSync.job.ts와 동일한 "확실한 전달 보장" 설계 의도).
+ * 성공(반영 또는 diff 없어 의도적으로 스킵)한 행은 큐에서 삭제, 실패한 행은 attempt_count/last_error만
+ * 갱신하고 다음 tick에 재시도한다(무기한 재시도 — apiIndexSync.job.ts와 동일한 "확실한 전달 보장" 설계 의도).
  * @author trisakion
  * @returns void
  */
@@ -85,13 +89,18 @@ async function processPendingQueue(): Promise<void> {
   if (pending.length === 0)
     return;
 
-  let succeeded = 0;
+  let pushed = 0;
+  let skipped = 0;
   for (const row of pending) {
     try {
       const body = await buildPushBody(row.log_audit_id);
-      await pushToRagServer(body);
+      if (body === null) {
+        skipped++;
+      } else {
+        await pushToRagServer(body);
+        pushed++;
+      }
       await logAuditIndexSyncDb.deleteLogAuditIndexSync(row.sync_id);
-      succeeded++;
     } catch (err) {
       // apiIndexSync.job.ts와 동일 원칙 — axios 에러는 config.headers(X-API-Key 평문)를 담고 있어 message만 로깅.
       const message = err instanceof Error ? err.message : String(err);
@@ -99,7 +108,7 @@ async function processPendingQueue(): Promise<void> {
       await logAuditIndexSyncDb.markLogAuditIndexSyncFailed(row.sync_id, message.slice(0, ERROR_MESSAGE_MAX_LENGTH));
     }
   }
-  logger.info(`Log audit index sync tick - ${succeeded}/${pending.length}건 반영 완료`);
+  logger.info(`Log audit index sync tick - ${pushed}건 반영, ${skipped}건 diff 없어 스킵, ${pending.length - pushed - skipped}건 실패`);
 }
 
 /**

@@ -29,6 +29,7 @@ export interface LogAuditSearchHit {
   project_name: string | null;
   created_by_name: string | null;
   created_at: string;
+  embed_text: string;
   score: number;
 }
 
@@ -64,6 +65,8 @@ async function resolveScope(
  * @param callerRoleCode 요청자 역할 코드
  * @param callerUserId 요청자 user_id
  * @param callerCompanyId 요청자 company_id
+ * @param narrowProjectId 헤더에서 선택된 project_id(좁히기, "전체 프로젝트"면 null) — 권한 스코프를 넓히지 못함
+ * @param narrowCompanyId 헤더에서 선택된 company_id(좁히기, "전체 회사"면 null) — narrowProjectId가 있으면 무시됨
  * @returns 유사도 내림차순 검색 결과
  */
 export async function searchLogAudits(
@@ -72,6 +75,8 @@ export async function searchLogAudits(
   callerRoleCode: number,
   callerUserId: number,
   callerCompanyId: number,
+  narrowProjectId: number | null,
+  narrowCompanyId: number | null,
 ): Promise<LogAuditSearchHit[]> {
   const scope = await resolveScope(callerRoleCode, callerUserId, callerCompanyId);
 
@@ -79,7 +84,7 @@ export async function searchLogAudits(
     const headers = env.rag.apiKey ? { 'X-API-Key': env.rag.apiKey } : undefined;
     const res = await axios.post<RagEnvelope<LogAuditSearchHit[]>>(
       `${env.rag.baseUrl}/log-audits/search`,
-      { query, top_k: topK ?? undefined, scope },
+      { query, top_k: topK ?? undefined, scope, project_id: narrowProjectId, company_id: narrowCompanyId },
       { timeout: env.apiExecutionTimeoutMs, headers },
     );
     if (res.data.result !== 0) {
