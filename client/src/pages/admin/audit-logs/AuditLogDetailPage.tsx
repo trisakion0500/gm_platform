@@ -5,25 +5,8 @@ import PageHeader from '../../../components/common/PageHeader';
 import StatusBadge from '../../../components/common/StatusBadge';
 import * as logAuditApi from '../../../api/logAudit.api';
 import { getErrorMessage } from '../../../utils/error';
+import { LOG_AUDIT_ACTION_TYPE_MAP as ACTION_TYPE_MAP, LOG_AUDIT_TABLE_NAME_LABEL as TABLE_NAME_LABEL } from '../../../constants/statusMaps';
 import type { LogAuditRow } from '../../../types';
-
-const ACTION_TYPE_MAP = {
-  10: { label: '생성', color: 'green' },
-  20: { label: '수정', color: 'blue' },
-  30: { label: '상태변경', color: 'gold' },
-};
-
-const TABLE_NAME_LABEL: Record<string, string> = {
-  company: '회사',
-  project: '프로젝트',
-  user: '사용자',
-  user_role: '사용자 권한',
-  code_group: '코드그룹',
-  code_item: '코드아이템',
-  api: 'API',
-  api_request: 'API Request',
-  api_response: 'API Response',
-};
 
 function formatJson(json: string | null | undefined): string {
   if (!json)

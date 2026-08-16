@@ -249,3 +249,15 @@ export interface ApiSearchResult {
   endpoint: string;
   score: number;
 }
+
+export interface LogAuditSearchResult {
+  log_audit_id: number;
+  table_name: string;
+  target_id: string;
+  target_name: string | null;
+  action_type: number;
+  project_name: string | null;
+  created_by_name: string | null;
+  created_at: string;
+  score: number;
+}

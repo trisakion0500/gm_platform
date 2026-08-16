@@ -15,6 +15,7 @@ import { registerApproveExecutionTool } from "./tools/approveExecution";
 import { registerRejectExecutionTool } from "./tools/rejectExecution";
 import { registerSearchDocsTool } from "./tools/searchDocs";
 import { registerSearchApisTool } from "./tools/searchApis";
+import { registerSearchLogAuditsTool } from "./tools/searchLogAudits";
 
 // GM Platform role_code (CLAUDE.md 참고: 10=SUPER_ADMIN, 20=DEVELOPER, 30=APPROVER, 40=OPERATOR).
 // 승인/반려/승인대기 조회 tool은 이 세 역할로 로그인했을 때만 노출한다 — 최종 방어선은
@@ -46,6 +47,9 @@ async function main(): Promise<void> {
     registerListPendingExecutionsTool(server);
     registerApproveExecutionTool(server);
     registerRejectExecutionTool(server);
+    // GET /log-audit-search 자체가 SA/DEV/APV 전용(GET /log-audits와 동일 범위)이라 같은 게이팅을 재사용.
+    if (env.ragEnabled)
+      registerSearchLogAuditsTool(server);
   }
 
   const transport = new StdioServerTransport();

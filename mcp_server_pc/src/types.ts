@@ -107,6 +107,19 @@ export interface ApiSearchResult {
   score: number;
 }
 
+/** GET /log-audit-search 검색 결과 한 건 */
+export interface LogAuditSearchResult {
+  log_audit_id: number;
+  table_name: string;
+  target_id: string;
+  target_name: string | null;
+  action_type: number;
+  project_name: string | null;
+  created_by_name: string | null;
+  created_at: string;
+  score: number;
+}
+
 // ---- admin 도메인 (mcp_server_dev에는 없던 회사/프로젝트/사용자/역할배정 관리 타입) ----
 
 /** GET /companies, GET /companies/:id, POST /companies, PATCH /companies/:id 응답 항목 */

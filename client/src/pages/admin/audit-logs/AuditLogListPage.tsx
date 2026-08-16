@@ -11,27 +11,8 @@ import StatusBadge from '../../../components/common/StatusBadge';
 import * as logAuditApi from '../../../api/logAudit.api';
 import { useGlobalStore } from '../../../stores/globalStore';
 import { useListFilterStore } from '../../../stores/listFilterStore';
+import { LOG_AUDIT_ACTION_TYPE_MAP as ACTION_TYPE_MAP, LOG_AUDIT_TABLE_NAME_OPTIONS as TABLE_NAME_OPTIONS, LOG_AUDIT_TABLE_NAME_LABEL as TABLE_NAME_LABEL } from '../../../constants/statusMaps';
 import type { LogAuditRow } from '../../../types';
-
-const ACTION_TYPE_MAP = {
-  10: { label: '생성', color: 'green' },
-  20: { label: '수정', color: 'blue' },
-  30: { label: '상태변경', color: 'gold' },
-};
-
-const TABLE_NAME_OPTIONS = [
-  { value: 'company', label: '회사' },
-  { value: 'project', label: '프로젝트' },
-  { value: 'user', label: '사용자' },
-  { value: 'user_role', label: '사용자 권한' },
-  { value: 'code_group', label: '코드그룹' },
-  { value: 'code_item', label: '코드아이템' },
-  { value: 'api', label: 'API' },
-  { value: 'api_request', label: 'API Request' },
-  { value: 'api_response', label: 'API Response' },
-];
-
-const TABLE_NAME_LABEL: Record<string, string> = Object.fromEntries(TABLE_NAME_OPTIONS.map((o) => [o.value, o.label]));
 
 const COLUMNS: ColumnsType<LogAuditRow> = [
   { title: '로그ID', dataIndex: 'log_audit_id' },

@@ -23,6 +23,7 @@ const UserListPage = lazy(() => import('../pages/admin/users/UserListPage'));
 const UserDetailPage = lazy(() => import('../pages/admin/users/UserDetailPage'));
 const AuditLogListPage = lazy(() => import('../pages/admin/audit-logs/AuditLogListPage'));
 const AuditLogDetailPage = lazy(() => import('../pages/admin/audit-logs/AuditLogDetailPage'));
+const AuditLogSearchPage = lazy(() => import('../pages/admin/audit-logs/AuditLogSearchPage'));
 const CodeGroupPage = lazy(() => import('../pages/admin/code-groups/CodeGroupPage'));
 const ApiListPage = lazy(() => import('../pages/admin/apis/ApiListPage'));
 const ApiNewPage = lazy(() => import('../pages/admin/apis/ApiNewPage'));
@@ -111,6 +112,7 @@ function AppRouter() {
                 </Route>
 
                 <Route path="audit-logs" element={<AuditLogListPage />} />
+                {RAG_ENABLED && <Route path="audit-logs/search" element={<AuditLogSearchPage />} />}
                 <Route path="audit-logs/:log_audit_id" element={<AuditLogDetailPage />} />
               </Route>
             </Route>

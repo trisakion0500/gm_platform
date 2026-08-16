@@ -15,6 +15,7 @@ import { registerApproveExecutionTool } from "./tools/approveExecution";
 import { registerRejectExecutionTool } from "./tools/rejectExecution";
 import { registerSearchDocsTool } from "./tools/searchDocs";
 import { registerSearchApisTool } from "./tools/searchApis";
+import { registerSearchLogAuditsTool } from "./tools/searchLogAudits";
 import { registerAdminListCompaniesTool } from "./tools/adminListCompanies";
 import { registerAdminGetCompanyTool } from "./tools/adminGetCompany";
 import { registerAdminCreateCompanyTool } from "./tools/adminCreateCompany";
@@ -73,6 +74,9 @@ async function main(): Promise<void> {
     registerListPendingExecutionsTool(server);
     registerApproveExecutionTool(server);
     registerRejectExecutionTool(server);
+    // GET /log-audit-search 자체가 SA/DEV/APV 전용(GET /log-audits와 동일 범위)이라 같은 게이팅을 재사용.
+    if (env.ragEnabled)
+      registerSearchLogAuditsTool(server);
   }
 
   if (SUPER_ADMIN_AND_DEVELOPER.includes(roleCode)) {

@@ -42,6 +42,9 @@ const ADMIN_MENU: MenuDef[] = [
   { key: '/admin/code-groups', label: '코드그룹', allow: [ROLE.SUPER_ADMIN, ROLE.DEVELOPER] },
   { key: '/admin/apis', label: 'API', allow: [ROLE.SUPER_ADMIN, ROLE.DEVELOPER] },
   { key: '/admin/audit-logs', label: '감사로그', allow: [ROLE.SUPER_ADMIN, ROLE.DEVELOPER, ROLE.APPROVER] },
+  ...(RAG_ENABLED
+    ? [{ key: '/admin/audit-logs/search', label: '감사로그 검색', allow: [ROLE.SUPER_ADMIN, ROLE.DEVELOPER, ROLE.APPROVER] }]
+    : []),
 ];
 
 // api_stage별 실행 가능 역할 — SP_CREATE_API_EXECUTION의 검사와 정확히 동일해야 한다.

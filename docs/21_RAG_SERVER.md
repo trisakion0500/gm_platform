@@ -414,7 +414,7 @@ rag_server 부팅 시 gm_apis 컬렉션이 비어있음(최초 배포 또는 외
 
 ## 10.3 감사로그 (`log_audit`) — Phase 3 (완료)
 
-`log_audit`은 이미 물리적으로 분리된 별도 DB(`gm_platform_log`, `database_log/`)에 있어, API 정의(Phase 2)와 근본적으로 다른 지점이 있다. 아래는 그 차이에 맞게 갈라진 설계 결정과 구현 결과다(범위는 Phase 2와 동일하게 rag_server 코어 + `server/` 프록시까지 — MCP tool·`client/` UI는 이번 라운드에 포함하지 않음, 아래 "Stage 진행 상황" 참고).
+`log_audit`은 이미 물리적으로 분리된 별도 DB(`gm_platform_log`, `database_log/`)에 있어, API 정의(Phase 2)와 근본적으로 다른 지점이 있다. 아래는 그 차이에 맞게 갈라진 설계 결정과 구현 결과다(rag_server 코어·`server/` 프록시를 먼저 검증한 뒤 MCP tool·`client/` UI를 후속으로 진행 — Phase 2와 동일한 순서, 아래 "Stage 진행 상황" 참고).
 
 ### 확정된 방향
 
@@ -481,6 +481,16 @@ rag_server 부팅 시 gm_logs 컬렉션이 비어있음
 - ✅ `rag_server`: `store.ts`에 `gm_logs` 섹션 추가(공용 헬퍼 재사용) · `index/logAuditReindex.ts`(push 증분 upsert, 페이지네이션 pull 전체 재구축, 부팅 자가치유) · `services/logAuditSearch.service.ts`(scope→Qdrant `should` 필터 변환) · `POST /log-audits/search`·`POST /log-audits/reindex` · `npm run build-index-logs` CLI · `bootstrapWithRetry()`에 `logAuditReindexIfChanged()` 편입
 - ✅ `server/`: `utils/auditDiffText.ts`(diff 문장화) · `db/logAuditIndexSync.db.ts`·`jobs/logAuditIndexSync.job.ts`(아웃박스 워커, `logAudit.db.ts`의 기존 `getLogAudit` 재사용) · `logAudit.service.ts`의 `resolveAllowedProjectIds` export 후 재사용 · `services/logAuditSearch.service.ts`·`GET /log-audit-search`(SA/DEV/APV 제한) · `internal.service.ts`/`internal.controller.ts`/`GET /internal/log-audits`(페이지네이션) · Swagger 문서 반영(`LogAuditSearch` 태그, `RAG_ENABLED=false` 시 글롭 제외)
 - ✅ `tests/api_test.ps1` 14D 섹션(스모크 + 역할 제한(OPERATOR 20001) + 프로젝트 스코핑, 13A/14A 스코프 프로젝트·사용자·로그 재사용)
+
+**MCP tool `search_log_audits` (완료)**
+- ✅ `mcp_server_dev`/`mcp_server_pc` 양쪽에 `tools/searchLogAudits.ts` 추가. `search_apis`와 동일하게 rag_server를 직접 부르지 않고 GM Platform의 `GET /log-audit-search`를 `gmClient.request()`로 호출한다(스코핑 계산이 GM Platform 서버 안에서만 이뤄지므로). `project_id` 파라미터는 없음(단일 프로젝트로 강제 스코핑하지 않음).
+- ✅ `GET /log-audit-search` 자체가 SUPER_ADMIN/DEVELOPER/APPROVER 전용이라, `search_docs`/`search_apis`(role 게이팅 없음)와 달리 두 서버 모두 `APPROVAL_CAPABLE_ROLES`([10,20,30], 승인/반려 tool과 동일 그룹) 안에서만 `env.ragEnabled`와 함께 등록한다.
+
+**Stage D — `client/` 검색 UI (완료)**
+- ✅ `client/src/api/logAuditSearch.api.ts` — `GET /log-audit-search` 호출 함수
+- ✅ `pages/admin/audit-logs/AuditLogSearchPage.tsx` — `DocSearchPage`/`ApiSearchPage`와 동일 패턴(검색창 + 결과 카드, 레이스 방지용 `requestIdRef`). `GET /log-audit-search` 자체가 SA/DEV/APV 전용이라 `/doc-search`·`/api-search`(전 역할, `MainLayout` 메인 메뉴)와 달리 `/admin/audit-logs/search`로 관리 영역(`AdminLayout`) 안에 배치했다 — 상위 `/admin` 라우트의 `RoleGuard allow=[SA,DEV,APV]`를 그대로 상속해 별도 nested guard가 필요 없다(기존 `audit-logs` 목록·상세와 동일). 결과 카드 클릭 시 `GET /log-audits/:id`(기존 상세 화면)로 드릴다운.
+- ✅ `router/index.tsx`/`Sidebar.tsx` — `audit-logs/search` 라우트·"감사로그 검색" 메뉴를 `audit-logs` 바로 아래 등록(`RAG_ENABLED` 게이팅, 문서/API 검색과 같은 빌드타임 값 재사용). 관리 화면 헤더 잠금(`ADMIN_LIST_PATHS`)에는 포함하지 않음 — 목록 화면이 아니라 검색 화면이라 기존 원칙(목록만 예외, 나머지 `/admin/*` 잠금)을 그대로 따름.
+- ✅ `action_type`/`table_name` 라벨 맵이 `AuditLogListPage.tsx`/`AuditLogDetailPage.tsx`에 중복 정의돼 있던 것을 이번에 발견해 `constants/statusMaps.ts`(기존 `ACTIVE_STATUS_MAP`이 있던 공유 상수 파일)로 통합하고 세 화면 모두 그걸 import하도록 정리했다 — 새 검색 화면이 세 번째 중복을 만들 뻔한 게 계기.
 
 ## 범위 밖 (공통)
 
