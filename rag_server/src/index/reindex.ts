@@ -77,7 +77,7 @@ async function rebuild(): Promise<{ fileCount: number; chunkCount: number }> {
     // 표만으로 이루어진 본문(예: 02_TECH_STACK.md)은 파이프·구분행을 제거한 평문으로 바꿔서 임베딩한다
     // (flattenTablesForEmbedding, chunker.ts) — 실제 Qdrant에 저장되는 chunk.text(표시용)는 원본 그대로 둔다.
     // "passage: " 프리픽스 — multilingual-e5 계열은 문서/질의를 비대칭으로 인코딩하도록 학습돼 이 프리픽스가
-    // 없으면 오히려 성능이 떨어진다(질의 쪽은 search.service.ts에서 "query: " 프리픽스로 대응).
+    // 없으면 오히려 성능이 떨어진다(질의 쪽은 docSearch.service.ts에서 "query: " 프리픽스로 대응).
     vectors.push(await embed(`passage: ${chunk.heading}\n${flattenTablesForEmbedding(chunk.text)}`));
 
   await rebuildAndSwap(chunks, vectors);

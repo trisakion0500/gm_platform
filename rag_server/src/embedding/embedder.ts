@@ -39,7 +39,7 @@ export function warmUp(): Promise<void> {
 }
 
 /**
- * 모델 로딩 완료 여부를 동기적으로 확인한다. search.controller.ts가 임베딩 시도 전 먼저 체크하는 용도.
+ * 모델 로딩 완료 여부를 동기적으로 확인한다. docSearch.controller.ts가 임베딩 시도 전 먼저 체크하는 용도.
  * @returns 로딩 완료 시 true
  */
 export function isReady(): boolean {
@@ -49,7 +49,7 @@ export function isReady(): boolean {
 /**
  * 텍스트를 임베딩 벡터로 변환한다(차원은 env.embeddingModel에 따라 달라짐 — 현재 768차원, store.ts의
  * VECTOR_SIZE와 반드시 일치해야 함). 프리픽스("query: "/"passage: ")는 이 함수가 아닌 호출부
- * (reindex.ts/search.service.ts)에서 붙인다 — 이 함수는 어떤 텍스트가 들어오든 그대로 벡터화하는 범용 함수다.
+ * (reindex.ts/docSearch.service.ts)에서 붙인다 — 이 함수는 어떤 텍스트가 들어오든 그대로 벡터화하는 범용 함수다.
  * 모델이 아직 로딩 중이면 로딩이 끝날 때까지 대기한다 — build.ts(CLI)처럼 즉시 로딩이 필요한 경로용이며,
  * app.ts의 검색 API는 항상 isReady()를 먼저 체크해 이 대기 자체를 피한다.
  * @param text 임베딩할 텍스트

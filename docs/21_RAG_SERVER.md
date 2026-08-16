@@ -54,14 +54,14 @@ rag_server/
     │   ├── apiReindex.ts         # gm_apis(Phase 2, §10.2) — upsertOneApi(push 수신 증분)/rebuild(pull 기반 전체 재구축)/apiReindexIfChanged(부팅 자가치유)/forceReindexApis
     │   └── buildApis.ts          # `npm run build-index-apis` 진입점 — forceReindexApis()를 호출하는 CLI 래퍼
     ├── routes/
-    │   ├── search.ts             # POST /search
+    │   ├── docSearch.ts          # POST /search
     │   ├── apiSearch.ts          # POST /apis/search, POST /apis/reindex (§10.2)
     │   └── health.ts             # GET /health
     ├── controllers/
-    │   ├── search.controller.ts
+    │   ├── docSearch.controller.ts
     │   └── apiSearch.controller.ts
     ├── services/
-    │   ├── search.service.ts
+    │   ├── docSearch.service.ts
     │   └── apiSearch.service.ts  # project_roles → Qdrant should 필터 변환(§10.2 "스코핑")
     ├── middleware/
     │   ├── apiKeyAuth.ts         # test_game_server와 동일 패턴 — X-API-Key 상수시간 비교
@@ -86,7 +86,7 @@ rag_server/
 
 로컬 모델(`@xenova/transformers`, `Xenova/multilingual-e5-base`, 768차원)로 Node 프로세스 안에서 직접 임베딩을 생성한다 — 외부 API 키·과금 없이 완전 오프라인으로 동작(최초 실행 시 모델 파일만 1회 다운로드, ~283MB). 원래는 경량 다국어 모델(`Xenova/paraphrase-multilingual-MiniLM-L12-v2`, 384차원)을 썼으나, "기술 스택"/"테크스택"처럼 짧고 일반적인 질의에서 실제로 무관한 청크가 상위권을 차지하는 anisotropy(hubness) 현상이 실측으로 확인돼 검색(retrieval) 목적으로 학습된 이 모델로 교체했다. 재검증 결과 실패하던 두 질의가 각각 1~2위로 올라섰고, 기존에 잘 되던 질의도 회귀 없이 스코어가 더 견고해졌다(0.2~0.7의 넓은 분포 → 0.77~0.88의 좁은 분포).
 
-`multilingual-e5` 계열은 문서(passage)와 질의(query)를 비대칭으로 인코딩하도록 학습돼 있어, 임베딩 직전에 반드시 프리픽스를 붙여야 한다 — 청크 쪽은 `reindex.ts`가 `"passage: "`, 질의 쪽은 `search.service.ts`가 `"query: "`를 붙인다. 다른 계열 모델로 바꾸면 이 프리픽스 로직도 함께 재검토해야 한다. 모델을 바꿀 때는 `store.ts`의 `VECTOR_SIZE`도 실제 출력 차원과 맞춰야 하며(다르면 Qdrant `createCollection` 자체가 실패), 차원이 바뀌었어도 `rebuildAndSwap()`이 매번 새 물리 컬렉션을 만드는 구조라 기존 컬렉션을 수동으로 지울 필요는 없다 — `npm run build-index` 한 번이면 충분하다.
+`multilingual-e5` 계열은 문서(passage)와 질의(query)를 비대칭으로 인코딩하도록 학습돼 있어, 임베딩 직전에 반드시 프리픽스를 붙여야 한다 — 청크 쪽은 `reindex.ts`가 `"passage: "`, 질의 쪽은 `docSearch.service.ts`가 `"query: "`를 붙인다. 다른 계열 모델로 바꾸면 이 프리픽스 로직도 함께 재검토해야 한다. 모델을 바꿀 때는 `store.ts`의 `VECTOR_SIZE`도 실제 출력 차원과 맞춰야 하며(다르면 Qdrant `createCollection` 자체가 실패), 차원이 바뀌었어도 `rebuildAndSwap()`이 매번 새 물리 컬렉션을 만드는 구조라 기존 컬렉션을 수동으로 지울 필요는 없다 — `npm run build-index` 한 번이면 충분하다.
 
 청크 임베딩에는 본문(`text`)뿐 아니라 heading(breadcrumb, `heading + "\n" + text`)도 함께 포함한다 — 표·의사코드 위주라 본문에 실제 검색 키워드가 거의 없는 청크도(예: "9. 비밀번호 변경 > ... > 처리 정책") 정확히 검색되게 하기 위함. Qdrant payload의 `heading`/`text` 필드는 이와 무관하게 원본 그대로다.
 
@@ -166,7 +166,7 @@ rag_server가 아니라 GM Platform `server/`가 노출하는 별도 엔드포�
 
 - 접속: `QDRANT_URL`(기본 `http://127.0.0.1:6333`), `QDRANT_API_KEY`(필수 — 이 환경의 Qdrant는 API 키 인증이 걸려 있다) 헤더로 인증.
 - `QDRANT_COLLECTION`(기본 `gm_docs`)은 물리 컬렉션이 아니라 **alias**다. 실제 데이터는 `gm_docs_<timestamp>` 형식의 물리 컬렉션에 있고, alias가 그중 "현재 유효한" 컬렉션 하나를 가리킨다(§3.3). 벡터 크기 768, distance `Cosine`은 물리 컬렉션 생성 시 동일하게 적용.
-- `@qdrant/js-client-rest`의 `QdrantClient`를 `config/qdrant.ts`에서 싱글톤으로 생성해 `index/store.ts`(인덱싱·alias 스왑)와 `services/search.service.ts`(검색 질의, alias로 조회) 양쪽이 공유한다.
+- `@qdrant/js-client-rest`의 `QdrantClient`를 `config/qdrant.ts`에서 싱글톤으로 생성해 `index/store.ts`(인덱싱·alias 스왑)와 `services/docSearch.service.ts`(검색 질의, alias로 조회) 양쪽이 공유한다.
 - 이 Qdrant 인스턴스는 rag_server 전용이 아니라 이미 다른 용도로도 떠있는 공용 인스턴스다 — `gm_docs` alias 및 그 물리 컬렉션(`gm_docs_*`)이라는 명확한 이름만 사용해 다른 컬렉션과 섞이지 않게 한다.
 
 ---
@@ -389,7 +389,7 @@ rag_server 부팅 시 gm_apis 컬렉션이 비어있음(최초 배포 또는 외
 설계는 확정됐고(위 전체) Stage A~D + MCP tool 구현·검증 완료.
 
 **Stage A — rag_server 코어 (완료)**
-- ✅ `store.ts` 컬렉션 파라미터화(`gm_docs`/`gm_apis` 공용, 새 파일로 복제 안 함 — 기존 `reindex.ts`/`search.service.ts`는 무변경)
+- ✅ `store.ts` 컬렉션 파라미터화(`gm_docs`/`gm_apis` 공용, 새 파일로 복제 안 함 — 기존 `reindex.ts`/`docSearch.service.ts`는 무변경)
 - ✅ `gm_apis` 인덱싱(`index/apiReindex.ts` — `upsertOneApi`로 push 수신 증분 upsert, `rebuild`로 pull 기반 전체 재구축, `apiReindexIfChanged`로 부팅 자가치유)
 - ✅ `POST /apis/search`(`services/apiSearch.service.ts`의 project_roles→Qdrant `should` 필터 변환, fail-closed 검증)/`POST /apis/reindex`
 - ✅ `npm run build-index-apis` CLI(`index/buildApis.ts`), `app.ts`의 `bootstrapWithRetry()`에 `apiReindexIfChanged()` 편입(새 재시도 루프 없음)

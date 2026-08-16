@@ -16,7 +16,7 @@ export const env = {
   // 여러 원격 호출자를 허용해야 하는 분리 배포 시나리오에서만 값을 바꾸고, 그 경우 IP 화이트리스트
   // 미들웨어 등 별도 방어를 추가로 검토해야 한다(RAG_API_KEY만으로는 네트워크 노출 자체를 막지 못함).
   host: process.env.HOST || "127.0.0.1",
-  // multilingual-e5 계열은 query:/passage: 프리픽스가 필수(reindex.ts/search.service.ts) — 다른 계열로
+  // multilingual-e5 계열은 query:/passage: 프리픽스가 필수(reindex.ts/docSearch.service.ts) — 다른 계열로
   // 바꾸면 이 프리픽스 로직도 함께 재검토해야 한다(docs/21_RAG_SERVER.md §3.1).
   embeddingModel: process.env.EMBEDDING_MODEL || "Xenova/multilingual-e5-base",
   qdrant: {

@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from "express";
-import * as searchService from "../services/search.service";
+import * as docSearchService from "../services/docSearch.service";
 import { success, fail } from "../utils/response";
 import { ERROR_MAP } from "../constants/errors";
 import { isReady } from "../readiness";
@@ -37,7 +37,7 @@ export async function search(req: Request, res: Response, next: NextFunction): P
       topK = parsed;
     }
 
-    const results = await searchService.search(query, topK);
+    const results = await docSearchService.search(query, topK);
     success(res, results);
   } catch (err) {
     next(err);
