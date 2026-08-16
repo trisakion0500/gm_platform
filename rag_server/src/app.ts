@@ -6,6 +6,7 @@ import { errorHandler } from "./middleware/errorHandler";
 import { warmUp } from "./embedding/embedder";
 import { reindexIfChanged } from "./index/reindex";
 import { apiReindexIfChanged } from "./index/apiReindex";
+import { logAuditReindexIfChanged } from "./index/logAuditReindex";
 import { markReady } from "./readiness";
 import logger from "./utils/logger";
 
@@ -48,6 +49,9 @@ async function bootstrapWithRetry(): Promise<boolean> {
       // 늦게 뜨는 배포 순서에서도 별도 재시도 루프 없이 이 지수 백오프에 그대로 편입된다
       // (docs/21_RAG_SERVER.md §10.2 "데이터 흐름" — 새 재시도 루프를 따로 만들지 않는다는 설계 결정).
       await apiReindexIfChanged();
+      // gm_logs(RAG Phase 3) pull도 gm_apis와 동일하게 server/ GET /internal/log-audits에 의존하므로
+      // 별도 재시도 루프 없이 이 지수 백오프에 그대로 편입된다(apiReindexIfChanged와 동일 설계 결정).
+      await logAuditReindexIfChanged();
       return true;
     } catch (err) {
       const elapsed = Date.now() - startedAt;

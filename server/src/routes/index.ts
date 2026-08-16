@@ -14,6 +14,7 @@ import apiExecutionRouter from './apiExecution';
 import logAuditRouter from './logAudit';
 import docSearchRouter from './docSearch';
 import apiSearchRouter from './apiSearch';
+import logAuditSearchRouter from './logAuditSearch';
 import internalRouter from './internal';
 
 const router = Router();
@@ -54,6 +55,7 @@ router.use('/log-audits',    logAuditRouter);
 if (env.rag.enabled) {
   router.use('/doc-search', docSearchRouter);
   router.use('/api-search', apiSearchRouter);
+  router.use('/log-audit-search', logAuditSearchRouter);
   // rag_server가 gm_apis 자가치유(부팅 시)·build-index-apis에서 pull하는 내부 전용 경로 — RAG 미사용 환경에선 무의미해 함께 미등록
   router.use('/internal', internalRouter);
 }

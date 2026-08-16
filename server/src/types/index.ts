@@ -547,6 +547,48 @@ export interface ApiReindexPushBody {
 }
 
 /**
+ * SP_GET_LOG_AUDIT_SYNC_SNAPSHOT(database_log) 조회 행 — before_json/after_json 포함,
+ * GET /internal/log-audits 전체 스냅샷 pull과 아웃박스 워커 push 본문 조립에 공통으로 쓰인다.
+ * @author trisakion
+ */
+export interface LogAuditSyncSnapshotRow {
+  log_audit_id: number;
+  company_id: number;
+  project_id: number | null;
+  project_name: string | null;
+  table_name: string;
+  target_id: string;
+  target_name: string | null;
+  action_type: number;
+  before_json: string | null;
+  after_json: string;
+  created_by_name: string | null;
+  created_at: Date;
+}
+
+/**
+ * server/가 rag_server에 POST /log-audits/reindex(단건 push)·GET /internal/log-audits(전체 pull) 양쪽에서
+ * 공통으로 보내는 완성된 감사 로그 데이터 형태. rag_server 쪽 동명 타입(rag_server/src/types/index.ts의
+ * LogAuditReindexPushBody)과 필드가 정확히 일치해야 한다(ApiReindexPushBody와 동일한 MSA 경계 원칙).
+ * embed_text는 server/가 before_json/after_json을 diff 문장화한 결과 — rag_server는 이 값을 그대로
+ * 받아 임베딩할 뿐 before_json/after_json 원본은 절대 받지 않는다.
+ * @author trisakion
+ */
+export interface LogAuditReindexPushBody {
+  log_audit_id: number;
+  company_id: number;
+  project_id: number | null;
+  project_name: string | null;
+  table_name: string;
+  target_id: string;
+  target_name: string | null;
+  action_type: number;
+  created_by_name: string | null;
+  created_at: string;
+  embed_text: string;
+}
+
+/**
  * 비즈니스 로직 오류를 표현하는 기본 오류 클래스.
  * result(비즈니스 오류 코드)와 httpStatus를 함께 보유하여 errorHandler에서 일관된 응답을 생성한다.
  * @author trisakion

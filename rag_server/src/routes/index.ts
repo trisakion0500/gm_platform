@@ -2,11 +2,13 @@ import { Router } from "express";
 import healthRouter from "./health";
 import searchRouter from "./search";
 import apiSearchRouter from "./apiSearch";
+import logAuditSearchRouter from "./logAuditSearch";
 
 const router = Router();
 
 router.use("/", healthRouter);
 router.use("/", searchRouter);
 router.use("/", apiSearchRouter);
+router.use("/", logAuditSearchRouter);
 
 export default router;

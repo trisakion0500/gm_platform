@@ -5,7 +5,8 @@ import { formatDatetime } from '../utils/response';
 import logger from '../utils/logger';
 import * as db from '../db/logAudit.db';
 
-const SKIP_FIELDS = new Set(['updated_at', 'updated_by', 'last_login_at']);
+// auditDiffText.ts(gm_logs 임베딩 diff 문장화)도 동일 목록을 재사용한다 — export해서 중복 선언을 피한다.
+export const SKIP_FIELDS = new Set(['updated_at', 'updated_by', 'last_login_at']);
 
 /**
  * DB 행을 audit 용 JSON 문자열로 직렬화한다. Date는 포맷 문자열로 변환한다.
@@ -569,7 +570,7 @@ export function logUpdateCodeItem(
  * @param callerUserId 요청자 user_id
  * @returns 콤마로 구분된 project_id 문자열 (배정된 프로젝트가 없으면 빈 문자열)
  */
-async function resolveAllowedProjectIds(callerUserId: number): Promise<string> {
+export async function resolveAllowedProjectIds(callerUserId: number): Promise<string> {
   const [, [rows]] = await callSP('SP_GET_USER_ROLE_LIST', [callerUserId, null, null, 1, null]);
   return rows
     .filter(r => (r as any).role_code <= 30)

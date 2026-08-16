@@ -26,6 +26,9 @@ export const env = {
     // RAG Phase 2(API 정의 검색) — docs(gm_docs)와 분리된 별도 alias. store.ts가 두 alias를
     // 공용 로직(alias 스왑·withSocketRetry 등)으로 다루되 완전히 독립된 컬렉션으로 관리한다.
     apisCollection: process.env.QDRANT_APIS_COLLECTION || "gm_apis",
+    // RAG Phase 3(감사로그 검색) — gm_docs/gm_apis와 분리된 별도 alias. store.ts가 세 alias 모두
+    // 공용 로직(alias 스왑·withSocketRetry 등)으로 다루되 완전히 독립된 컬렉션으로 관리한다.
+    logsCollection: process.env.QDRANT_LOGS_COLLECTION || "gm_logs",
     // Qdrant 클라이언트(REST, fetch 기반)의 클라이언트 측 응답 대기 타임아웃(ms) — 라이브러리 기본값(300000ms=5분)이
     // 그대로면 Qdrant가 완전히 다운(connection refused)된 경우는 즉시 실패하지만, 응답 없이 멈춰있는 상태(hang)일
     // 땐 검색 요청 하나가 최대 5분까지 물릴 수 있었다(server/의 REDIS_COMMAND_TIMEOUT_MS와 동일한 취지의 방어가

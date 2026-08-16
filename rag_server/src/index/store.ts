@@ -1,6 +1,6 @@
 import qdrantClient from "../config/qdrant";
 import { env } from "../config/env";
-import { Chunk, SearchResult, ApiPoint, ApiPointPayload, ApiSearchHit } from "../types";
+import { Chunk, SearchResult, ApiPoint, ApiPointPayload, ApiSearchHit, LogAuditPoint, LogAuditPointPayload, LogAuditSearchHit } from "../types";
 import logger from "../utils/logger";
 
 // 모델 출력 차원(Xenova/multilingual-e5-base)과 일치해야 한다 — 모델 교체 시 반드시 함께 바꾸고 재인덱싱해야 한다
@@ -13,6 +13,8 @@ export const VECTOR_SIZE = 768;
 const DOCS_ALIAS = env.qdrant.collection;
 // RAG Phase 2(API 정의 검색) 전용 alias — gm_docs와 완전히 분리된 별도 컬렉션.
 const APIS_ALIAS = env.qdrant.apisCollection;
+// RAG Phase 3(감사로그 검색) 전용 alias — gm_docs/gm_apis와 완전히 분리된 별도 컬렉션.
+const LOGS_ALIAS = env.qdrant.logsCollection;
 
 /**
  * undici(HTTP/1.1 keep-alive) 연결 풀의 소켓이 유휴 상태에서 Qdrant 쪽에 의해 닫힌 뒤 재사용되면
@@ -77,6 +79,14 @@ interface QdrantPoint {
   payload: Record<string, unknown>;
 }
 
+// 한 번의 upsert 호출에 담을 최대 포인트 수. Qdrant REST의 기본 요청 크기 제한(32MB)을 안전하게
+// 벗어나지 않기 위한 배치 크기 — 포인트 1건은 벡터(768차원, JSON 숫자 배열이라 바이너리보다 훨씬 큼)+
+// payload를 합쳐 실측 약 16KB, 500건이면 약 8MB로 제한값의 1/4 수준이라 넉넉한 여유를 둔다.
+// RAG Phase 3(gm_logs, 3435건) 전체 재구축에서 이 배치 없이 한 번에 전량 upsert하다가 실제로
+// "JSON payload(56.5MB)가 제한(32MB)을 초과" 오류로 부팅이 실패하는 것을 라이브로 확인해 도입했다 —
+// gm_docs/gm_apis는 지금까지 우연히 이 한도 아래였을 뿐 같은 위험이 잠재해 있던 공용 코드다.
+const UPSERT_BATCH_SIZE = 500;
+
 /**
  * 포인트를 새 물리 컬렉션에 전량 upsert한 뒤, 지정된 alias를 그 컬렉션으로 원자적으로 스왑하고
  * 이전 물리 컬렉션을 정리한다(전량 교체 방식, §3). Qdrant의 alias 변경 자체가 원자적이라
@@ -85,6 +95,9 @@ interface QdrantPoint {
  * 검색은 항상 "완전한 옛 인덱스" 아니면 "완전한 새 인덱스"만 보게 되고 재구축 도중의 빈/부분
  * 컬렉션을 절대 관측하지 못한다 — 과거(alias 도입 이전)에 컬렉션을 delete→recreate하던
  * 방식은 그 사이 구간에 검색이 빈 결과를 조용히 반환하는 문제가 있었다.
+ * upsert 자체는 UPSERT_BATCH_SIZE 단위로 나눠 순차 호출한다(Qdrant 요청 크기 제한 대응) — 이 배치들은
+ * 전부 아직 alias가 가리키지 않는 새 컬렉션에만 쓰는 것이라, 배치 중간에 실패해도 검색 트래픽(항상
+ * alias 경유)에는 전혀 영향이 없다(부팅 재시도 루프가 다음 시도에서 새 컬렉션을 처음부터 다시 만듦).
  * @param alias 스왑할 alias 이름(gm_docs/gm_apis 등)
  * @param points 새로 구축할 포인트 목록
  */
@@ -96,7 +109,10 @@ async function rebuildCollectionAndSwap(alias: string, points: QdrantPoint[]): P
     }),
   );
 
-  await withSocketRetry(() => qdrantClient.upsert(newCollection, { wait: true, points }));
+  for (let i = 0; i < points.length; i += UPSERT_BATCH_SIZE) {
+    const batch = points.slice(i, i + UPSERT_BATCH_SIZE);
+    await withSocketRetry(() => qdrantClient.upsert(newCollection, { wait: true, points: batch }));
+  }
   logger.info(`Qdrant 새 컬렉션(${newCollection})에 upsert 완료: ${points.length}건`);
 
   const oldTarget = await getAliasTarget(alias);
@@ -280,6 +296,76 @@ export async function searchApis(
       api_name: payload.api_name,
       api_code: payload.api_code,
       endpoint: payload.endpoint,
+      score: hit.score,
+    };
+  });
+}
+
+// ---------------------------------------------------------------------------------------------
+// gm_logs(Phase 3) 전용 — RAG Phase 3(감사로그 검색). point id = log_audit_id(고정 정수 ID, log_audit이
+// Append-Only라 같은 id가 재사용되지 않으므로 증분 upsert도 항상 "새 포인트 추가"만 일어난다).
+// ---------------------------------------------------------------------------------------------
+
+/**
+ * LOGS_ALIAS(gm_logs)가 가리키는 물리 컬렉션이 실제로 존재하고 데이터를 갖고 있는지 확인한다.
+ * @returns alias가 존재하고 points_count > 0이면 true
+ */
+export async function isLogsIndexHealthy(): Promise<boolean> {
+  return isCollectionHealthy(LOGS_ALIAS);
+}
+
+/**
+ * 감사 로그 포인트 전체를 gm_logs 새 물리 컬렉션에 전량 upsert한 뒤 alias를 원자적으로 스왑한다.
+ * pull 기반 전체 재구축(부팅 자가치유·npm run build-index-logs) 전용 — 증분 반영은 upsertLogPoints() 참고.
+ * @param points log_audit_id를 point id로 하는 포인트 목록
+ */
+export async function rebuildLogsAndSwap(points: LogAuditPoint[]): Promise<void> {
+  const qdrantPoints: QdrantPoint[] = points.map((p) => ({
+    id: p.logAuditId,
+    vector: p.vector,
+    payload: p.payload as unknown as Record<string, unknown>,
+  }));
+  await rebuildCollectionAndSwap(LOGS_ALIAS, qdrantPoints);
+}
+
+/**
+ * 감사 로그 포인트를 gm_logs 현재 alias 대상 컬렉션에 증분 upsert한다(전량 교체 아님).
+ * 아웃박스 워커(logAuditIndexSync.job.ts)가 push한 로그 1건을 반영하는 경로 전용.
+ * @param points log_audit_id를 point id로 하는 포인트 목록(보통 1건)
+ */
+export async function upsertLogPoints(points: LogAuditPoint[]): Promise<void> {
+  const qdrantPoints: QdrantPoint[] = points.map((p) => ({
+    id: p.logAuditId,
+    vector: p.vector,
+    payload: p.payload as unknown as Record<string, unknown>,
+  }));
+  await upsertPoints(LOGS_ALIAS, qdrantPoints);
+}
+
+/**
+ * gm_logs에서 질의 벡터와 가장 유사한 감사 로그를 검색한다. project_id×company_id 스코핑은 filter로 전달한다.
+ * @param vector 질의 임베딩 벡터
+ * @param limit 반환할 최대 개수
+ * @param filter Qdrant payload 필터(scope 기반 should 절 등)
+ * @returns 유사도(score) 내림차순 검색 결과
+ */
+export async function searchLogs(
+  vector: number[],
+  limit: number,
+  filter: Record<string, unknown>,
+): Promise<LogAuditSearchHit[]> {
+  const hits = await searchCollection(LOGS_ALIAS, vector, limit, filter);
+  return hits.map((hit) => {
+    const payload = hit.payload as unknown as LogAuditPointPayload;
+    return {
+      log_audit_id: payload.log_audit_id,
+      table_name: payload.table_name,
+      target_id: payload.target_id,
+      target_name: payload.target_name,
+      action_type: payload.action_type,
+      project_name: payload.project_name,
+      created_by_name: payload.created_by_name,
+      created_at: payload.created_at,
       score: hit.score,
     };
   });

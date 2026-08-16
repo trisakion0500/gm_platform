@@ -7,5 +7,6 @@ const router = Router();
 router.use(ragKeyAuth);
 
 router.get('/apis', ctrl.getAllApis);
+router.get('/log-audits', ctrl.getAllLogAudits);
 
 export default router;

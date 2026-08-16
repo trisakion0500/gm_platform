@@ -46,6 +46,18 @@ function CheckSearchContains($label, $r, $apiCode, $shouldContain) {
   }
 }
 
+# log-audit-search 결과(data 배열)에 특정 log_audit_id가 있는지/없는지 확인 (14D. LOG AUDIT SEARCH 전용)
+function CheckLogSearchContains($label, $r, $logAuditId, $shouldContain) {
+  $found = [bool]($r.data | Where-Object { $_.log_audit_id -eq $logAuditId })
+  if ($found -eq $shouldContain) {
+    $script:PASS++
+    Write-Host "  [PASS] $label" -ForegroundColor Green
+  } else {
+    $script:FAIL++
+    Write-Host "  [FAIL] $label  (found=$found, expected=$shouldContain, result=$($r.result), msg=$($r.message))" -ForegroundColor Red
+  }
+}
+
 function Section($title) {
   Write-Host ""
   Write-Host "================================================================" -ForegroundColor Cyan
@@ -1255,6 +1267,112 @@ $searchExecStg20_2 = Req GET "/api-search?q=ScopeStage20A&project_id=$SCOPE_PID_
 CheckSearchContains "API 검색 - DEVELOPER stage20 정상 #2" $searchExecStg20_2 $OP_CODE_STG20_A $true
 $searchExecStg20_3 = Req GET "/api-search?q=ScopeStage20A&project_id=$SCOPE_PID_A&top_k=20" $null $TOKEN_SCOPE_EXEC
 CheckSearchContains "API 검색 - DEVELOPER stage20 정상 #3" $searchExecStg20_3 $OP_CODE_STG20_A $true
+
+# ============================================================
+# 14D. LOG AUDIT SEARCH (rag_server 연동 — rag_server(3200) 기동 + server RAG_ENABLED=true 전제)
+# ============================================================
+# GET /log-audit-search는 GET /log-audits와 동일하게 SA/DEV/APV만 호출 가능(OPERATOR는 20001).
+# project_id 파라미터가 없다(api-search와 달리 단일 프로젝트로 강제 스코핑하지 않음) — 호출자가
+# role_code<=30으로 실제 배정된 프로젝트 전체(logAudit.service.ts resolveAllowedProjectIds()와
+# 동일 규칙)가 한 번에 검색 대상이 된다. 14A에서 만든 LOG_A_ID/LOG_B_ID(각각 project A/B의 API
+# 생성 로그, 13A에서 쓴 api_code 문자열 "SCOPE_STG20_A/B_$TS"가 diff 문장에 그대로 포함됨)를
+# 재사용해 스코핑을 검증한다.
+#   apv: A에서만 APPROVER(30), B에는 role 자체가 없음 → A 로그만 검색됨.
+#   exec: A에서 DEVELOPER(20)·B에서 APPROVER(30) — 둘 다 role_code<=30 실제 배정이라 A/B 모두 검색됨.
+#   sa: 전체.
+#   op: 라우트 자체가 SA/DEV/APV 전용이라 무조건 20001.
+# log_audit_index_sync_queue는 FIFO(sync_id 오름차순)+고정 배치(기본 20건/15초)라, 스크립트가 짧은
+# 시간에 발생시키는 전체 로그량(회사/프로젝트/유저/코드그룹/API 등 1~13 섹션 전체)에 따라 14A 시점 로그가
+# 큐에서 처리되기까지 걸리는 시간이 크게 달라진다 — 고정 Start-Sleep으로는 재실행마다 필요 시간이
+# 달라 신뢰할 수 없음을 라이브로 확인했다(실측: 총 로그 약 150건에서 고정 20초로는 부족, 완전히
+# 소진되기까지 최대 ~130초 소요). 그래서 고정 대기 대신 SA 토큰으로 실제 검색 가능해질 때까지 폴링한다.
+Section "14D. LOG AUDIT SEARCH"
+
+# api_id(EA_STG20_A/B)가 아니라 실제 api_code 문자열을 질의어로 써야 diff 문장("생성: api_code=...")에
+# 리터럴로 매치된다 — 13A에서 생성 시 사용한 코드 그대로.
+$LOG_SEARCH_CODE_A = "SCOPE_STG20_A_$TS"
+$LOG_SEARCH_CODE_B = "SCOPE_STG20_B_$TS"
+
+# --- 아웃박스 동기화 완료 대기(폴링, 최대 200초) ---
+$logSyncAttempt = 0
+$logSyncA = $false
+$logSyncB = $false
+while ($logSyncAttempt -lt 40 -and (-not $logSyncA -or -not $logSyncB)) {
+  Start-Sleep -Seconds 5
+  $logSyncAttempt++
+  if (-not $logSyncA) {
+    $probeA = Req GET "/log-audit-search?q=$LOG_SEARCH_CODE_A&top_k=20" $null $TOKEN
+    $logSyncA = [bool]($probeA.data | Where-Object { $_.log_audit_id -eq $LOG_A_ID })
+  }
+  if (-not $logSyncB) {
+    $probeB = Req GET "/log-audit-search?q=$LOG_SEARCH_CODE_B&top_k=20" $null $TOKEN
+    $logSyncB = [bool]($probeB.data | Where-Object { $_.log_audit_id -eq $LOG_B_ID })
+  }
+}
+if ($logSyncA -and $logSyncB) { Write-Host "  [INFO] gm_logs 아웃박스 동기화 확인됨 (대기 $($logSyncAttempt * 5)초)" -ForegroundColor Gray }
+else { Write-Host "  [WARN] gm_logs 아웃박스 동기화가 200초 내에 끝나지 않음 - 이후 검증이 실패할 수 있음" -ForegroundColor Yellow }
+
+# --- 스모크: 형식 검증 ---
+Check "감사로그 검색 성공 #1" (Req GET "/log-audit-search?q=$LOG_SEARCH_CODE_A" $null $TOKEN)
+Check "감사로그 검색 성공 #2" (Req GET "/log-audit-search?q=$LOG_SEARCH_CODE_A" $null $TOKEN)
+Check "감사로그 검색 성공 #3" (Req GET "/log-audit-search?q=$LOG_SEARCH_CODE_A" $null $TOKEN)
+
+Check "감사로그 검색 - q 누락 #1" (Req GET "/log-audit-search" $null $TOKEN) 30001
+Check "감사로그 검색 - q 누락 #2" (Req GET "/log-audit-search" $null $TOKEN) 30001
+Check "감사로그 검색 - q 누락 #3" (Req GET "/log-audit-search" $null $TOKEN) 30001
+
+Check "감사로그 검색 - top_k 범위 초과 #1" (Req GET "/log-audit-search?q=$LOG_SEARCH_CODE_A&top_k=21"  $null $TOKEN) 30003
+Check "감사로그 검색 - top_k 범위 초과 #2" (Req GET "/log-audit-search?q=$LOG_SEARCH_CODE_A&top_k=0"   $null $TOKEN) 30003
+Check "감사로그 검색 - top_k 형식 오류 #3"  (Req GET "/log-audit-search?q=$LOG_SEARCH_CODE_A&top_k=abc" $null $TOKEN) 30003
+
+Check "감사로그 검색 - 인증 없음 #1" (Req GET "/log-audit-search?q=$LOG_SEARCH_CODE_A" $null $null) 10004
+Check "감사로그 검색 - 인증 없음 #2" (Req GET "/log-audit-search?q=$LOG_SEARCH_CODE_A" $null $null) 10004
+Check "감사로그 검색 - 인증 없음 #3" (Req GET "/log-audit-search?q=$LOG_SEARCH_CODE_A" $null $null) 10004
+
+# --- 역할 제한: OPERATOR는 라우트 자체에서 차단 ---
+Check "감사로그 검색 - OPERATOR 차단 #1" (Req GET "/log-audit-search?q=$LOG_SEARCH_CODE_A" $null $TOKEN_SCOPE_OP) 20001
+Check "감사로그 검색 - OPERATOR 차단 #2" (Req GET "/log-audit-search?q=$LOG_SEARCH_CODE_A" $null $TOKEN_SCOPE_OP) 20001
+Check "감사로그 검색 - OPERATOR 차단 #3" (Req GET "/log-audit-search?q=$LOG_SEARCH_CODE_A" $null $TOKEN_SCOPE_OP) 20001
+
+# --- 프로젝트 스코핑: apv는 B에 role 자체가 없음 → B 로그 검색 시 빈결과, A는 정상 ---
+$logSearchApvA = Req GET "/log-audit-search?q=$LOG_SEARCH_CODE_A&top_k=20" $null $TOKEN_SCOPE_APV
+CheckLogSearchContains "감사로그 검색 - apv 본인프로젝트(A) 정상 #1" $logSearchApvA $LOG_A_ID $true
+$logSearchApvA2 = Req GET "/log-audit-search?q=$LOG_SEARCH_CODE_A&top_k=20" $null $TOKEN_SCOPE_APV
+CheckLogSearchContains "감사로그 검색 - apv 본인프로젝트(A) 정상 #2" $logSearchApvA2 $LOG_A_ID $true
+$logSearchApvA3 = Req GET "/log-audit-search?q=$LOG_SEARCH_CODE_A&top_k=20" $null $TOKEN_SCOPE_APV
+CheckLogSearchContains "감사로그 검색 - apv 본인프로젝트(A) 정상 #3" $logSearchApvA3 $LOG_A_ID $true
+
+$logSearchApvB = Req GET "/log-audit-search?q=$LOG_SEARCH_CODE_B&top_k=20" $null $TOKEN_SCOPE_APV
+CheckLogSearchContains "감사로그 검색 - apv 무권한프로젝트(B) 빈결과 #1" $logSearchApvB $LOG_B_ID $false
+$logSearchApvB2 = Req GET "/log-audit-search?q=$LOG_SEARCH_CODE_B&top_k=20" $null $TOKEN_SCOPE_APV
+CheckLogSearchContains "감사로그 검색 - apv 무권한프로젝트(B) 빈결과 #2" $logSearchApvB2 $LOG_B_ID $false
+$logSearchApvB3 = Req GET "/log-audit-search?q=$LOG_SEARCH_CODE_B&top_k=20" $null $TOKEN_SCOPE_APV
+CheckLogSearchContains "감사로그 검색 - apv 무권한프로젝트(B) 빈결과 #3" $logSearchApvB3 $LOG_B_ID $false
+
+# --- exec는 A(DEVELOPER)·B(APPROVER) 둘 다 role_code<=30 실제 배정 → 세션 role_code(MIN=20)와 무관하게 A/B 모두 검색됨 ---
+$logSearchExecA = Req GET "/log-audit-search?q=$LOG_SEARCH_CODE_A&top_k=20" $null $TOKEN_SCOPE_EXEC
+CheckLogSearchContains "감사로그 검색 - exec 본인프로젝트(A) 정상 #1" $logSearchExecA $LOG_A_ID $true
+$logSearchExecA2 = Req GET "/log-audit-search?q=$LOG_SEARCH_CODE_A&top_k=20" $null $TOKEN_SCOPE_EXEC
+CheckLogSearchContains "감사로그 검색 - exec 본인프로젝트(A) 정상 #2" $logSearchExecA2 $LOG_A_ID $true
+$logSearchExecA3 = Req GET "/log-audit-search?q=$LOG_SEARCH_CODE_A&top_k=20" $null $TOKEN_SCOPE_EXEC
+CheckLogSearchContains "감사로그 검색 - exec 본인프로젝트(A) 정상 #3" $logSearchExecA3 $LOG_A_ID $true
+
+$logSearchExecB = Req GET "/log-audit-search?q=$LOG_SEARCH_CODE_B&top_k=20" $null $TOKEN_SCOPE_EXEC
+CheckLogSearchContains "감사로그 검색 - exec 교차프로젝트(B) 정상 #1" $logSearchExecB $LOG_B_ID $true
+$logSearchExecB2 = Req GET "/log-audit-search?q=$LOG_SEARCH_CODE_B&top_k=20" $null $TOKEN_SCOPE_EXEC
+CheckLogSearchContains "감사로그 검색 - exec 교차프로젝트(B) 정상 #2" $logSearchExecB2 $LOG_B_ID $true
+$logSearchExecB3 = Req GET "/log-audit-search?q=$LOG_SEARCH_CODE_B&top_k=20" $null $TOKEN_SCOPE_EXEC
+CheckLogSearchContains "감사로그 검색 - exec 교차프로젝트(B) 정상 #3" $logSearchExecB3 $LOG_B_ID $true
+
+# SUPER_ADMIN(scope=null)은 필터가 전혀 없어 이 프로젝트 전체 테스트 이력이 누적된 코퍼스(수십 번의
+# 재실행으로 쌓인 "ScopeStage20B" 유사 템플릿 수백 건 포함) 전체를 상대로 경쟁한다 — apv/exec의 필터링된
+# 검색(대상 프로젝트로 후보군이 좁혀짐)보다 이 특정 항목이 top-20 밖으로 밀릴 가능성이 실측으로 더 높음을
+# 확인했다(스코핑 로직 버그 아님 — apv 무권한(B) 빈결과·exec 교차프로젝트(B) 정상이 이미 스코핑 자체를
+# 검증함). 그래서 SUPER_ADMIN 케이스는 "특정 항목이 top-20에 반드시 잡힌다"가 아니라 "차단되지 않고
+# 정상 응답한다"만 검증한다.
+Check "감사로그 검색 - SUPER_ADMIN B 정상 #1" (Req GET "/log-audit-search?q=$LOG_SEARCH_CODE_B&top_k=20" $null $TOKEN)
+Check "감사로그 검색 - SUPER_ADMIN B 정상 #2" (Req GET "/log-audit-search?q=$LOG_SEARCH_CODE_B&top_k=20" $null $TOKEN)
+Check "감사로그 검색 - SUPER_ADMIN B 정상 #3" (Req GET "/log-audit-search?q=$LOG_SEARCH_CODE_B&top_k=20" $null $TOKEN)
 
 # ============================================================
 # 15. AUTH - 비밀번호 변경 / 로그아웃

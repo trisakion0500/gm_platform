@@ -1,6 +1,9 @@
-import { ApiReindexPushBody, ProjectRow, APIRow } from '../types';
+import { ApiReindexPushBody, LogAuditReindexPushBody, ProjectRow, APIRow } from '../types';
 import * as projectService from './project.service';
 import * as apiService from './api.service';
+import * as logAuditDb from '../db/logAudit.db';
+import { buildEmbedText } from '../utils/auditDiffText';
+import { formatDatetime } from '../utils/response';
 
 // SUPER_ADMIN 컨텍스트로 전체 스코핑을 우회하는 내부 배치 전용 상수 — audit.service.ts의
 // resolveApiScope()가 쓰는 callSP('SP_GET_API', [apiId, 10, 0]) 관례와 동일(role_code=10이면
@@ -79,4 +82,37 @@ export async function getAllActiveApiSnapshots(): Promise<ApiReindexPushBody[]> 
   }
 
   return results;
+}
+
+/**
+ * RAG Phase 3 전체 스냅샷(부팅 자가치유·build-index-logs) 전용 페이지 조회. GET /internal/log-audits가
+ * 이 함수를 그대로 응답한다. logAuditDb.getLogAuditSyncSnapshotPage()(before_json/after_json 포함,
+ * 접근제어 없음)로 원본 행을 조회한 뒤, 각 행을 auditDiffText.ts로 diff 문장화해 embed_text를 만들고
+ * before_json/after_json 원본은 응답에서 완전히 제거한다 — rag_server는 diff 원문을 절대 받지 않는다(MSA 경계).
+ * @author trisakion
+ * @param page 페이지 번호 (1부터)
+ * @param pageSize 페이지 크기
+ * @returns { total_count, items }
+ */
+export async function getLogAuditSnapshotPage(
+  page: number,
+  pageSize: number,
+): Promise<{ total_count: number; items: LogAuditReindexPushBody[] }> {
+  const { total_count, items } = await logAuditDb.getLogAuditSyncSnapshotPage(page, pageSize);
+  return {
+    total_count,
+    items: items.map((row) => ({
+      log_audit_id: row.log_audit_id,
+      company_id: row.company_id,
+      project_id: row.project_id,
+      project_name: row.project_name,
+      table_name: row.table_name,
+      target_id: row.target_id,
+      target_name: row.target_name,
+      action_type: row.action_type,
+      created_by_name: row.created_by_name,
+      created_at: formatDatetime(row.created_at)!,
+      embed_text: buildEmbedText(row),
+    })),
+  };
 }

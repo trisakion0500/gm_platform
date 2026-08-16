@@ -1,5 +1,5 @@
 import { callSP, logPool } from '../config/db';
-import { LogAuditRow } from '../types';
+import { LogAuditRow, LogAuditSyncSnapshotRow } from '../types';
 import { toDBError, ERROR_MAP } from '../constants/errors';
 
 /**
@@ -104,4 +104,24 @@ export async function getLogAudit(
   if (status[0].RESULT === 31010)
     throw toDBError(ERROR_MAP.LOG_AUDIT_NOT_FOUND);
   return data[0] as unknown as LogAuditRow;
+}
+
+/**
+ * RAG Phase 3 전체 스냅샷(부팅 자가치유·build-index-logs) 전용 페이지 조회. before_json/after_json
+ * 포함, 접근제어 없음(내부 배치 전용) — GET /internal/log-audits(server/)가 이 함수를 그대로 응답한다.
+ * log_audit 전용 DB(logPool)에서 실행된다.
+ * @author trisakion
+ * @param page 페이지 번호 (1부터)
+ * @param pageSize 페이지 크기
+ * @returns { total_count, items }
+ */
+export async function getLogAuditSyncSnapshotPage(
+  page: number,
+  pageSize: number,
+): Promise<{ total_count: number; items: LogAuditSyncSnapshotRow[] }> {
+  const [, [countRows, itemRows]] = await callSP('SP_GET_LOG_AUDIT_SYNC_SNAPSHOT', [page, pageSize], logPool);
+  return {
+    total_count: (countRows[0] as unknown as { total_count: number }).total_count,
+    items: itemRows as unknown as LogAuditSyncSnapshotRow[],
+  };
 }

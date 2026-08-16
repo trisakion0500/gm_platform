@@ -37,6 +37,7 @@ const options: swaggerJsdoc.Options = {
       // 아래 apis(글롭 대상)에서 docSearch.ts/apiSearch.ts를 제외하는 것과 짝을 맞춘 조치, 안 그러면 빈 태그 섹션만 남는다.
       ...(env.rag.enabled ? [{ name: 'DocSearch', description: '설계 문서 자연어 검색 (rag_server 연동)' }] : []),
       ...(env.rag.enabled ? [{ name: 'ApiSearch', description: 'API 정의 자연어 검색 (rag_server 연동)' }] : []),
+      ...(env.rag.enabled ? [{ name: 'LogAuditSearch', description: '감사 로그 자연어 검색 (rag_server 연동)' }] : []),
     ],
     components: {
       securitySchemes: {
@@ -355,7 +356,7 @@ const options: swaggerJsdoc.Options = {
   apis: fs
     .readdirSync(routesDir)
     .filter((file) => file.endsWith(`.${routeFileExt}`))
-    .filter((file) => env.rag.enabled || !['docSearch', 'apiSearch', 'internal'].includes(path.basename(file, `.${routeFileExt}`)))
+    .filter((file) => env.rag.enabled || !['docSearch', 'apiSearch', 'logAuditSearch', 'internal'].includes(path.basename(file, `.${routeFileExt}`)))
     .map((file) => path.join(routesDir, file)),
 };
 

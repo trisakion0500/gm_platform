@@ -7,7 +7,8 @@
     "build": "tsc",
     "start": "node dist/app.js",
     "build-index": "tsx src/index/build.ts",
-    "build-index-apis": "tsx src/index/buildApis.ts"
+    "build-index-apis": "tsx src/index/buildApis.ts",
+    "build-index-logs": "tsx src/index/buildLogsIndex.ts"
   },
   "dependencies": {
     "@qdrant/js-client-rest": "1.11.0",
