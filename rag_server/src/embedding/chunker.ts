@@ -95,7 +95,7 @@ function splitByHeading(content: string, file: string): RawSection[] {
  * @returns 분할된 텍스트 조각 목록
  */
 function splitBySubtopic(text: string, minLength: number, maxLength: number): string[] {
-  const paragraphs = text.split(/\n{2,}/).filter((p) => p.trim().length > 0);
+  const paragraphs = splitIntoParagraphs(text);
   const parts: string[] = [];
   let buffer = "";
 
@@ -124,6 +124,39 @@ function splitBySubtopic(text: string, minLength: number, maxLength: number): st
   }
 
   return parts;
+}
+
+/**
+ * 텍스트를 문단(빈 줄) 경계로 나누되, 펜스드 코드블록(```...```) 내부의 빈 줄은 경계로 취급하지
+ * 않는다 — 코드블록이 문단 분리로 쪼개지면 여닫는 펜스가 서로 다른 청크로 흩어져 검색 결과에서
+ * 반쪽짜리 스니펫이 나오는 문제가 있었다(01_GM_PLATFORM_GUIDE.md §8.2 실측으로 발견 — 함수 사이
+ * 빈 줄이 있는 JS 예시 하나가 여닫는 펜스 없이 6개 청크로 흩어짐).
+ * @param text 원문
+ * @returns 문단 목록(빈 문자열 제외)
+ */
+function splitIntoParagraphs(text: string): string[] {
+  const lines = text.split("\n");
+  const paragraphs: string[] = [];
+  let buffer: string[] = [];
+  let inFence = false;
+
+  for (const line of lines) {
+    if (/^\s*```/.test(line))
+      inFence = !inFence;
+
+    if (line.trim() === "" && !inFence) {
+      if (buffer.length > 0) {
+        paragraphs.push(buffer.join("\n"));
+        buffer = [];
+      }
+      continue;
+    }
+    buffer.push(line);
+  }
+  if (buffer.length > 0)
+    paragraphs.push(buffer.join("\n"));
+
+  return paragraphs.filter((p) => p.trim().length > 0);
 }
 
 /** 마크다운 표의 행("| a | b |" 형식) 여부 판정 */
