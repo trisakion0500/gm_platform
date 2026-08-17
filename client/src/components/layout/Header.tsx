@@ -72,17 +72,14 @@ function Header() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedCompanyId, projectList, isSuperAdmin]);
 
-  // 선택된 프로젝트가 바뀔 때마다 그 프로젝트에서 내 실제 role_code를 서버에서 다시 조회
+  // 프로젝트가 바뀔 때마다: 이전 프로젝트의 API 작업영역(열어둔 패널·입력값)은 더 이상 의미가 없으므로 초기화하고,
+  // 그 프로젝트에서 내 실제 role_code를 서버에서 다시 조회한다. reset은 selectedProjectId가 null(SA의 "전체
+  // 프로젝트")이어도 항상 수행해야 하지만, role 재조회는 대상 프로젝트가 있을 때만 의미가 있어 가드가 다르다.
   useEffect(() => {
+    resetApiWorkspace();
     if (!selectedProjectId)
       return;
     userRoleApi.getMyRole(selectedProjectId).then(setProjectRoleCode);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedProjectId]);
-
-  // 프로젝트가 바뀌면 이전 프로젝트의 API 작업영역(열어둔 패널·입력값)은 더 이상 의미가 없으므로 초기화
-  useEffect(() => {
-    resetApiWorkspace();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedProjectId]);
 

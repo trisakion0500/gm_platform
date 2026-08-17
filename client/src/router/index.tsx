@@ -5,8 +5,7 @@ import AuthGuard from './AuthGuard';
 import GuestGuard from './GuestGuard';
 import RoleGuard from './RoleGuard';
 import AuthLayout from '../components/layout/AuthLayout';
-import MainLayout from '../components/layout/MainLayout';
-import AdminLayout from '../components/layout/AdminLayout';
+import AppLayout from '../components/layout/AppLayout';
 import { useAuthStore } from '../stores/authStore';
 import { ROLE } from '../types';
 
@@ -75,7 +74,7 @@ function AppRouter() {
             <Route path="/" element={<Navigate to="/apis" replace />} />
             <Route path="/403" element={<ForbiddenPage />} />
 
-            <Route element={<MainLayout />}>
+            <Route element={<AppLayout variant="main" />}>
               <Route path="/apis" element={<ApiWorkspacePage />} />
               <Route path="/executions" element={<ExecutionListPage />} />
               <Route element={<RoleGuard allow={[ROLE.SUPER_ADMIN, ROLE.DEVELOPER, ROLE.APPROVER]} />}>
@@ -89,7 +88,7 @@ function AppRouter() {
             </Route>
 
             <Route path="/admin" element={<RoleGuard allow={[ROLE.SUPER_ADMIN, ROLE.DEVELOPER, ROLE.APPROVER]} />}>
-              <Route element={<AdminLayout />}>
+              <Route element={<AppLayout variant="admin" />}>
                 <Route index element={<AdminIndexRedirect />} />
 
                 <Route element={<RoleGuard allow={[ROLE.SUPER_ADMIN, ROLE.DEVELOPER]} />}>

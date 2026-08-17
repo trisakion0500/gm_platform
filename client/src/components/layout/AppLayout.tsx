@@ -6,13 +6,17 @@ import Footer from './Footer';
 
 const { Sider, Content } = Layout;
 
-function MainLayout() {
+interface AppLayoutProps {
+  variant: 'main' | 'admin';
+}
+
+function AppLayout({ variant }: AppLayoutProps) {
   return (
     <Layout style={{ height: '100vh', overflow: 'hidden' }}>
       <Header />
       <Layout style={{ overflow: 'hidden' }}>
         <Sider width={200} theme="light">
-          <Sidebar variant="main" />
+          <Sidebar variant={variant} />
         </Sider>
         <Content style={{ padding: 24, overflow: 'auto', display: 'flex', flexDirection: 'column' }}>
           <Outlet />
@@ -23,4 +27,4 @@ function MainLayout() {
   );
 }
 
-export default MainLayout;
+export default AppLayout;
