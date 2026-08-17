@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import * as logAuditSearchService from '../services/logAuditSearch.service';
 import { success, fail } from '../utils/response';
 import { ERROR_MAP } from '../constants/errors';
+import { parsePositiveInt } from '../utils/validation';
 
 const MIN_TOP_K = 1;
 const MAX_TOP_K = 20;
@@ -37,10 +38,28 @@ export async function search(req: Request, res: Response, next: NextFunction): P
       topK = parsed;
     }
 
+    let narrowProjectId: number | null = null;
+    if (project_id !== undefined) {
+      narrowProjectId = parsePositiveInt(project_id);
+      if (narrowProjectId === null) {
+        fail(res, ERROR_MAP.INVALID_FORMAT);
+        return;
+      }
+    }
+
+    let narrowCompanyId: number | null = null;
+    if (company_id !== undefined) {
+      narrowCompanyId = parsePositiveInt(company_id);
+      if (narrowCompanyId === null) {
+        fail(res, ERROR_MAP.INVALID_FORMAT);
+        return;
+      }
+    }
+
     const results = await logAuditSearchService.searchLogAudits(
       q, topK, req.user!.role_code, req.user!.user_id, req.user!.company_id,
-      project_id !== undefined ? Number(project_id) : null,
-      company_id !== undefined ? Number(company_id) : null,
+      narrowProjectId,
+      narrowCompanyId,
     );
     success(res, results);
   } catch (err) {

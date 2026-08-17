@@ -1374,6 +1374,47 @@ Check "감사로그 검색 - SUPER_ADMIN B 정상 #1" (Req GET "/log-audit-searc
 Check "감사로그 검색 - SUPER_ADMIN B 정상 #2" (Req GET "/log-audit-search?q=$LOG_SEARCH_CODE_B&top_k=20" $null $TOKEN)
 Check "감사로그 검색 - SUPER_ADMIN B 정상 #3" (Req GET "/log-audit-search?q=$LOG_SEARCH_CODE_B&top_k=20" $null $TOKEN)
 
+# --- project_id/company_id(헤더 선택 좁히기) 형식 검증 — parsePositiveInt, apiSearch.controller.ts와 동일 규칙 ---
+Check "감사로그 검색 - project_id 형식 오류 #1" (Req GET "/log-audit-search?q=$LOG_SEARCH_CODE_A&project_id=abc" $null $TOKEN) 30002
+Check "감사로그 검색 - project_id 형식 오류 #2" (Req GET "/log-audit-search?q=$LOG_SEARCH_CODE_A&project_id=0"   $null $TOKEN) 30002
+Check "감사로그 검색 - project_id 형식 오류 #3" (Req GET "/log-audit-search?q=$LOG_SEARCH_CODE_A&project_id=-1"  $null $TOKEN) 30002
+Check "감사로그 검색 - company_id 형식 오류 #1" (Req GET "/log-audit-search?q=$LOG_SEARCH_CODE_A&company_id=abc" $null $TOKEN) 30002
+Check "감사로그 검색 - company_id 형식 오류 #2" (Req GET "/log-audit-search?q=$LOG_SEARCH_CODE_A&company_id=0"   $null $TOKEN) 30002
+Check "감사로그 검색 - company_id 형식 오류 #3" (Req GET "/log-audit-search?q=$LOG_SEARCH_CODE_A&company_id=-1"  $null $TOKEN) 30002
+
+# --- project_id 좁히기: SUPER_ADMIN(scope=null)이라도 project_id=A로 좁히면 B는 결과에서 제외돼야 함 ---
+# (좁히기가 스코프를 "넓히지" 못한다는 서술과 별개로, "정확히 좁힌다"는 걸 SA 무제한 스코프에서 검증 —
+# apv/exec 케이스는 이미 권한 스코프 자체를 검증하므로 여기서는 narrow 파라미터의 AND 결합만 확인한다.)
+$logSearchNarrowA = Req GET "/log-audit-search?q=$LOG_SEARCH_CODE_B&top_k=20&project_id=$SCOPE_PID_A" $null $TOKEN
+CheckLogSearchContains "감사로그 검색 - project_id 좁히기(A) B 제외 #1" $logSearchNarrowA $LOG_B_ID $false
+$logSearchNarrowA2 = Req GET "/log-audit-search?q=$LOG_SEARCH_CODE_B&top_k=20&project_id=$SCOPE_PID_A" $null $TOKEN
+CheckLogSearchContains "감사로그 검색 - project_id 좁히기(A) B 제외 #2" $logSearchNarrowA2 $LOG_B_ID $false
+$logSearchNarrowA3 = Req GET "/log-audit-search?q=$LOG_SEARCH_CODE_B&top_k=20&project_id=$SCOPE_PID_A" $null $TOKEN
+CheckLogSearchContains "감사로그 검색 - project_id 좁히기(A) B 제외 #3" $logSearchNarrowA3 $LOG_B_ID $false
+
+$logSearchNarrowB = Req GET "/log-audit-search?q=$LOG_SEARCH_CODE_B&top_k=20&project_id=$SCOPE_PID_B" $null $TOKEN
+CheckLogSearchContains "감사로그 검색 - project_id 좁히기(B) B 포함 #1" $logSearchNarrowB $LOG_B_ID $true
+$logSearchNarrowB2 = Req GET "/log-audit-search?q=$LOG_SEARCH_CODE_B&top_k=20&project_id=$SCOPE_PID_B" $null $TOKEN
+CheckLogSearchContains "감사로그 검색 - project_id 좁히기(B) B 포함 #2" $logSearchNarrowB2 $LOG_B_ID $true
+$logSearchNarrowB3 = Req GET "/log-audit-search?q=$LOG_SEARCH_CODE_B&top_k=20&project_id=$SCOPE_PID_B" $null $TOKEN
+CheckLogSearchContains "감사로그 검색 - project_id 좁히기(B) B 포함 #3" $logSearchNarrowB3 $LOG_B_ID $true
+
+# --- project_id 좁히기가 권한을 넓히지 못함: apv는 B에 role 자체가 없으므로 project_id=B로 좁혀도 여전히 빈 결과 ---
+$logSearchApvNarrowB = Req GET "/log-audit-search?q=$LOG_SEARCH_CODE_B&top_k=20&project_id=$SCOPE_PID_B" $null $TOKEN_SCOPE_APV
+CheckLogSearchContains "감사로그 검색 - apv project_id좁히기로도 무권한(B) 빈결과 #1" $logSearchApvNarrowB $LOG_B_ID $false
+$logSearchApvNarrowB2 = Req GET "/log-audit-search?q=$LOG_SEARCH_CODE_B&top_k=20&project_id=$SCOPE_PID_B" $null $TOKEN_SCOPE_APV
+CheckLogSearchContains "감사로그 검색 - apv project_id좁히기로도 무권한(B) 빈결과 #2" $logSearchApvNarrowB2 $LOG_B_ID $false
+$logSearchApvNarrowB3 = Req GET "/log-audit-search?q=$LOG_SEARCH_CODE_B&top_k=20&project_id=$SCOPE_PID_B" $null $TOKEN_SCOPE_APV
+CheckLogSearchContains "감사로그 검색 - apv project_id좁히기로도 무권한(B) 빈결과 #3" $logSearchApvNarrowB3 $LOG_B_ID $false
+
+# --- company_id 좁히기: A/B 둘 다 $CID 소속이라 company_id=$CID로 좁혀도 둘 다 그대로 검색됨(project_id보다 넓은 조건) ---
+$logSearchNarrowCompany = Req GET "/log-audit-search?q=$LOG_SEARCH_CODE_A&top_k=20&company_id=$CID" $null $TOKEN
+CheckLogSearchContains "감사로그 검색 - company_id 좁히기(CID) A 포함 #1" $logSearchNarrowCompany $LOG_A_ID $true
+$logSearchNarrowCompany2 = Req GET "/log-audit-search?q=$LOG_SEARCH_CODE_A&top_k=20&company_id=$CID" $null $TOKEN
+CheckLogSearchContains "감사로그 검색 - company_id 좁히기(CID) A 포함 #2" $logSearchNarrowCompany2 $LOG_A_ID $true
+$logSearchNarrowCompany3 = Req GET "/log-audit-search?q=$LOG_SEARCH_CODE_A&top_k=20&company_id=$CID" $null $TOKEN
+CheckLogSearchContains "감사로그 검색 - company_id 좁히기(CID) A 포함 #3" $logSearchNarrowCompany3 $LOG_A_ID $true
+
 # ============================================================
 # 15. AUTH - 비밀번호 변경 / 로그아웃
 # ============================================================
