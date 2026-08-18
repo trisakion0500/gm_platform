@@ -23,7 +23,7 @@ async function run(): Promise<void> {
       decrypt(user.phone_number);
       console.log(`user_id=${userId} (${user.login_id}) — 정상 복호화, 변경 없음`);
     } catch {
-      await updateUser(userId, null, null, encrypt(DUMMY_PHONE), null, null, null);
+      await updateUser(userId, null, null, encrypt(DUMMY_PHONE), null, null, null, 10);
       console.log(`user_id=${userId} (${user.login_id}) — 복호화 실패, ${DUMMY_PHONE}로 재암호화하여 초기화`);
     }
   }

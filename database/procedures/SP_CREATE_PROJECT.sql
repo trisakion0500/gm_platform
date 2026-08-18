@@ -1,11 +1,12 @@
 DROP PROCEDURE IF EXISTS SP_CREATE_PROJECT;
 DELIMITER $
 CREATE PROCEDURE SP_CREATE_PROJECT(
-    IN  i_company_id    BIGINT,        -- 회사 ID
-    IN  i_project_code  VARCHAR(20),   -- 프로젝트 코드
-    IN  i_project_name  VARCHAR(100),  -- 프로젝트명
-    IN  i_api_base_url  VARCHAR(255),  -- API Base URL
-    IN  i_description   VARCHAR(1000)  -- 설명 (NULL 허용)
+    IN  i_company_id       BIGINT,        -- 회사 ID
+    IN  i_project_code     VARCHAR(20),   -- 프로젝트 코드
+    IN  i_project_name     VARCHAR(100),  -- 프로젝트명
+    IN  i_api_base_url     VARCHAR(255),  -- API Base URL
+    IN  i_description      VARCHAR(1000), -- 설명 (NULL 허용)
+    IN  i_caller_role_code INT            -- 요청자 역할 코드 (SUPER_ADMIN=10 외 20001)
 ) COMMENT '프로젝트 생성 - project 테이블 INSERT'
 BEGIN
 -- --------------------------------- --
@@ -14,7 +15,11 @@ BEGIN
 -- 수정 : 2026-07-15 trisakion - has_api_key(발급 여부) 반환 추가 (생성 직후는 항상 0)
 -- 수정 : 2026-08-09 trisakion - UNIQUE 제약 위반(MySQL 1062)을 32001로 매핑하는 전용 핸들러 추가
 --        (사전 중복검사 이후 동시 요청이 끼어드는 TOCTOU 레이스 시 50001 대신 32001로 정확히 응답)
+-- 수정 : 2026-08-18 trisakion - i_caller_role_code 추가, SUPER_ADMIN 여부를 SP 내부에서도 재검증
+--        (기존엔 라우트의 requireRole만이 유일한 방어선이라, 앱 레이어 버그나 우회 호출 시 DB가
+--        마지막 방어선이 되지 못했음 — API/CodeGroup 계열 SP가 이미 갖춘 방어적 이중 체크 패턴 적용)
 -- 내용 : 프로젝트 생성 처리
+--        SUPER_ADMIN 외 호출 → 20001
 --        company 존재 검사 후 project_code 중복 검사 (동일 company 내)
 --        생성된 project 전체 정보 반환 (company 정보 포함)
 -- 테이블 적용 순서 : project
@@ -41,6 +46,11 @@ BEGIN
     END;
 
     transaction_block: BEGIN
+
+        IF i_caller_role_code != 10 THEN
+            SELECT 20001 AS RESULT;
+            LEAVE transaction_block;
+        END IF;
 
         IF NOT EXISTS (SELECT 1 FROM `company` WHERE `company_id` = i_company_id AND `status` = 1) THEN
             SELECT 31001 AS RESULT;

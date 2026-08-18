@@ -1,11 +1,12 @@
 DROP PROCEDURE IF EXISTS SP_UPDATE_COMPANY;
 DELIMITER $
 CREATE PROCEDURE SP_UPDATE_COMPANY(
-    IN  i_company_id    BIGINT,        -- 수정할 회사 ID
-    IN  i_company_code  VARCHAR(20),   -- 회사 코드 (NULL=변경 없음)
-    IN  i_company_name  VARCHAR(100),  -- 회사명 (NULL=변경 없음)
-    IN  i_description   VARCHAR(1000), -- 설명 (NULL=변경 없음)
-    IN  i_status        TINYINT        -- 상태 (NULL=변경 없음)
+    IN  i_company_id       BIGINT,        -- 수정할 회사 ID
+    IN  i_company_code     VARCHAR(20),   -- 회사 코드 (NULL=변경 없음)
+    IN  i_company_name     VARCHAR(100),  -- 회사명 (NULL=변경 없음)
+    IN  i_description      VARCHAR(1000), -- 설명 (NULL=변경 없음)
+    IN  i_status           TINYINT,       -- 상태 (NULL=변경 없음)
+    IN  i_caller_role_code INT            -- 요청자 역할 코드 (SUPER_ADMIN=10 외 20001)
 ) COMMENT '회사 수정 - company 테이블 UPDATE'
 BEGIN
 -- --------------------------------- --
@@ -13,7 +14,11 @@ BEGIN
 -- 작성 : 2026-06-28 trisakion
 -- 수정 : 2026-08-09 trisakion - UNIQUE 제약 위반(MySQL 1062)을 32001로 매핑하는 전용 핸들러 추가
 --        (사전 중복검사 이후 동시 요청이 끼어드는 TOCTOU 레이스 시 50001 대신 32001로 정확히 응답)
+-- 수정 : 2026-08-18 trisakion - i_caller_role_code 추가, SUPER_ADMIN 여부를 SP 내부에서도 재검증
+--        (기존엔 라우트의 requireRole만이 유일한 방어선이라, 앱 레이어 버그나 우회 호출 시 DB가
+--        마지막 방어선이 되지 못했음 — API/CodeGroup 계열 SP가 이미 갖춘 방어적 이중 체크 패턴 적용)
 -- 내용 : 회사 정보 수정
+--        SUPER_ADMIN 외 호출 → 20001
 --        company 존재 검사 후 UPDATE
 --        company_code 변경 시 중복 검사 (본인 제외)
 --        NULL 입력 시 기존 값 유지 (COALESCE)
@@ -40,6 +45,11 @@ BEGIN
     END;
 
     transaction_block: BEGIN
+
+        IF i_caller_role_code != 10 THEN
+            SELECT 20001 AS RESULT;
+            LEAVE transaction_block;
+        END IF;
 
         IF NOT EXISTS (SELECT 1 FROM `company` WHERE `company_id` = i_company_id) THEN
             SELECT 31001 AS RESULT;

@@ -83,7 +83,7 @@ export async function createUserRole(req: Request, res: Response, next: NextFunc
       fail(res, ERROR_MAP.REQUIRED_MISSING);
       return;
     }
-    const userRole = await userRoleService.createUserRole(Number(user_id), Number(project_id), Number(role_code), req.user!.user_id);
+    const userRole = await userRoleService.createUserRole(Number(user_id), Number(project_id), Number(role_code), req.user!.role_code, req.user!.user_id);
     success(res, formatUserRole(userRole), 201);
   } catch (err) {
     next(err);
@@ -112,6 +112,7 @@ export async function updateUserRole(req: Request, res: Response, next: NextFunc
       projectId,
       role_code ?? null,
       status    ?? null,
+      req.user!.role_code,
       req.user!.user_id,
     );
     success(res, formatUserRole(userRole));

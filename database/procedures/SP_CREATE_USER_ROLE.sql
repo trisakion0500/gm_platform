@@ -1,9 +1,10 @@
 DROP PROCEDURE IF EXISTS SP_CREATE_USER_ROLE;
 DELIMITER $
 CREATE PROCEDURE SP_CREATE_USER_ROLE(
-    IN  i_user_id     BIGINT,   -- 사용자 ID
-    IN  i_project_id  BIGINT,   -- 프로젝트 ID
-    IN  i_role_code   TINYINT   -- 역할 코드 (20=DEVELOPER, 30=APPROVER, 40=OPERATOR)
+    IN  i_user_id          BIGINT,   -- 사용자 ID
+    IN  i_project_id       BIGINT,   -- 프로젝트 ID
+    IN  i_role_code        TINYINT,  -- 역할 코드 (20=DEVELOPER, 30=APPROVER, 40=OPERATOR)
+    IN  i_caller_role_code INT       -- 요청자 역할 코드 (SUPER_ADMIN=10 외 20001)
 ) COMMENT 'User Role 등록 - user_role INSERT'
 BEGIN
 -- --------------------------------- --
@@ -11,7 +12,11 @@ BEGIN
 -- 작성 : 2026-06-29 trisakion
 -- 수정 : 2026-08-09 trisakion - UNIQUE 제약 위반(MySQL 1062)을 32001로 매핑하는 전용 핸들러 추가
 --        (사전 중복검사 이후 동시 요청이 끼어드는 TOCTOU 레이스 시 50001 대신 32001로 정확히 응답)
+-- 수정 : 2026-08-18 trisakion - i_caller_role_code 추가, SUPER_ADMIN 여부를 SP 내부에서도 재검증
+--        (기존엔 라우트의 requireRole만이 유일한 방어선이라, 앱 레이어 버그나 우회 호출 시 DB가
+--        마지막 방어선이 되지 못했음 — API/CodeGroup 계열 SP가 이미 갖춘 방어적 이중 체크 패턴 적용)
 -- 내용 : user_role 등록
+--        SUPER_ADMIN 외 호출 → 20001
 --        user 존재 검사 (31003)
 --        project 존재 검사 (31002)
 --        user와 project의 company_id 일치 검사 (30003)
@@ -40,6 +45,11 @@ BEGIN
     END;
 
     transaction_block: BEGIN
+
+        IF i_caller_role_code != 10 THEN
+            SELECT 20001 AS RESULT;
+            LEAVE transaction_block;
+        END IF;
 
         IF NOT EXISTS (SELECT 1 FROM `user` WHERE `user_id` = i_user_id) THEN
             SELECT 31003 AS RESULT;

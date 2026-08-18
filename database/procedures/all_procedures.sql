@@ -102,13 +102,18 @@ DELIMITER ;
 DROP PROCEDURE IF EXISTS SP_APPROVE_USER;
 DELIMITER $
 CREATE PROCEDURE SP_APPROVE_USER(
-    IN  i_user_id  BIGINT  -- 승인할 사용자 ID
+    IN  i_user_id          BIGINT,  -- 승인할 사용자 ID
+    IN  i_caller_role_code INT      -- 요청자 역할 코드 (SUPER_ADMIN=10 외 20001)
 ) COMMENT '가입 승인 - status=1로 변경'
 BEGIN
 -- --------------------------------- --
 -- 명칭 : SP_APPROVE_USER
 -- 작성 : 2026-06-29 trisakion
+-- 수정 : 2026-08-18 trisakion - i_caller_role_code 추가, SUPER_ADMIN 여부를 SP 내부에서도 재검증
+--        (기존엔 라우트의 requireRole만이 유일한 방어선이라, 앱 레이어 버그나 우회 호출 시 DB가
+--        마지막 방어선이 되지 못했음 — API/CodeGroup 계열 SP가 이미 갖춘 방어적 이중 체크 패턴 적용)
 -- 내용 : 가입 승인 처리
+--        SUPER_ADMIN 외 호출 → 20001
 --        user 존재 검사 후 status=1로 변경
 -- 테이블 적용 순서 : user
 -- --------------------------------- --
@@ -127,6 +132,11 @@ BEGIN
     END;
 
     transaction_block: BEGIN
+
+        IF i_caller_role_code != 10 THEN
+            SELECT 20001 AS RESULT;
+            LEAVE transaction_block;
+        END IF;
 
         IF NOT EXISTS (SELECT 1 FROM `user` WHERE `user_id` = i_user_id) THEN
             SELECT 31003 AS RESULT;
@@ -950,9 +960,10 @@ DELIMITER ;
 DROP PROCEDURE IF EXISTS SP_CREATE_COMPANY;
 DELIMITER $
 CREATE PROCEDURE SP_CREATE_COMPANY(
-    IN  i_company_code  VARCHAR(20),   -- 회사 코드
-    IN  i_company_name  VARCHAR(100),  -- 회사명
-    IN  i_description   VARCHAR(1000)  -- 설명 (NULL 허용)
+    IN  i_company_code     VARCHAR(20),   -- 회사 코드
+    IN  i_company_name     VARCHAR(100),  -- 회사명
+    IN  i_description      VARCHAR(1000), -- 설명 (NULL 허용)
+    IN  i_caller_role_code INT            -- 요청자 역할 코드 (SUPER_ADMIN=10 외 20001)
 ) COMMENT '회사 생성 - company 테이블 INSERT'
 BEGIN
 -- --------------------------------- --
@@ -960,7 +971,11 @@ BEGIN
 -- 작성 : 2026-06-28 trisakion
 -- 수정 : 2026-08-09 trisakion - UNIQUE 제약 위반(MySQL 1062)을 32001로 매핑하는 전용 핸들러 추가
 --        (사전 중복검사 이후 동시 요청이 끼어드는 TOCTOU 레이스 시 50001 대신 32001로 정확히 응답)
+-- 수정 : 2026-08-18 trisakion - i_caller_role_code 추가, SUPER_ADMIN 여부를 SP 내부에서도 재검증
+--        (기존엔 라우트의 requireRole만이 유일한 방어선이라, 앱 레이어 버그나 우회 호출 시 DB가
+--        마지막 방어선이 되지 못했음 — API/CodeGroup 계열 SP가 이미 갖춘 방어적 이중 체크 패턴 적용)
 -- 내용 : 회사 생성 처리
+--        SUPER_ADMIN 외 호출 → 20001
 --        company_code 중복 검사 후 company INSERT
 --        생성된 company 전체 정보 반환
 -- 테이블 적용 순서 : company
@@ -987,6 +1002,11 @@ BEGIN
     END;
 
     transaction_block: BEGIN
+
+        IF i_caller_role_code != 10 THEN
+            SELECT 20001 AS RESULT;
+            LEAVE transaction_block;
+        END IF;
 
         IF EXISTS (SELECT 1 FROM `company` WHERE `company_code` = i_company_code) THEN
             SELECT 32001 AS RESULT;
@@ -1075,11 +1095,12 @@ DELIMITER ;
 DROP PROCEDURE IF EXISTS SP_CREATE_PROJECT;
 DELIMITER $
 CREATE PROCEDURE SP_CREATE_PROJECT(
-    IN  i_company_id    BIGINT,        -- 회사 ID
-    IN  i_project_code  VARCHAR(20),   -- 프로젝트 코드
-    IN  i_project_name  VARCHAR(100),  -- 프로젝트명
-    IN  i_api_base_url  VARCHAR(255),  -- API Base URL
-    IN  i_description   VARCHAR(1000)  -- 설명 (NULL 허용)
+    IN  i_company_id       BIGINT,        -- 회사 ID
+    IN  i_project_code     VARCHAR(20),   -- 프로젝트 코드
+    IN  i_project_name     VARCHAR(100),  -- 프로젝트명
+    IN  i_api_base_url     VARCHAR(255),  -- API Base URL
+    IN  i_description      VARCHAR(1000), -- 설명 (NULL 허용)
+    IN  i_caller_role_code INT            -- 요청자 역할 코드 (SUPER_ADMIN=10 외 20001)
 ) COMMENT '프로젝트 생성 - project 테이블 INSERT'
 BEGIN
 -- --------------------------------- --
@@ -1088,7 +1109,11 @@ BEGIN
 -- 수정 : 2026-07-15 trisakion - has_api_key(발급 여부) 반환 추가 (생성 직후는 항상 0)
 -- 수정 : 2026-08-09 trisakion - UNIQUE 제약 위반(MySQL 1062)을 32001로 매핑하는 전용 핸들러 추가
 --        (사전 중복검사 이후 동시 요청이 끼어드는 TOCTOU 레이스 시 50001 대신 32001로 정확히 응답)
+-- 수정 : 2026-08-18 trisakion - i_caller_role_code 추가, SUPER_ADMIN 여부를 SP 내부에서도 재검증
+--        (기존엔 라우트의 requireRole만이 유일한 방어선이라, 앱 레이어 버그나 우회 호출 시 DB가
+--        마지막 방어선이 되지 못했음 — API/CodeGroup 계열 SP가 이미 갖춘 방어적 이중 체크 패턴 적용)
 -- 내용 : 프로젝트 생성 처리
+--        SUPER_ADMIN 외 호출 → 20001
 --        company 존재 검사 후 project_code 중복 검사 (동일 company 내)
 --        생성된 project 전체 정보 반환 (company 정보 포함)
 -- 테이블 적용 순서 : project
@@ -1115,6 +1140,11 @@ BEGIN
     END;
 
     transaction_block: BEGIN
+
+        IF i_caller_role_code != 10 THEN
+            SELECT 20001 AS RESULT;
+            LEAVE transaction_block;
+        END IF;
 
         IF NOT EXISTS (SELECT 1 FROM `company` WHERE `company_id` = i_company_id AND `status` = 1) THEN
             SELECT 31001 AS RESULT;
@@ -1153,9 +1183,10 @@ DELIMITER ;
 DROP PROCEDURE IF EXISTS SP_CREATE_USER_ROLE;
 DELIMITER $
 CREATE PROCEDURE SP_CREATE_USER_ROLE(
-    IN  i_user_id     BIGINT,   -- 사용자 ID
-    IN  i_project_id  BIGINT,   -- 프로젝트 ID
-    IN  i_role_code   TINYINT   -- 역할 코드 (20=DEVELOPER, 30=APPROVER, 40=OPERATOR)
+    IN  i_user_id          BIGINT,   -- 사용자 ID
+    IN  i_project_id       BIGINT,   -- 프로젝트 ID
+    IN  i_role_code        TINYINT,  -- 역할 코드 (20=DEVELOPER, 30=APPROVER, 40=OPERATOR)
+    IN  i_caller_role_code INT       -- 요청자 역할 코드 (SUPER_ADMIN=10 외 20001)
 ) COMMENT 'User Role 등록 - user_role INSERT'
 BEGIN
 -- --------------------------------- --
@@ -1163,7 +1194,11 @@ BEGIN
 -- 작성 : 2026-06-29 trisakion
 -- 수정 : 2026-08-09 trisakion - UNIQUE 제약 위반(MySQL 1062)을 32001로 매핑하는 전용 핸들러 추가
 --        (사전 중복검사 이후 동시 요청이 끼어드는 TOCTOU 레이스 시 50001 대신 32001로 정확히 응답)
+-- 수정 : 2026-08-18 trisakion - i_caller_role_code 추가, SUPER_ADMIN 여부를 SP 내부에서도 재검증
+--        (기존엔 라우트의 requireRole만이 유일한 방어선이라, 앱 레이어 버그나 우회 호출 시 DB가
+--        마지막 방어선이 되지 못했음 — API/CodeGroup 계열 SP가 이미 갖춘 방어적 이중 체크 패턴 적용)
 -- 내용 : user_role 등록
+--        SUPER_ADMIN 외 호출 → 20001
 --        user 존재 검사 (31003)
 --        project 존재 검사 (31002)
 --        user와 project의 company_id 일치 검사 (30003)
@@ -1192,6 +1227,11 @@ BEGIN
     END;
 
     transaction_block: BEGIN
+
+        IF i_caller_role_code != 10 THEN
+            SELECT 20001 AS RESULT;
+            LEAVE transaction_block;
+        END IF;
 
         IF NOT EXISTS (SELECT 1 FROM `user` WHERE `user_id` = i_user_id) THEN
             SELECT 31003 AS RESULT;
@@ -1280,6 +1320,7 @@ BEGIN
             sql_state     = RETURNED_SQLSTATE,
             error_no      = MYSQL_ERRNO,
             error_message = MESSAGE_TEXT;
+        ROLLBACK;
         SELECT 99 AS RESULT, sql_state AS SQL_STATE, error_no AS ERROR_NO, error_message AS ERROR_MESSAGE;
     END;
 
@@ -2302,6 +2343,7 @@ BEGIN
             sql_state     = RETURNED_SQLSTATE,
             error_no      = MYSQL_ERRNO,
             error_message = MESSAGE_TEXT;
+        ROLLBACK;
         SELECT 99 AS RESULT, sql_state AS SQL_STATE, error_no AS ERROR_NO, error_message AS ERROR_MESSAGE;
     END;
 
@@ -3134,6 +3176,7 @@ BEGIN
             sql_state     = RETURNED_SQLSTATE,
             error_no      = MYSQL_ERRNO,
             error_message = MESSAGE_TEXT;
+        ROLLBACK;
         SELECT 99 AS RESULT, sql_state AS SQL_STATE, error_no AS ERROR_NO, error_message AS ERROR_MESSAGE;
     END;
 
@@ -3248,13 +3291,18 @@ DELIMITER ;
 DROP PROCEDURE IF EXISTS SP_REJECT_USER;
 DELIMITER $
 CREATE PROCEDURE SP_REJECT_USER(
-    IN  i_user_id  BIGINT  -- 반려할 사용자 ID
+    IN  i_user_id          BIGINT,  -- 반려할 사용자 ID
+    IN  i_caller_role_code INT      -- 요청자 역할 코드 (SUPER_ADMIN=10 외 20001)
 ) COMMENT '가입 반려 - status=2로 변경'
 BEGIN
 -- --------------------------------- --
 -- 명칭 : SP_REJECT_USER
 -- 작성 : 2026-06-29 trisakion
+-- 수정 : 2026-08-18 trisakion - i_caller_role_code 추가, SUPER_ADMIN 여부를 SP 내부에서도 재검증
+--        (기존엔 라우트의 requireRole만이 유일한 방어선이라, 앱 레이어 버그나 우회 호출 시 DB가
+--        마지막 방어선이 되지 못했음 — API/CodeGroup 계열 SP가 이미 갖춘 방어적 이중 체크 패턴 적용)
 -- 내용 : 가입 반려 처리
+--        SUPER_ADMIN 외 호출 → 20001
 --        user 존재 검사 후 status=2로 변경
 -- 테이블 적용 순서 : user
 -- --------------------------------- --
@@ -3273,6 +3321,11 @@ BEGIN
     END;
 
     transaction_block: BEGIN
+
+        IF i_caller_role_code != 10 THEN
+            SELECT 20001 AS RESULT;
+            LEAVE transaction_block;
+        END IF;
 
         IF NOT EXISTS (SELECT 1 FROM `user` WHERE `user_id` = i_user_id) THEN
             SELECT 31003 AS RESULT;
@@ -4071,11 +4124,12 @@ DELIMITER ;
 DROP PROCEDURE IF EXISTS SP_UPDATE_COMPANY;
 DELIMITER $
 CREATE PROCEDURE SP_UPDATE_COMPANY(
-    IN  i_company_id    BIGINT,        -- 수정할 회사 ID
-    IN  i_company_code  VARCHAR(20),   -- 회사 코드 (NULL=변경 없음)
-    IN  i_company_name  VARCHAR(100),  -- 회사명 (NULL=변경 없음)
-    IN  i_description   VARCHAR(1000), -- 설명 (NULL=변경 없음)
-    IN  i_status        TINYINT        -- 상태 (NULL=변경 없음)
+    IN  i_company_id       BIGINT,        -- 수정할 회사 ID
+    IN  i_company_code     VARCHAR(20),   -- 회사 코드 (NULL=변경 없음)
+    IN  i_company_name     VARCHAR(100),  -- 회사명 (NULL=변경 없음)
+    IN  i_description      VARCHAR(1000), -- 설명 (NULL=변경 없음)
+    IN  i_status           TINYINT,       -- 상태 (NULL=변경 없음)
+    IN  i_caller_role_code INT            -- 요청자 역할 코드 (SUPER_ADMIN=10 외 20001)
 ) COMMENT '회사 수정 - company 테이블 UPDATE'
 BEGIN
 -- --------------------------------- --
@@ -4083,7 +4137,11 @@ BEGIN
 -- 작성 : 2026-06-28 trisakion
 -- 수정 : 2026-08-09 trisakion - UNIQUE 제약 위반(MySQL 1062)을 32001로 매핑하는 전용 핸들러 추가
 --        (사전 중복검사 이후 동시 요청이 끼어드는 TOCTOU 레이스 시 50001 대신 32001로 정확히 응답)
+-- 수정 : 2026-08-18 trisakion - i_caller_role_code 추가, SUPER_ADMIN 여부를 SP 내부에서도 재검증
+--        (기존엔 라우트의 requireRole만이 유일한 방어선이라, 앱 레이어 버그나 우회 호출 시 DB가
+--        마지막 방어선이 되지 못했음 — API/CodeGroup 계열 SP가 이미 갖춘 방어적 이중 체크 패턴 적용)
 -- 내용 : 회사 정보 수정
+--        SUPER_ADMIN 외 호출 → 20001
 --        company 존재 검사 후 UPDATE
 --        company_code 변경 시 중복 검사 (본인 제외)
 --        NULL 입력 시 기존 값 유지 (COALESCE)
@@ -4110,6 +4168,11 @@ BEGIN
     END;
 
     transaction_block: BEGIN
+
+        IF i_caller_role_code != 10 THEN
+            SELECT 20001 AS RESULT;
+            LEAVE transaction_block;
+        END IF;
 
         IF NOT EXISTS (SELECT 1 FROM `company` WHERE `company_id` = i_company_id) THEN
             SELECT 31001 AS RESULT;
@@ -4199,11 +4262,12 @@ DELIMITER ;
 DROP PROCEDURE IF EXISTS SP_UPDATE_PROJECT;
 DELIMITER $
 CREATE PROCEDURE SP_UPDATE_PROJECT(
-    IN  i_project_id    BIGINT,        -- 수정할 프로젝트 ID
-    IN  i_project_code  VARCHAR(20),   -- 프로젝트 코드 (NULL=변경 없음)
-    IN  i_project_name  VARCHAR(100),  -- 프로젝트명 (NULL=변경 없음)
-    IN  i_description   VARCHAR(1000), -- 설명 (NULL=변경 없음)
-    IN  i_status        TINYINT        -- 상태 (NULL=변경 없음)
+    IN  i_project_id       BIGINT,        -- 수정할 프로젝트 ID
+    IN  i_project_code     VARCHAR(20),   -- 프로젝트 코드 (NULL=변경 없음)
+    IN  i_project_name     VARCHAR(100),  -- 프로젝트명 (NULL=변경 없음)
+    IN  i_description      VARCHAR(1000), -- 설명 (NULL=변경 없음)
+    IN  i_status           TINYINT,       -- 상태 (NULL=변경 없음)
+    IN  i_caller_role_code INT            -- 요청자 역할 코드 (SUPER_ADMIN=10 외 20001)
 ) COMMENT '프로젝트 수정 - project 테이블 UPDATE'
 BEGIN
 -- --------------------------------- --
@@ -4213,7 +4277,11 @@ BEGIN
 -- 수정 : 2026-07-15 trisakion - has_api_key(발급 여부) 반환 추가
 -- 수정 : 2026-08-09 trisakion - UNIQUE 제약 위반(MySQL 1062)을 32001로 매핑하는 전용 핸들러 추가
 --        (사전 중복검사 이후 동시 요청이 끼어드는 TOCTOU 레이스 시 50001 대신 32001로 정확히 응답)
+-- 수정 : 2026-08-18 trisakion - i_caller_role_code 추가, SUPER_ADMIN 여부를 SP 내부에서도 재검증
+--        (기존엔 라우트의 requireRole만이 유일한 방어선이라, 앱 레이어 버그나 우회 호출 시 DB가
+--        마지막 방어선이 되지 못했음 — API/CodeGroup 계열 SP가 이미 갖춘 방어적 이중 체크 패턴 적용)
 -- 내용 : 프로젝트 정보 수정 (project_code/project_name/description/status만, api_base_url은 SP_UPDATE_PROJECT_CONNECTION 전용)
+--        SUPER_ADMIN 외 호출 → 20001
 --        project 존재 검사 후 UPDATE
 --        project_code 변경 시 동일 company 내 중복 검사 (본인 제외)
 --        NULL 입력 시 기존 값 유지 (COALESCE)
@@ -4241,6 +4309,11 @@ BEGIN
     END;
 
     transaction_block: BEGIN
+
+        IF i_caller_role_code != 10 THEN
+            SELECT 20001 AS RESULT;
+            LEAVE transaction_block;
+        END IF;
 
         IF NOT EXISTS (SELECT 1 FROM `project` WHERE `project_id` = i_project_id) THEN
             SELECT 31002 AS RESULT;
@@ -4430,13 +4503,14 @@ DELIMITER ;
 DROP PROCEDURE IF EXISTS SP_UPDATE_USER;
 DELIMITER $
 CREATE PROCEDURE SP_UPDATE_USER(
-    IN  i_user_id       BIGINT,        -- 수정할 사용자 ID
-    IN  i_user_name     VARCHAR(100),  -- 이름 (NULL=변경 없음)
-    IN  i_email         VARCHAR(200),  -- 이메일 (NULL=변경 없음)
-    IN  i_phone_number  VARCHAR(255),  -- 휴대폰 번호 (암호화된 값, NULL=변경 없음)
-    IN  i_department    VARCHAR(100),  -- 부서 (NULL=변경 없음)
-    IN  i_position      VARCHAR(100),  -- 직급 (NULL=변경 없음)
-    IN  i_status        TINYINT        -- 상태 (NULL=변경 없음)
+    IN  i_user_id          BIGINT,        -- 수정할 사용자 ID
+    IN  i_user_name        VARCHAR(100),  -- 이름 (NULL=변경 없음)
+    IN  i_email            VARCHAR(200),  -- 이메일 (NULL=변경 없음)
+    IN  i_phone_number     VARCHAR(255),  -- 휴대폰 번호 (암호화된 값, NULL=변경 없음)
+    IN  i_department       VARCHAR(100),  -- 부서 (NULL=변경 없음)
+    IN  i_position         VARCHAR(100),  -- 직급 (NULL=변경 없음)
+    IN  i_status           TINYINT,       -- 상태 (NULL=변경 없음)
+    IN  i_caller_role_code INT            -- 요청자 역할 코드 (SUPER_ADMIN=10 외 20001)
 ) COMMENT '사용자 수정 - user 테이블 UPDATE'
 BEGIN
 -- --------------------------------- --
@@ -4444,7 +4518,11 @@ BEGIN
 -- 작성 : 2026-06-29 trisakion
 -- 수정 : 2026-08-09 trisakion - UNIQUE 제약 위반(MySQL 1062)을 32001로 매핑하는 전용 핸들러 추가
 --        (사전 중복검사 이후 동시 요청이 끼어드는 TOCTOU 레이스 시 50001 대신 32001로 정확히 응답)
+-- 수정 : 2026-08-18 trisakion - i_caller_role_code 추가, SUPER_ADMIN 여부를 SP 내부에서도 재검증
+--        (기존엔 라우트의 requireRole만이 유일한 방어선이라, 앱 레이어 버그나 우회 호출 시 DB가
+--        마지막 방어선이 되지 못했음 — API/CodeGroup 계열 SP가 이미 갖춘 방어적 이중 체크 패턴 적용)
 -- 내용 : 사용자 정보 수정
+--        SUPER_ADMIN 외 호출 → 20001
 --        user 존재 검사 후 UPDATE
 --        email 변경 시 중복 검사 (본인 제외)
 --        NULL 입력 시 기존 값 유지 (COALESCE)
@@ -4471,6 +4549,11 @@ BEGIN
     END;
 
     transaction_block: BEGIN
+
+        IF i_caller_role_code != 10 THEN
+            SELECT 20001 AS RESULT;
+            LEAVE transaction_block;
+        END IF;
 
         IF NOT EXISTS (SELECT 1 FROM `user` WHERE `user_id` = i_user_id) THEN
             SELECT 31003 AS RESULT;
@@ -4514,16 +4597,21 @@ DELIMITER ;
 DROP PROCEDURE IF EXISTS SP_UPDATE_USER_ROLE;
 DELIMITER $
 CREATE PROCEDURE SP_UPDATE_USER_ROLE(
-    IN  i_user_id     BIGINT,   -- 사용자 ID
-    IN  i_project_id  BIGINT,   -- 프로젝트 ID
-    IN  i_role_code   TINYINT,  -- 역할 코드 (NULL=변경 없음)
-    IN  i_status      TINYINT   -- 상태 (NULL=변경 없음)
+    IN  i_user_id          BIGINT,   -- 사용자 ID
+    IN  i_project_id       BIGINT,   -- 프로젝트 ID
+    IN  i_role_code        TINYINT,  -- 역할 코드 (NULL=변경 없음)
+    IN  i_status           TINYINT,  -- 상태 (NULL=변경 없음)
+    IN  i_caller_role_code INT       -- 요청자 역할 코드 (SUPER_ADMIN=10 외 20001)
 ) COMMENT 'User Role 수정 - user_role UPDATE'
 BEGIN
 -- --------------------------------- --
 -- 명칭 : SP_UPDATE_USER_ROLE
 -- 작성 : 2026-06-29 trisakion
+-- 수정 : 2026-08-18 trisakion - i_caller_role_code 추가, SUPER_ADMIN 여부를 SP 내부에서도 재검증
+--        (기존엔 라우트의 requireRole만이 유일한 방어선이라, 앱 레이어 버그나 우회 호출 시 DB가
+--        마지막 방어선이 되지 못했음 — API/CodeGroup 계열 SP가 이미 갖춘 방어적 이중 체크 패턴 적용)
 -- 내용 : user_role 수정
+--        SUPER_ADMIN 외 호출 → 20001
 --        user_role 존재 검사 (30003)
 --        role_code 변경 시 범위 검사 - SUPER_ADMIN(10) 변경 불가 (30003)
 --        NULL 입력 시 기존 값 유지 (COALESCE)
@@ -4544,6 +4632,11 @@ BEGIN
     END;
 
     transaction_block: BEGIN
+
+        IF i_caller_role_code != 10 THEN
+            SELECT 20001 AS RESULT;
+            LEAVE transaction_block;
+        END IF;
 
         IF NOT EXISTS (SELECT 1 FROM `user_role` WHERE `user_id` = i_user_id AND `project_id` = i_project_id) THEN
             SELECT 30003 AS RESULT;

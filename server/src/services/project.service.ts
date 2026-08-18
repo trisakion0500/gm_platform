@@ -41,7 +41,7 @@ export async function createProject(
   callerUserId: number,
 ): Promise<ProjectRow> {
   assertCompanyScope(callerRoleCode, callerCompanyId, companyId);
-  const after = await db.createProject(companyId, projectCode, projectName, apiBaseUrl, description);
+  const after = await db.createProject(companyId, projectCode, projectName, apiBaseUrl, description, callerRoleCode);
   audit.logCreate('project', String(after.project_id), after.project_name,
     after.company_id, after.project_id, after.project_name, after as unknown as Record<string, unknown>, callerUserId);
   return after;
@@ -115,7 +115,7 @@ export async function updateProject(
   const before = await db.getProject(projectId, 10, 0);
   if (before)
     assertCompanyScope(callerRoleCode, callerCompanyId, before.company_id);
-  const after  = await db.updateProject(projectId, projectCode, projectName, description, status);
+  const after  = await db.updateProject(projectId, projectCode, projectName, description, status, callerRoleCode);
   audit.logUpdate('project', String(after.project_id), after.project_name,
     after.company_id, after.project_id, after.project_name,
     before! as unknown as Record<string, unknown>,

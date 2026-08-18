@@ -1,16 +1,21 @@
 DROP PROCEDURE IF EXISTS SP_UPDATE_USER_ROLE;
 DELIMITER $
 CREATE PROCEDURE SP_UPDATE_USER_ROLE(
-    IN  i_user_id     BIGINT,   -- 사용자 ID
-    IN  i_project_id  BIGINT,   -- 프로젝트 ID
-    IN  i_role_code   TINYINT,  -- 역할 코드 (NULL=변경 없음)
-    IN  i_status      TINYINT   -- 상태 (NULL=변경 없음)
+    IN  i_user_id          BIGINT,   -- 사용자 ID
+    IN  i_project_id       BIGINT,   -- 프로젝트 ID
+    IN  i_role_code        TINYINT,  -- 역할 코드 (NULL=변경 없음)
+    IN  i_status           TINYINT,  -- 상태 (NULL=변경 없음)
+    IN  i_caller_role_code INT       -- 요청자 역할 코드 (SUPER_ADMIN=10 외 20001)
 ) COMMENT 'User Role 수정 - user_role UPDATE'
 BEGIN
 -- --------------------------------- --
 -- 명칭 : SP_UPDATE_USER_ROLE
 -- 작성 : 2026-06-29 trisakion
+-- 수정 : 2026-08-18 trisakion - i_caller_role_code 추가, SUPER_ADMIN 여부를 SP 내부에서도 재검증
+--        (기존엔 라우트의 requireRole만이 유일한 방어선이라, 앱 레이어 버그나 우회 호출 시 DB가
+--        마지막 방어선이 되지 못했음 — API/CodeGroup 계열 SP가 이미 갖춘 방어적 이중 체크 패턴 적용)
 -- 내용 : user_role 수정
+--        SUPER_ADMIN 외 호출 → 20001
 --        user_role 존재 검사 (30003)
 --        role_code 변경 시 범위 검사 - SUPER_ADMIN(10) 변경 불가 (30003)
 --        NULL 입력 시 기존 값 유지 (COALESCE)
@@ -31,6 +36,11 @@ BEGIN
     END;
 
     transaction_block: BEGIN
+
+        IF i_caller_role_code != 10 THEN
+            SELECT 20001 AS RESULT;
+            LEAVE transaction_block;
+        END IF;
 
         IF NOT EXISTS (SELECT 1 FROM `user_role` WHERE `user_id` = i_user_id AND `project_id` = i_project_id) THEN
             SELECT 30003 AS RESULT;

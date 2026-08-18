@@ -22,6 +22,7 @@ export async function getCompanyByCode(companyCode: string): Promise<CompanyLook
  * @param companyCode 회사 코드
  * @param companyName 회사명
  * @param description 설명 (없으면 null)
+ * @param callerRoleCode 호출자 역할 코드 (SP 내부 SUPER_ADMIN 재검증용)
  * @param callerUserId 작업 수행 사용자 ID
  * @returns 생성된 회사 정보
  */
@@ -29,9 +30,10 @@ export async function createCompany(
   companyCode: string,
   companyName: string,
   description: string | null,
+  callerRoleCode: number,
   callerUserId: number,
 ): Promise<CompanyRow> {
-  const after = await db.createCompany(companyCode, companyName, description);
+  const after = await db.createCompany(companyCode, companyName, description, callerRoleCode);
   audit.logCreate('company', String(after.company_id), after.company_name,
     after.company_id, null, null, after as unknown as Record<string, unknown>, callerUserId);
   return after;
@@ -123,7 +125,7 @@ export async function updateCompany(
   const before = await db.getCompany(companyId, 10, 0);
   if (before)
     assertCompanyScope(callerRoleCode, callerCompanyId, before.company_id);
-  const after  = await db.updateCompany(companyId, companyCode, companyName, description, status);
+  const after  = await db.updateCompany(companyId, companyCode, companyName, description, status, callerRoleCode);
   audit.logUpdate('company', String(after.company_id), after.company_name,
     after.company_id, null, null,
     before! as unknown as Record<string, unknown>,

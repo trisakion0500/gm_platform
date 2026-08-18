@@ -71,7 +71,7 @@ export async function createCompany(req: Request, res: Response, next: NextFunct
       fail(res, ERROR_MAP.INVALID_FORMAT);
       return;
     }
-    const company = await companyService.createCompany(company_code, company_name, description ?? null, req.user!.user_id);
+    const company = await companyService.createCompany(company_code, company_name, description ?? null, req.user!.role_code, req.user!.user_id);
     success(res, formatCompany(company), 201);
   } catch (err) {
     next(err);
