@@ -133,7 +133,7 @@ BEGIN
 
     transaction_block: BEGIN
 
-        IF i_caller_role_code != 10 THEN
+        IF NOT FN_IS_SUPER_ADMIN(i_caller_role_code) THEN
             SELECT 20001 AS RESULT;
             LEAVE transaction_block;
         END IF;
@@ -1003,7 +1003,7 @@ BEGIN
 
     transaction_block: BEGIN
 
-        IF i_caller_role_code != 10 THEN
+        IF NOT FN_IS_SUPER_ADMIN(i_caller_role_code) THEN
             SELECT 20001 AS RESULT;
             LEAVE transaction_block;
         END IF;
@@ -1141,7 +1141,7 @@ BEGIN
 
     transaction_block: BEGIN
 
-        IF i_caller_role_code != 10 THEN
+        IF NOT FN_IS_SUPER_ADMIN(i_caller_role_code) THEN
             SELECT 20001 AS RESULT;
             LEAVE transaction_block;
         END IF;
@@ -1228,7 +1228,7 @@ BEGIN
 
     transaction_block: BEGIN
 
-        IF i_caller_role_code != 10 THEN
+        IF NOT FN_IS_SUPER_ADMIN(i_caller_role_code) THEN
             SELECT 20001 AS RESULT;
             LEAVE transaction_block;
         END IF;
@@ -3322,7 +3322,7 @@ BEGIN
 
     transaction_block: BEGIN
 
-        IF i_caller_role_code != 10 THEN
+        IF NOT FN_IS_SUPER_ADMIN(i_caller_role_code) THEN
             SELECT 20001 AS RESULT;
             LEAVE transaction_block;
         END IF;
@@ -4169,7 +4169,7 @@ BEGIN
 
     transaction_block: BEGIN
 
-        IF i_caller_role_code != 10 THEN
+        IF NOT FN_IS_SUPER_ADMIN(i_caller_role_code) THEN
             SELECT 20001 AS RESULT;
             LEAVE transaction_block;
         END IF;
@@ -4310,7 +4310,7 @@ BEGIN
 
     transaction_block: BEGIN
 
-        IF i_caller_role_code != 10 THEN
+        IF NOT FN_IS_SUPER_ADMIN(i_caller_role_code) THEN
             SELECT 20001 AS RESULT;
             LEAVE transaction_block;
         END IF;
@@ -4550,7 +4550,7 @@ BEGIN
 
     transaction_block: BEGIN
 
-        IF i_caller_role_code != 10 THEN
+        IF NOT FN_IS_SUPER_ADMIN(i_caller_role_code) THEN
             SELECT 20001 AS RESULT;
             LEAVE transaction_block;
         END IF;
@@ -4633,7 +4633,7 @@ BEGIN
 
     transaction_block: BEGIN
 
-        IF i_caller_role_code != 10 THEN
+        IF NOT FN_IS_SUPER_ADMIN(i_caller_role_code) THEN
             SELECT 20001 AS RESULT;
             LEAVE transaction_block;
         END IF;
