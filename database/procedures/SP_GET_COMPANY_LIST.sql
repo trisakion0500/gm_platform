@@ -11,6 +11,7 @@ BEGIN
 -- --------------------------------- --
 -- 명칭 : SP_GET_COMPANY_LIST
 -- 작성 : 2026-06-28 trisakion
+-- 수정 : 2026-08-18 trisakion - 회사 스코핑 조건을 FN_HAS_COMPANY_ROLE() 호출로 공용화
 -- 내용 : 회사 목록 조회
 --        SUPER_ADMIN(10) : 전체 회사 반환
 --        DEVELOPER(20)   : 본인 소속 company_id 의 회사만 반환
@@ -24,12 +25,12 @@ BEGIN
     SELECT COUNT(`company_id`) AS total_count
     FROM `company`
     WHERE (i_status IS NULL OR `status` = i_status)
-      AND (i_role_code = 10 OR `company_id` = i_company_id);
+      AND FN_HAS_COMPANY_ROLE(i_role_code, i_company_id, `company_id`);
 
     SELECT `company_id`, `company_code`, `company_name`, `description`, `status`, `created_at`, `updated_at`
     FROM `company`
     WHERE (i_status IS NULL OR `status` = i_status)
-      AND (i_role_code = 10 OR `company_id` = i_company_id)
+      AND FN_HAS_COMPANY_ROLE(i_role_code, i_company_id, `company_id`)
     ORDER BY `status` DESC, `company_name` ASC
     LIMIT i_page_size OFFSET v_offset;
 

@@ -12,6 +12,7 @@ BEGIN
 -- --------------------------------- --
 -- 명칭 : SP_GET_USER_LIST
 -- 작성 : 2026-06-29 trisakion
+-- 수정 : 2026-08-18 trisakion - 회사 스코핑 조건을 FN_HAS_COMPANY_ROLE() 호출로 공용화
 -- 내용 : 사용자 목록 조회
 --        SUPER_ADMIN(10) : 전체 사용자, company_id/status 필터 적용
 --        DEVELOPER(20)   : 본인 소속 회사 사용자 전체(모든 status), status 필터로 좁혀볼 수 있음
@@ -27,7 +28,7 @@ BEGIN
     FROM `user` u
     WHERE (i_status IS NULL OR u.`status` = i_status)
       AND (i_company_id IS NULL OR u.`company_id` = i_company_id)
-      AND (i_role_code = 10 OR u.`company_id` = i_user_company_id);
+      AND FN_HAS_COMPANY_ROLE(i_role_code, i_user_company_id, u.`company_id`);
 
     SELECT u.`user_id`, u.`company_id`, c.`company_code`, c.`company_name`,
            u.`login_id`, u.`user_name`, u.`email`,
@@ -37,7 +38,7 @@ BEGIN
     JOIN `company` c ON c.`company_id` = u.`company_id`
     WHERE (i_status IS NULL OR u.`status` = i_status)
       AND (i_company_id IS NULL OR u.`company_id` = i_company_id)
-      AND (i_role_code = 10 OR u.`company_id` = i_user_company_id)
+      AND FN_HAS_COMPANY_ROLE(i_role_code, i_user_company_id, u.`company_id`)
     ORDER BY u.`created_at` DESC
     LIMIT i_page_size OFFSET v_offset;
 

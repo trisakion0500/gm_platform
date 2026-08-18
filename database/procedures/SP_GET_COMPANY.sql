@@ -9,6 +9,7 @@ BEGIN
 -- --------------------------------- --
 -- 명칭 : SP_GET_COMPANY
 -- 작성 : 2026-06-28 trisakion
+-- 수정 : 2026-08-18 trisakion - 회사 스코핑 조건을 FN_HAS_COMPANY_ROLE() 호출로 공용화
 -- 내용 : 회사 단건 조회
 --        SUPER_ADMIN(10) : 모든 회사 조회 가능
 --        DEVELOPER(20)   : 본인 소속 company_id 의 회사만 조회 가능
@@ -20,7 +21,7 @@ BEGIN
         IF NOT EXISTS (
             SELECT 1 FROM `company`
             WHERE `company_id` = i_company_id
-              AND (i_role_code = 10 OR `company_id` = i_user_company_id)
+              AND FN_HAS_COMPANY_ROLE(i_role_code, i_user_company_id, `company_id`)
         ) THEN
             SELECT 31001 AS RESULT;
             LEAVE transaction_block;

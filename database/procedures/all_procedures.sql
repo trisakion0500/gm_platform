@@ -1476,6 +1476,7 @@ BEGIN
 -- 명칭 : SP_GET_ACTIVE_HEADER_DATA
 -- 작성 : 2026-07-05 trisakion
 -- 수정 : 2026-07-17 trisakion - EXISTS 인라인 체크를 FN_HAS_PROJECT_ROLE() 호출로 공용화
+-- 수정 : 2026-08-18 trisakion - 회사 스코핑 조건을 FN_HAS_COMPANY_ROLE() 호출로 공용화
 -- 내용 : 헤더 콤보박스가 로그인 시 1회 로드하는 활성 회사/프로젝트 목록을 한 호출로 반환
 --        SUPER_ADMIN(10) : 전체 활성 회사 + 전체 활성 프로젝트
 --        그 외            : 본인 소속 회사만 + 본인이 활성 user_role을 가진 프로젝트만
@@ -1486,7 +1487,7 @@ BEGIN
     SELECT `company_id`, `company_name`
     FROM `company`
     WHERE `status` = 1
-      AND (i_role_code = 10 OR `company_id` = i_company_id)
+      AND FN_HAS_COMPANY_ROLE(i_role_code, i_company_id, `company_id`)
     ORDER BY `company_name` ASC;
 
     SELECT p.`project_id`, p.`company_id`, p.`project_name`
@@ -2132,6 +2133,7 @@ BEGIN
 -- --------------------------------- --
 -- 명칭 : SP_GET_COMPANY
 -- 작성 : 2026-06-28 trisakion
+-- 수정 : 2026-08-18 trisakion - 회사 스코핑 조건을 FN_HAS_COMPANY_ROLE() 호출로 공용화
 -- 내용 : 회사 단건 조회
 --        SUPER_ADMIN(10) : 모든 회사 조회 가능
 --        DEVELOPER(20)   : 본인 소속 company_id 의 회사만 조회 가능
@@ -2143,7 +2145,7 @@ BEGIN
         IF NOT EXISTS (
             SELECT 1 FROM `company`
             WHERE `company_id` = i_company_id
-              AND (i_role_code = 10 OR `company_id` = i_user_company_id)
+              AND FN_HAS_COMPANY_ROLE(i_role_code, i_user_company_id, `company_id`)
         ) THEN
             SELECT 31001 AS RESULT;
             LEAVE transaction_block;
@@ -2210,6 +2212,7 @@ BEGIN
 -- --------------------------------- --
 -- 명칭 : SP_GET_COMPANY_LIST
 -- 작성 : 2026-06-28 trisakion
+-- 수정 : 2026-08-18 trisakion - 회사 스코핑 조건을 FN_HAS_COMPANY_ROLE() 호출로 공용화
 -- 내용 : 회사 목록 조회
 --        SUPER_ADMIN(10) : 전체 회사 반환
 --        DEVELOPER(20)   : 본인 소속 company_id 의 회사만 반환
@@ -2223,12 +2226,12 @@ BEGIN
     SELECT COUNT(`company_id`) AS total_count
     FROM `company`
     WHERE (i_status IS NULL OR `status` = i_status)
-      AND (i_role_code = 10 OR `company_id` = i_company_id);
+      AND FN_HAS_COMPANY_ROLE(i_role_code, i_company_id, `company_id`);
 
     SELECT `company_id`, `company_code`, `company_name`, `description`, `status`, `created_at`, `updated_at`
     FROM `company`
     WHERE (i_status IS NULL OR `status` = i_status)
-      AND (i_role_code = 10 OR `company_id` = i_company_id)
+      AND FN_HAS_COMPANY_ROLE(i_role_code, i_company_id, `company_id`)
     ORDER BY `status` DESC, `company_name` ASC
     LIMIT i_page_size OFFSET v_offset;
 
@@ -2819,6 +2822,7 @@ BEGIN
 -- --------------------------------- --
 -- 명칭 : SP_GET_USER_LIST
 -- 작성 : 2026-06-29 trisakion
+-- 수정 : 2026-08-18 trisakion - 회사 스코핑 조건을 FN_HAS_COMPANY_ROLE() 호출로 공용화
 -- 내용 : 사용자 목록 조회
 --        SUPER_ADMIN(10) : 전체 사용자, company_id/status 필터 적용
 --        DEVELOPER(20)   : 본인 소속 회사 사용자 전체(모든 status), status 필터로 좁혀볼 수 있음
@@ -2834,7 +2838,7 @@ BEGIN
     FROM `user` u
     WHERE (i_status IS NULL OR u.`status` = i_status)
       AND (i_company_id IS NULL OR u.`company_id` = i_company_id)
-      AND (i_role_code = 10 OR u.`company_id` = i_user_company_id);
+      AND FN_HAS_COMPANY_ROLE(i_role_code, i_user_company_id, u.`company_id`);
 
     SELECT u.`user_id`, u.`company_id`, c.`company_code`, c.`company_name`,
            u.`login_id`, u.`user_name`, u.`email`,
@@ -2844,7 +2848,7 @@ BEGIN
     JOIN `company` c ON c.`company_id` = u.`company_id`
     WHERE (i_status IS NULL OR u.`status` = i_status)
       AND (i_company_id IS NULL OR u.`company_id` = i_company_id)
-      AND (i_role_code = 10 OR u.`company_id` = i_user_company_id)
+      AND FN_HAS_COMPANY_ROLE(i_role_code, i_user_company_id, u.`company_id`)
     ORDER BY u.`created_at` DESC
     LIMIT i_page_size OFFSET v_offset;
 
