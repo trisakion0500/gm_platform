@@ -3,6 +3,33 @@ import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js"
 import { getRoleCode } from "./gmClient";
 import { env } from "./config/env";
 import logger from "./utils/logger";
+
+/**
+ * 부팅 시 GM Platform 로그인 실패를 지수 백오프(1s→2s→4s→...,최대 10s 간격)로 재시도한다.
+ * MCP_PC_BOOT_RETRY_MAX_MS 누적 시간 안에도 실패하면 예외를 던져 main().catch()가 처리한다
+ * (server/app.ts의 connectWithRetry와 동일 패턴 — 데스크탑 앱이 stdio MCP를 자동 재연결하지
+ * 않아, GM Platform 서버가 나중에 뜨더라도 이 프로세스가 살아서 기다려야 커넥터가 자동 복구된다).
+ * @returns 로그인한 계정의 role_code
+ */
+async function getRoleCodeWithRetry(): Promise<number> {
+  const startedAt = Date.now();
+  let delayMs = 1000;
+  let attempt = 0;
+
+  while (true) {
+    attempt++;
+    try {
+      return await getRoleCode();
+    } catch (err) {
+      const elapsed = Date.now() - startedAt;
+      if (elapsed >= env.mcpBootRetryMaxMs)
+        throw err;
+      logger.warn(`GM Platform 로그인 실패 (attempt ${attempt}), ${delayMs}ms 후 재시도:`, err);
+      await new Promise((resolve) => setTimeout(resolve, delayMs));
+      delayMs = Math.min(delayMs * 2, 10000);
+    }
+  }
+}
 import { registerListProjectsTool } from "./tools/listProjects";
 import { registerListApisTool } from "./tools/listApis";
 import { registerListCodeGroupsTool } from "./tools/listCodeGroups";
@@ -50,7 +77,7 @@ const SUPER_ADMIN_ONLY = [10]; // 회사/프로젝트/사용자 쓰기, 역할 �
  * @returns void
  */
 async function main(): Promise<void> {
-  const roleCode = await getRoleCode();
+  const roleCode = await getRoleCodeWithRetry();
 
   const server = new McpServer({ name: "gm-platform-pc-mcp-server", version: "1.0.0" });
 

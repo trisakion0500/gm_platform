@@ -20,6 +20,10 @@ export const env = {
   gmBaseUrl: process.env.GM_BASE_URL!,
   gmLoginId: process.env.GM_LOGIN_ID!,
   gmPassword: process.env.GM_PASSWORD!,
+  // 부팅 시 GM Platform 최초 로그인 실패를 지수 백오프로 재시도할 최대 누적 시간(ms).
+  // 데스크탑 앱은 stdio MCP 서버를 자동 재연결하지 않으므로(공식 문서 확인), 서버 기동 순서에
+  // 의존하지 않고 이 프로세스 스스로 견뎌야 한다 — server/의 DB_BOOT_RETRY_MAX_MS와 동일 취지.
+  mcpBootRetryMaxMs: Number(process.env.MCP_BOOT_RETRY_MAX_MS) || 60000,
   // false면 search_docs tool 자체를 등록하지 않음(index.ts) — rag_server 미기동 환경에서도 나머지 tool은 그대로 동작해야 함
   ragEnabled,
   ragBaseUrl: process.env.RAG_BASE_URL || null,
