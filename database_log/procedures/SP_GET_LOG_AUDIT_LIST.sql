@@ -28,6 +28,7 @@ BEGIN
 --        고정되는 이 앱의 특성상, A프로젝트 DEVELOPER·B프로젝트 APPROVER인 사용자가 세션이 DEVELOPER로
 --        고정돼 있다는 이유만으로 B프로젝트 로그를 못 보던 문제를 없앤다. OPERATOR로만 배정된 프로젝트는
 --        여전히 제외된다(라우트 자체가 OPERATOR를 차단하는 것과 같은 기준).
+-- 수정 : 2026-08-18 trisakion - SP_GET_LOG_AUDIT와 반복되던 스코핑 조건절을 FN_HAS_LOG_AUDIT_ACCESS로 추출
 -- 내용 : 감사 로그 목록 조회
 --        SUPER_ADMIN(10)  : 전체 로그 반환
 --        project_id 있음  : 호출자가 해당 프로젝트에 role_code<=30으로 실제 배정된 경우만 반환
@@ -40,11 +41,7 @@ BEGIN
 
     SELECT COUNT(*) AS total_count
     FROM `log_audit`
-    WHERE (
-            i_caller_role_code = 10
-            OR (`project_id` IS NOT NULL AND FIND_IN_SET(`project_id`, i_allowed_project_ids) > 0)
-            OR (`project_id` IS NULL AND `company_id` = i_caller_company_id)
-          )
+    WHERE FN_HAS_LOG_AUDIT_ACCESS(i_caller_role_code, i_allowed_project_ids, i_caller_company_id, `project_id`, `company_id`)
       AND (i_company_id        IS NULL OR `company_id`   = i_company_id)
       AND (i_project_id        IS NULL OR `project_id`   = i_project_id)
       AND (i_table_name        IS NULL OR `table_name`   = i_table_name)
@@ -57,11 +54,7 @@ BEGIN
            la.`table_name`, la.`target_id`, la.`target_name`, la.`action_type`,
            la.`created_by_name`, la.`created_at`
     FROM `log_audit` la
-    WHERE (
-            i_caller_role_code = 10
-            OR (la.`project_id` IS NOT NULL AND FIND_IN_SET(la.`project_id`, i_allowed_project_ids) > 0)
-            OR (la.`project_id` IS NULL AND la.`company_id` = i_caller_company_id)
-          )
+    WHERE FN_HAS_LOG_AUDIT_ACCESS(i_caller_role_code, i_allowed_project_ids, i_caller_company_id, la.`project_id`, la.`company_id`)
       AND (i_company_id        IS NULL OR la.`company_id`   = i_company_id)
       AND (i_project_id        IS NULL OR la.`project_id`   = i_project_id)
       AND (i_table_name        IS NULL OR la.`table_name`   = i_table_name)

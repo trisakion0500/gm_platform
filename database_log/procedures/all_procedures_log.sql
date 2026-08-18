@@ -2,8 +2,9 @@
 -- 로그 전용 DB(예: gm_platform_log) 통합 Procedure 파일. 메인 DB(gm_platform) 대상 Procedure는
 -- database/procedures/all_procedures.sql에 별도로 있다 — logPool(로그 DB 전용 커넥션 풀,
 -- server/src/config/db.ts)만 이 파일의 SP를 호출한다. 이 DB는 메인 DB의 어떤 테이블에도
--- 물리적으로 접근할 수 없으므로, 아래 SP들은 log_audit/log_audit_index_sync_queue 테이블만 참조하고
--- FN_*/JOIN을 쓰지 않는다.
+-- 물리적으로 접근할 수 없으므로, 아래 SP들은 log_audit/log_audit_index_sync_queue 테이블 및
+-- database_log/functions/(예: FN_HAS_LOG_AUDIT_ACCESS)의 로컬 Function만 참조하고, 메인 DB의
+-- FN_*(FN_GET_PROJECT_ROLE_CODE 등)나 JOIN으로 메인 DB 테이블에 접근하지 않는다.
 -- 개별 파일을 수정하면 이 파일도 반드시 함께 갱신할 것(all_procedures.sql과 동일한 동기화 원칙).
 -- ------------------------------------------------------------------------------------------------------------ --
 DROP PROCEDURE IF EXISTS SP_DELETE_LOG_AUDIT_INDEX_SYNC;
@@ -65,6 +66,7 @@ BEGIN
 --        고정되는 이 앱의 특성상, A프로젝트 DEVELOPER·B프로젝트 APPROVER인 사용자가 세션이 DEVELOPER로
 --        고정돼 있다는 이유만으로 B프로젝트 로그를 못 보던 문제를 없앤다. OPERATOR로만 배정된 프로젝트는
 --        여전히 제외된다(라우트 자체가 OPERATOR를 차단하는 것과 같은 기준).
+-- 수정 : 2026-08-18 trisakion - SP_GET_LOG_AUDIT_LIST와 반복되던 스코핑 조건절을 FN_HAS_LOG_AUDIT_ACCESS로 추출
 -- 내용 : 감사 로그 단건 조회
 --        SUPER_ADMIN(10)  : 전체 로그 조회 가능
 --        project_id 있음  : 호출자가 해당 프로젝트에 role_code<=30으로 실제 배정된 경우만 조회 가능
@@ -77,11 +79,7 @@ BEGIN
         IF NOT EXISTS (
             SELECT 1 FROM `log_audit`
             WHERE `log_audit_id` = i_log_audit_id
-              AND (
-                    i_caller_role_code = 10
-                    OR (`project_id` IS NOT NULL AND FIND_IN_SET(`project_id`, i_allowed_project_ids) > 0)
-                    OR (`project_id` IS NULL AND `company_id` = i_caller_company_id)
-                  )
+              AND FN_HAS_LOG_AUDIT_ACCESS(i_caller_role_code, i_allowed_project_ids, i_caller_company_id, `project_id`, `company_id`)
         ) THEN
             SELECT 31010 AS RESULT;
             LEAVE check_block;
@@ -129,6 +127,7 @@ BEGIN
 --        고정되는 이 앱의 특성상, A프로젝트 DEVELOPER·B프로젝트 APPROVER인 사용자가 세션이 DEVELOPER로
 --        고정돼 있다는 이유만으로 B프로젝트 로그를 못 보던 문제를 없앤다. OPERATOR로만 배정된 프로젝트는
 --        여전히 제외된다(라우트 자체가 OPERATOR를 차단하는 것과 같은 기준).
+-- 수정 : 2026-08-18 trisakion - SP_GET_LOG_AUDIT와 반복되던 스코핑 조건절을 FN_HAS_LOG_AUDIT_ACCESS로 추출
 -- 내용 : 감사 로그 목록 조회
 --        SUPER_ADMIN(10)  : 전체 로그 반환
 --        project_id 있음  : 호출자가 해당 프로젝트에 role_code<=30으로 실제 배정된 경우만 반환
@@ -141,11 +140,7 @@ BEGIN
 
     SELECT COUNT(*) AS total_count
     FROM `log_audit`
-    WHERE (
-            i_caller_role_code = 10
-            OR (`project_id` IS NOT NULL AND FIND_IN_SET(`project_id`, i_allowed_project_ids) > 0)
-            OR (`project_id` IS NULL AND `company_id` = i_caller_company_id)
-          )
+    WHERE FN_HAS_LOG_AUDIT_ACCESS(i_caller_role_code, i_allowed_project_ids, i_caller_company_id, `project_id`, `company_id`)
       AND (i_company_id        IS NULL OR `company_id`   = i_company_id)
       AND (i_project_id        IS NULL OR `project_id`   = i_project_id)
       AND (i_table_name        IS NULL OR `table_name`   = i_table_name)
@@ -158,11 +153,7 @@ BEGIN
            la.`table_name`, la.`target_id`, la.`target_name`, la.`action_type`,
            la.`created_by_name`, la.`created_at`
     FROM `log_audit` la
-    WHERE (
-            i_caller_role_code = 10
-            OR (la.`project_id` IS NOT NULL AND FIND_IN_SET(la.`project_id`, i_allowed_project_ids) > 0)
-            OR (la.`project_id` IS NULL AND la.`company_id` = i_caller_company_id)
-          )
+    WHERE FN_HAS_LOG_AUDIT_ACCESS(i_caller_role_code, i_allowed_project_ids, i_caller_company_id, la.`project_id`, la.`company_id`)
       AND (i_company_id        IS NULL OR la.`company_id`   = i_company_id)
       AND (i_project_id        IS NULL OR la.`project_id`   = i_project_id)
       AND (i_table_name        IS NULL OR la.`table_name`   = i_table_name)
