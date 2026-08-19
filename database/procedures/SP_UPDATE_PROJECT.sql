@@ -1,12 +1,12 @@
 DROP PROCEDURE IF EXISTS SP_UPDATE_PROJECT;
 DELIMITER $
 CREATE PROCEDURE SP_UPDATE_PROJECT(
-    IN  i_project_id       BIGINT,        -- 수정할 프로젝트 ID
-    IN  i_project_code     VARCHAR(20),   -- 프로젝트 코드 (NULL=변경 없음)
-    IN  i_project_name     VARCHAR(100),  -- 프로젝트명 (NULL=변경 없음)
-    IN  i_description      VARCHAR(1000), -- 설명 (NULL=변경 없음)
-    IN  i_status           TINYINT,       -- 상태 (NULL=변경 없음)
-    IN  i_caller_role_code INT            -- 요청자 역할 코드 (SUPER_ADMIN=10 외 20001)
+    IN  i_project_id     BIGINT,        -- 수정할 프로젝트 ID
+    IN  i_project_code   VARCHAR(20),   -- 프로젝트 코드 (NULL=변경 없음)
+    IN  i_project_name   VARCHAR(100),  -- 프로젝트명 (NULL=변경 없음)
+    IN  i_description    VARCHAR(1000), -- 설명 (NULL=변경 없음)
+    IN  i_status         TINYINT,       -- 상태 (NULL=변경 없음)
+    IN  i_caller_user_id BIGINT         -- 요청자 user_id (SP 내부에서 SUPER_ADMIN 실배정 재검증)
 ) COMMENT '프로젝트 수정 - project 테이블 UPDATE'
 BEGIN
 -- --------------------------------- --
@@ -19,6 +19,8 @@ BEGIN
 -- 수정 : 2026-08-18 trisakion - i_caller_role_code 추가, SUPER_ADMIN 여부를 SP 내부에서도 재검증
 --        (기존엔 라우트의 requireRole만이 유일한 방어선이라, 앱 레이어 버그나 우회 호출 시 DB가
 --        마지막 방어선이 되지 못했음 — API/CodeGroup 계열 SP가 이미 갖춘 방어적 이중 체크 패턴 적용)
+-- 수정 : 2026-08-19 trisakion - i_caller_role_code를 i_caller_user_id로 교체, FN_IS_SUPER_ADMIN이
+--        앱이 넘긴 role_code 값을 그대로 신뢰하지 않고 user_id로 DB 재검증하도록 변경
 -- 내용 : 프로젝트 정보 수정 (project_code/project_name/description/status만, api_base_url은 SP_UPDATE_PROJECT_CONNECTION 전용)
 --        SUPER_ADMIN 외 호출 → 20001
 --        project 존재 검사 후 UPDATE
@@ -49,7 +51,7 @@ BEGIN
 
     transaction_block: BEGIN
 
-        IF NOT FN_IS_SUPER_ADMIN(i_caller_role_code) THEN
+        IF NOT FN_IS_SUPER_ADMIN(i_caller_user_id) THEN
             SELECT 20001 AS RESULT;
             LEAVE transaction_block;
         END IF;

@@ -24,16 +24,16 @@ export async function getCompanyByCode(companyCode: string): Promise<CompanyLook
  * @param companyCode 회사 코드
  * @param companyName 회사명
  * @param description 설명 (없으면 null)
- * @param callerRoleCode 호출자 역할 코드 (SP 내부에서 SUPER_ADMIN 여부 재검증)
+ * @param callerUserId 호출자 user_id (SP 내부에서 SUPER_ADMIN 실배정 재검증)
  * @returns 생성된 회사 정보
  */
 export async function createCompany(
   companyCode: string,
   companyName: string,
   description: string | null,
-  callerRoleCode: number,
+  callerUserId: number,
 ): Promise<CompanyRow> {
-  const [status, [data]] = await callSP('SP_CREATE_COMPANY', [companyCode, companyName, description, callerRoleCode]);
+  const [status, [data]] = await callSP('SP_CREATE_COMPANY', [companyCode, companyName, description, callerUserId]);
   switch (status[0].RESULT) {
     case 20001: throw toDBError(ERROR_MAP.FORBIDDEN);
     case 32001: throw toDBError(ERROR_MAP.DUPLICATE_VALUE);
@@ -117,7 +117,7 @@ export async function getActiveHeaderData(
  * @param companyName 회사명 (null=변경 없음)
  * @param description 설명 (null=변경 없음)
  * @param status 상태 (null=변경 없음)
- * @param callerRoleCode 호출자 역할 코드 (SP 내부에서 SUPER_ADMIN 여부 재검증)
+ * @param callerUserId 호출자 user_id (SP 내부에서 SUPER_ADMIN 실배정 재검증)
  * @returns 수정된 회사 정보
  */
 export async function updateCompany(
@@ -126,9 +126,9 @@ export async function updateCompany(
   companyName: string | null,
   description: string | null,
   status: number | null,
-  callerRoleCode: number,
+  callerUserId: number,
 ): Promise<CompanyRow> {
-  const [spStatus, [data]] = await callSP('SP_UPDATE_COMPANY', [companyId, companyCode, companyName, description, status, callerRoleCode]);
+  const [spStatus, [data]] = await callSP('SP_UPDATE_COMPANY', [companyId, companyCode, companyName, description, status, callerUserId]);
   switch (spStatus[0].RESULT) {
     case 20001: throw toDBError(ERROR_MAP.FORBIDDEN);
     case 31001: throw toDBError(ERROR_MAP.COMPANY_NOT_FOUND);

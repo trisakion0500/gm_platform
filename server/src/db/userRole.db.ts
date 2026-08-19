@@ -30,16 +30,16 @@ export async function getUserRoleList(
  * @param userId 사용자 ID
  * @param projectId 프로젝트 ID
  * @param roleCode 역할 코드 (20/30/40)
- * @param callerRoleCode 호출자 역할 코드 (SP 내부에서 SUPER_ADMIN 여부 재검증)
+ * @param callerUserId 호출자 user_id (SP 내부에서 SUPER_ADMIN 실배정 재검증)
  * @returns 등록된 User Role 정보
  */
 export async function createUserRole(
   userId: number,
   projectId: number,
   roleCode: number,
-  callerRoleCode: number,
+  callerUserId: number,
 ): Promise<UserRoleRow> {
-  const [spStatus, [data]] = await callSP('SP_CREATE_USER_ROLE', [userId, projectId, roleCode, callerRoleCode]);
+  const [spStatus, [data]] = await callSP('SP_CREATE_USER_ROLE', [userId, projectId, roleCode, callerUserId]);
   switch (spStatus[0].RESULT) {
     case 20001: throw toDBError(ERROR_MAP.FORBIDDEN);
     case 31003: throw toDBError(ERROR_MAP.USER_NOT_FOUND);
@@ -58,7 +58,7 @@ export async function createUserRole(
  * @param projectId 프로젝트 ID
  * @param roleCode 역할 코드 (null=변경 없음)
  * @param status 상태 (null=변경 없음)
- * @param callerRoleCode 호출자 역할 코드 (SP 내부에서 SUPER_ADMIN 여부 재검증)
+ * @param callerUserId 호출자 user_id (SP 내부에서 SUPER_ADMIN 실배정 재검증)
  * @returns 수정된 User Role 정보
  */
 export async function updateUserRole(
@@ -66,9 +66,9 @@ export async function updateUserRole(
   projectId: number,
   roleCode: number | null,
   status: number | null,
-  callerRoleCode: number,
+  callerUserId: number,
 ): Promise<UserRoleRow> {
-  const [spStatus, [data]] = await callSP('SP_UPDATE_USER_ROLE', [userId, projectId, roleCode, status, callerRoleCode]);
+  const [spStatus, [data]] = await callSP('SP_UPDATE_USER_ROLE', [userId, projectId, roleCode, status, callerUserId]);
   switch (spStatus[0].RESULT) {
     case 20001: throw toDBError(ERROR_MAP.FORBIDDEN);
     case 30003: throw toDBError(ERROR_MAP.INVALID_VALUE);

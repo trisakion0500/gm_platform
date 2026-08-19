@@ -27,7 +27,7 @@ export async function getProjectByCode(companyId: number, projectCode: string): 
  * @param projectName 프로젝트명
  * @param apiBaseUrl API Base URL
  * @param description 설명 (없으면 null)
- * @param callerRoleCode 호출자 역할 코드 (SP 내부에서 SUPER_ADMIN 여부 재검증)
+ * @param callerUserId 호출자 user_id (SP 내부에서 SUPER_ADMIN 실배정 재검증)
  * @returns 생성된 프로젝트 정보 (company 정보 포함)
  */
 export async function createProject(
@@ -36,9 +36,9 @@ export async function createProject(
   projectName: string,
   apiBaseUrl: string,
   description: string | null,
-  callerRoleCode: number,
+  callerUserId: number,
 ): Promise<ProjectRow> {
-  const [status, [data]] = await callSP('SP_CREATE_PROJECT', [companyId, projectCode, projectName, apiBaseUrl, description, callerRoleCode]);
+  const [status, [data]] = await callSP('SP_CREATE_PROJECT', [companyId, projectCode, projectName, apiBaseUrl, description, callerUserId]);
   switch (status[0].RESULT) {
     case 20001: throw toDBError(ERROR_MAP.FORBIDDEN);
     case 31001: throw toDBError(ERROR_MAP.COMPANY_NOT_FOUND);
@@ -104,7 +104,7 @@ export async function getProject(
  * @param projectName 프로젝트명 (null=변경 없음)
  * @param description 설명 (null=변경 없음)
  * @param status 상태 (null=변경 없음)
- * @param callerRoleCode 호출자 역할 코드 (SP 내부에서 SUPER_ADMIN 여부 재검증)
+ * @param callerUserId 호출자 user_id (SP 내부에서 SUPER_ADMIN 실배정 재검증)
  * @returns 수정된 프로젝트 정보 (company 정보 포함)
  */
 export async function updateProject(
@@ -113,9 +113,9 @@ export async function updateProject(
   projectName: string | null,
   description: string | null,
   status: number | null,
-  callerRoleCode: number,
+  callerUserId: number,
 ): Promise<ProjectRow> {
-  const [spStatus, [data]] = await callSP('SP_UPDATE_PROJECT', [projectId, projectCode, projectName, description, status, callerRoleCode]);
+  const [spStatus, [data]] = await callSP('SP_UPDATE_PROJECT', [projectId, projectCode, projectName, description, status, callerUserId]);
   switch (spStatus[0].RESULT) {
     case 20001: throw toDBError(ERROR_MAP.FORBIDDEN);
     case 31002: throw toDBError(ERROR_MAP.PROJECT_NOT_FOUND);

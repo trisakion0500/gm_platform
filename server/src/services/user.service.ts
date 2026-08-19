@@ -82,7 +82,7 @@ export async function updateUser(
   const before = await db.getUser(userId);
   if (before)
     assertCompanyScope(callerRoleCode, callerCompanyId, before.company_id);
-  const after  = await db.updateUser(userId, userName, email, phoneNumber ? encrypt(phoneNumber) : null, department, position, status, callerRoleCode);
+  const after  = await db.updateUser(userId, userName, email, phoneNumber ? encrypt(phoneNumber) : null, department, position, status, callerUserId);
   // status 변경(사용중지 등)은 인증 미들웨어가 매 요청 재확인해야 하는 값이라, 세션 캐시가 있으면 즉시 무효화해야 한다.
   if (status !== null)
     await invalidateUserSessionCache(userId);
@@ -111,7 +111,7 @@ export async function approveUser(
   const before = await db.getUser(userId);
   if (before)
     assertCompanyScope(callerRoleCode, callerCompanyId, before.company_id);
-  const after  = await db.approveUser(userId, callerRoleCode);
+  const after  = await db.approveUser(userId, callerUserId);
   audit.logUpdate('user', String(after.user_id), after.user_name,
     after.company_id, null, null,
     before! as unknown as Record<string, unknown>,
@@ -136,7 +136,7 @@ export async function rejectUser(
   const before = await db.getUser(userId);
   if (before)
     assertCompanyScope(callerRoleCode, callerCompanyId, before.company_id);
-  const after  = await db.rejectUser(userId, callerRoleCode);
+  const after  = await db.rejectUser(userId, callerUserId);
   audit.logUpdate('user', String(after.user_id), after.user_name,
     after.company_id, null, null,
     before! as unknown as Record<string, unknown>,

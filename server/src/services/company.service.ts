@@ -33,7 +33,7 @@ export async function createCompany(
   callerRoleCode: number,
   callerUserId: number,
 ): Promise<CompanyRow> {
-  const after = await db.createCompany(companyCode, companyName, description, callerRoleCode);
+  const after = await db.createCompany(companyCode, companyName, description, callerUserId);
   audit.logCreate('company', String(after.company_id), after.company_name,
     after.company_id, null, null, after as unknown as Record<string, unknown>, callerUserId);
   return after;
@@ -125,7 +125,7 @@ export async function updateCompany(
   const before = await db.getCompany(companyId, 10, 0);
   if (before)
     assertCompanyScope(callerRoleCode, callerCompanyId, before.company_id);
-  const after  = await db.updateCompany(companyId, companyCode, companyName, description, status, callerRoleCode);
+  const after  = await db.updateCompany(companyId, companyCode, companyName, description, status, callerUserId);
   audit.logUpdate('company', String(after.company_id), after.company_name,
     after.company_id, null, null,
     before! as unknown as Record<string, unknown>,

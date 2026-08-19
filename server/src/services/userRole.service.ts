@@ -59,7 +59,7 @@ export async function createUserRole(
   callerRoleCode: number,
   callerUserId: number,
 ): Promise<UserRoleRow> {
-  const after = await db.createUserRole(userId, projectId, roleCode, callerRoleCode);
+  const after = await db.createUserRole(userId, projectId, roleCode, callerUserId);
   audit.logCreateUserRole(userId, projectId, after.login_id,
     after as unknown as Record<string, unknown>, callerUserId);
   return after;
@@ -85,7 +85,7 @@ export async function updateUserRole(
   callerUserId: number,
 ): Promise<UserRoleRow> {
   const beforeList = await db.getUserRoleList(userId, projectId, null, null, null);
-  const after      = await db.updateUserRole(userId, projectId, roleCode, status, callerRoleCode);
+  const after      = await db.updateUserRole(userId, projectId, roleCode, status, callerUserId);
   const before     = beforeList[0];
   audit.logUpdateUserRole(userId, projectId, after.login_id,
     before! as unknown as Record<string, unknown>,

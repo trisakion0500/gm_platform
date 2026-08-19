@@ -54,7 +54,7 @@ export async function getUser(userId: number): Promise<UserAdminRow | null> {
  * @param department 부서 (null=변경 없음)
  * @param position 직급 (null=변경 없음)
  * @param status 상태 (null=변경 없음)
- * @param callerRoleCode 호출자 역할 코드 (SP 내부에서 SUPER_ADMIN 여부 재검증)
+ * @param callerUserId 호출자 user_id (SP 내부에서 SUPER_ADMIN 실배정 재검증)
  * @returns 수정된 사용자 정보
  */
 export async function updateUser(
@@ -65,9 +65,9 @@ export async function updateUser(
   department: string | null,
   position: string | null,
   status: number | null,
-  callerRoleCode: number,
+  callerUserId: number,
 ): Promise<UserAdminRow> {
-  const [spStatus, [data]] = await callSP('SP_UPDATE_USER', [userId, userName, email, phoneNumber, department, position, status, callerRoleCode]);
+  const [spStatus, [data]] = await callSP('SP_UPDATE_USER', [userId, userName, email, phoneNumber, department, position, status, callerUserId]);
   switch (spStatus[0].RESULT) {
     case 20001: throw toDBError(ERROR_MAP.FORBIDDEN);
     case 31003: throw toDBError(ERROR_MAP.USER_NOT_FOUND);
@@ -81,11 +81,11 @@ export async function updateUser(
  * 사용자 미존재 시 DBError(31003), 승인대기 상태가 아닌 경우 DBError(30003)를 던진다.
  * @author trisakion
  * @param userId 승인할 사용자 ID
- * @param callerRoleCode 호출자 역할 코드 (SP 내부에서 SUPER_ADMIN 여부 재검증)
+ * @param callerUserId 호출자 user_id (SP 내부에서 SUPER_ADMIN 실배정 재검증)
  * @returns 승인된 사용자 정보
  */
-export async function approveUser(userId: number, callerRoleCode: number): Promise<UserAdminRow> {
-  const [status, [data]] = await callSP('SP_APPROVE_USER', [userId, callerRoleCode]);
+export async function approveUser(userId: number, callerUserId: number): Promise<UserAdminRow> {
+  const [status, [data]] = await callSP('SP_APPROVE_USER', [userId, callerUserId]);
   switch (status[0].RESULT) {
     case 20001: throw toDBError(ERROR_MAP.FORBIDDEN);
     case 31003: throw toDBError(ERROR_MAP.USER_NOT_FOUND);
@@ -99,11 +99,11 @@ export async function approveUser(userId: number, callerRoleCode: number): Promi
  * 사용자 미존재 시 DBError(31003), 승인대기 상태가 아닌 경우 DBError(30003)를 던진다.
  * @author trisakion
  * @param userId 반려할 사용자 ID
- * @param callerRoleCode 호출자 역할 코드 (SP 내부에서 SUPER_ADMIN 여부 재검증)
+ * @param callerUserId 호출자 user_id (SP 내부에서 SUPER_ADMIN 실배정 재검증)
  * @returns 반려된 사용자 정보
  */
-export async function rejectUser(userId: number, callerRoleCode: number): Promise<UserAdminRow> {
-  const [status, [data]] = await callSP('SP_REJECT_USER', [userId, callerRoleCode]);
+export async function rejectUser(userId: number, callerUserId: number): Promise<UserAdminRow> {
+  const [status, [data]] = await callSP('SP_REJECT_USER', [userId, callerUserId]);
   switch (status[0].RESULT) {
     case 20001: throw toDBError(ERROR_MAP.FORBIDDEN);
     case 31003: throw toDBError(ERROR_MAP.USER_NOT_FOUND);
