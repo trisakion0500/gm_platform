@@ -335,6 +335,7 @@ BEGIN
 --        (사전 중복검사 이후 동시 요청이 끼어드는 TOCTOU 레이스 시 50001 대신 32001로 정확히 응답)
 -- 수정 : 2026-08-12 trisakion - api_index_sync_queue INSERT 추가(같은 트랜잭션, ON DUPLICATE KEY UPDATE로
 --        dedup) - RAG Phase 2(API 정의 검색) rag_server 동기화용 아웃박스 큐 적재
+-- 수정 : 2026-08-19 trisakion - 인라인 스코핑 블록을 FN_IS_PROJECT_DEVELOPER() 호출로 공용화(중복 제거)
 -- 내용 : API 등록
 --        project 존재 및 활성 검사 (31002)
 --        SUPER_ADMIN 외 대상 프로젝트에 DEVELOPER 활성 권한 없음 → 20001
@@ -345,7 +346,6 @@ BEGIN
 
     DECLARE v_now               DATETIME DEFAULT NOW();
     DECLARE v_api_id            BIGINT;
-    DECLARE v_actual_role_code  INT;
 
     DECLARE sql_state      CHAR(5)       DEFAULT '00000';
     DECLARE error_no       INT           DEFAULT 0;
@@ -373,12 +373,9 @@ BEGIN
             LEAVE transaction_block;
         END IF;
 
-        IF i_caller_role_code != 10 THEN
-            SET v_actual_role_code = FN_GET_PROJECT_ROLE_CODE(i_created_by, i_project_id);
-            IF v_actual_role_code IS NULL OR v_actual_role_code != 20 THEN
-                SELECT 20001 AS RESULT;
-                LEAVE transaction_block;
-            END IF;
+        IF NOT FN_IS_PROJECT_DEVELOPER(i_caller_role_code, i_created_by, i_project_id) THEN
+            SELECT 20001 AS RESULT;
+            LEAVE transaction_block;
         END IF;
 
         IF EXISTS (SELECT 1 FROM `api` WHERE `project_id` = i_project_id AND `api_code` = i_api_code) THEN
@@ -577,6 +574,7 @@ BEGIN
 -- 수정 : 2026-08-12 trisakion - api_index_sync_queue INSERT 추가(같은 트랜잭션, ON DUPLICATE KEY UPDATE로
 --        dedup) - RAG Phase 2(API 정의 검색) rag_server 동기화용 아웃박스 큐 적재. api_request 변경도
 --        소속 api의 검색 인덱스(요청 파라미터 포함)를 최신으로 유지해야 하므로 api_id 기준으로 적재.
+-- 수정 : 2026-08-19 trisakion - 인라인 스코핑 블록을 FN_IS_PROJECT_DEVELOPER() 호출로 공용화(중복 제거)
 -- 내용 : API Request 파라미터 등록
 --        api 존재 검사 (31006)
 --        SUPER_ADMIN 외 대상 프로젝트에 DEVELOPER 활성 권한 없음 → 20001
@@ -588,7 +586,6 @@ BEGIN
 
     DECLARE v_now              DATETIME DEFAULT NOW();
     DECLARE v_project_id       BIGINT;
-    DECLARE v_actual_role_code INT;
 
     DECLARE sql_state      CHAR(5)       DEFAULT '00000';
     DECLARE error_no       INT           DEFAULT 0;
@@ -618,12 +615,9 @@ BEGIN
             LEAVE transaction_block;
         END IF;
 
-        IF i_caller_role_code != 10 THEN
-            SET v_actual_role_code = FN_GET_PROJECT_ROLE_CODE(i_created_by, v_project_id);
-            IF v_actual_role_code IS NULL OR v_actual_role_code != 20 THEN
-                SELECT 20001 AS RESULT;
-                LEAVE transaction_block;
-            END IF;
+        IF NOT FN_IS_PROJECT_DEVELOPER(i_caller_role_code, i_created_by, v_project_id) THEN
+            SELECT 20001 AS RESULT;
+            LEAVE transaction_block;
         END IF;
 
         IF EXISTS (SELECT 1 FROM `api_request` WHERE `api_id` = i_api_id AND `parameter_name` = i_parameter_name) THEN
@@ -697,6 +691,7 @@ BEGIN
 --        (사전 중복검사 이후 동시 요청이 끼어드는 TOCTOU 레이스 시 50001 대신 32001로 정확히 응답)
 -- 수정 : 2026-08-12 trisakion - api_index_sync_queue INSERT 추가(같은 트랜잭션, ON DUPLICATE KEY UPDATE로
 --        dedup) - RAG Phase 2(API 정의 검색) rag_server 동기화용 아웃박스 큐 적재
+-- 수정 : 2026-08-19 trisakion - 인라인 스코핑 블록을 FN_IS_PROJECT_DEVELOPER() 호출로 공용화(중복 제거)
 -- 내용 : API Response 파라미터 등록
 --        api 존재 검사 (31006)
 --        SUPER_ADMIN 외 대상 프로젝트에 DEVELOPER 활성 권한 없음 → 20001
@@ -707,7 +702,6 @@ BEGIN
 
     DECLARE v_now              DATETIME DEFAULT NOW();
     DECLARE v_project_id       BIGINT;
-    DECLARE v_actual_role_code INT;
 
     DECLARE sql_state      CHAR(5)       DEFAULT '00000';
     DECLARE error_no       INT           DEFAULT 0;
@@ -737,12 +731,9 @@ BEGIN
             LEAVE transaction_block;
         END IF;
 
-        IF i_caller_role_code != 10 THEN
-            SET v_actual_role_code = FN_GET_PROJECT_ROLE_CODE(i_created_by, v_project_id);
-            IF v_actual_role_code IS NULL OR v_actual_role_code != 20 THEN
-                SELECT 20001 AS RESULT;
-                LEAVE transaction_block;
-            END IF;
+        IF NOT FN_IS_PROJECT_DEVELOPER(i_caller_role_code, i_created_by, v_project_id) THEN
+            SELECT 20001 AS RESULT;
+            LEAVE transaction_block;
         END IF;
 
         IF EXISTS (SELECT 1 FROM `api_response` WHERE `api_id` = i_api_id AND `parameter_name` = i_parameter_name) THEN
@@ -802,14 +793,13 @@ BEGIN
 --        검증+INSERT 한 트랜잭션에서 처리(TOCTOU 창 제거)
 -- 수정 : 2026-08-09 trisakion - UNIQUE 제약 위반(MySQL 1062)을 32001로 매핑하는 전용 핸들러 추가
 --        (사전 중복검사 이후 동시 요청이 끼어드는 TOCTOU 레이스 시 50001 대신 32001로 정확히 응답)
+-- 수정 : 2026-08-19 trisakion - 인라인 스코핑 블록을 FN_IS_PROJECT_DEVELOPER() 호출로 공용화(중복 제거)
 -- 내용 : 코드 그룹 등록
 --        project 존재 검사 (31002)
 --        SUPER_ADMIN 외 대상 프로젝트에 DEVELOPER 활성 권한 없음 → 20001
 --        code_group_code 프로젝트 내 중복 검사 (32001)
 -- 테이블 적용 순서 : code_group
 -- --------------------------------- --
-
-    DECLARE v_actual_role_code  INT;
 
     DECLARE sql_state      CHAR(5)       DEFAULT '00000';
     DECLARE error_no       INT           DEFAULT 0;
@@ -837,12 +827,9 @@ BEGIN
             LEAVE transaction_block;
         END IF;
 
-        IF i_caller_role_code != 10 THEN
-            SET v_actual_role_code = FN_GET_PROJECT_ROLE_CODE(i_created_by, i_project_id);
-            IF v_actual_role_code IS NULL OR v_actual_role_code != 20 THEN
-                SELECT 20001 AS RESULT;
-                LEAVE transaction_block;
-            END IF;
+        IF NOT FN_IS_PROJECT_DEVELOPER(i_caller_role_code, i_created_by, i_project_id) THEN
+            SELECT 20001 AS RESULT;
+            LEAVE transaction_block;
         END IF;
 
         IF EXISTS (SELECT 1 FROM `code_group` WHERE `project_id` = i_project_id AND `code_group_code` = i_code_group_code) THEN
@@ -889,6 +876,7 @@ BEGIN
 --        함께 얻도록 SELECT INTO로 변경.
 -- 수정 : 2026-08-09 trisakion - UNIQUE 제약 위반(MySQL 1062)을 32001로 매핑하는 전용 핸들러 추가
 --        (사전 중복검사 이후 동시 요청이 끼어드는 TOCTOU 레이스 시 50001 대신 32001로 정확히 응답)
+-- 수정 : 2026-08-19 trisakion - 인라인 스코핑 블록을 FN_IS_PROJECT_DEVELOPER() 호출로 공용화(중복 제거)
 -- 내용 : 코드 아이템 등록
 --        code_group 존재 검사 (31004)
 --        SUPER_ADMIN 외 대상 프로젝트에 DEVELOPER 활성 권한 없음 → 20001
@@ -897,7 +885,6 @@ BEGIN
 -- --------------------------------- --
 
     DECLARE v_project_id       BIGINT;
-    DECLARE v_actual_role_code INT;
 
     DECLARE sql_state      CHAR(5)       DEFAULT '00000';
     DECLARE error_no       INT           DEFAULT 0;
@@ -927,12 +914,9 @@ BEGIN
             LEAVE transaction_block;
         END IF;
 
-        IF i_caller_role_code != 10 THEN
-            SET v_actual_role_code = FN_GET_PROJECT_ROLE_CODE(i_created_by, v_project_id);
-            IF v_actual_role_code IS NULL OR v_actual_role_code != 20 THEN
-                SELECT 20001 AS RESULT;
-                LEAVE transaction_block;
-            END IF;
+        IF NOT FN_IS_PROJECT_DEVELOPER(i_caller_role_code, i_created_by, v_project_id) THEN
+            SELECT 20001 AS RESULT;
+            LEAVE transaction_block;
         END IF;
 
         IF EXISTS (SELECT 1 FROM `code_item` WHERE `code_group_id` = i_code_group_id AND `code_value` = i_code_value) THEN
@@ -2928,6 +2912,7 @@ BEGIN
 -- 수정 : 2026-07-31 trisakion - i_caller_user_id/i_caller_role_code 추가(기존엔 호출자 정보 자체가
 --        없어 서비스 레이어가 별도 SP 라운드트립인 assertProjectRole로 먼저 검증했음), FN_GET_PROJECT_ROLE_CODE로
 --        DEVELOPER 권한을 검증+UPDATE 한 트랜잭션에서 처리(TOCTOU 창 제거)
+-- 수정 : 2026-08-19 trisakion - 인라인 스코핑 블록을 FN_IS_PROJECT_DEVELOPER() 호출로 공용화(중복 제거)
 -- 내용 : GM Platform이 대상 서버 호출용 X-API-Key를 발급/재발급
 --        project 존재 검사 (31002)
 --        SUPER_ADMIN 외 대상 프로젝트에 DEVELOPER 활성 권한 없음 → 20001
@@ -2937,8 +2922,6 @@ BEGIN
 --        수정된 project 전체 정보 반환 (company 정보 포함, has_api_key=1 확정)
 -- 테이블 적용 순서 : project
 -- --------------------------------- --
-
-    DECLARE v_actual_role_code  INT;
 
     DECLARE sql_state       CHAR(5)       DEFAULT '00000';
     DECLARE error_no        INT           DEFAULT 0;
@@ -2960,12 +2943,9 @@ BEGIN
             LEAVE transaction_block;
         END IF;
 
-        IF i_caller_role_code != 10 THEN
-            SET v_actual_role_code = FN_GET_PROJECT_ROLE_CODE(i_caller_user_id, i_project_id);
-            IF v_actual_role_code IS NULL OR v_actual_role_code != 20 THEN
-                SELECT 20001 AS RESULT;
-                LEAVE transaction_block;
-            END IF;
+        IF NOT FN_IS_PROJECT_DEVELOPER(i_caller_role_code, i_caller_user_id, i_project_id) THEN
+            SELECT 20001 AS RESULT;
+            LEAVE transaction_block;
         END IF;
 
         START TRANSACTION;
@@ -3492,6 +3472,7 @@ BEGIN
 --        (사전 중복검사 이후 동시 요청이 끼어드는 TOCTOU 레이스 시 50001 대신 32001로 정확히 응답)
 -- 수정 : 2026-08-12 trisakion - api_index_sync_queue INSERT 추가(같은 트랜잭션, ON DUPLICATE KEY UPDATE로
 --        dedup) - RAG Phase 2(API 정의 검색) rag_server 동기화용 아웃박스 큐 적재
+-- 수정 : 2026-08-19 trisakion - 인라인 스코핑 블록을 FN_IS_PROJECT_DEVELOPER() 호출로 공용화(중복 제거)
 -- 내용 : API 수정
 --        api 존재 검사 (31006)
 --        SUPER_ADMIN 외 대상 프로젝트에 DEVELOPER 활성 권한 없음 → 20001
@@ -3503,7 +3484,6 @@ BEGIN
 -- --------------------------------- --
 
     DECLARE v_now                     DATETIME DEFAULT NOW();
-    DECLARE v_actual_role_code        INT;
     DECLARE v_project_id              BIGINT;
     DECLARE v_old_api_code            VARCHAR(100);
     DECLARE v_old_endpoint            VARCHAR(500);
@@ -3544,12 +3524,9 @@ BEGIN
             LEAVE transaction_block;
         END IF;
 
-        IF i_caller_role_code != 10 THEN
-            SET v_actual_role_code = FN_GET_PROJECT_ROLE_CODE(i_updated_by, v_project_id);
-            IF v_actual_role_code IS NULL OR v_actual_role_code != 20 THEN
-                SELECT 20001 AS RESULT;
-                LEAVE transaction_block;
-            END IF;
+        IF NOT FN_IS_PROJECT_DEVELOPER(i_caller_role_code, i_updated_by, v_project_id) THEN
+            SELECT 20001 AS RESULT;
+            LEAVE transaction_block;
         END IF;
 
         -- api_code 변경 시 중복 검사
@@ -3705,6 +3682,8 @@ BEGIN
 -- 수정 : 2026-08-12 trisakion - api_index_sync_queue INSERT 추가(같은 트랜잭션, ON DUPLICATE KEY UPDATE로
 --        dedup) - RAG Phase 2(API 정의 검색) rag_server 동기화용 아웃박스 큐 적재. status만 바뀌는
 --        경우(롤백 미트리거)도 검색 인덱스 반영 대상이라 v_do_rollback과 무관하게 항상 큐에 적재한다.
+-- 수정 : 2026-08-19 trisakion - 인라인 스코핑 블록을 FN_IS_PROJECT_DEVELOPER() 호출로 공용화(중복 제거).
+--        project_id 조회를 SUPER_ADMIN 분기 밖으로 꺼냄(함수 인자 평가에 항상 필요).
 -- 내용 : API Request 파라미터 수정
 --        api_request 존재 검사 (31007)
 --        SUPER_ADMIN 외 대상 프로젝트에 DEVELOPER 활성 권한 없음 → 20001
@@ -3717,7 +3696,6 @@ BEGIN
     DECLARE v_now                  DATETIME DEFAULT NOW();
     DECLARE v_api_id               BIGINT;
     DECLARE v_project_id           BIGINT;
-    DECLARE v_actual_role_code     INT;
     DECLARE v_old_parameter_name   VARCHAR(100);
     DECLARE v_old_parameter_type   TINYINT;
     DECLARE v_old_component_type   TINYINT;
@@ -3756,13 +3734,11 @@ BEGIN
             LEAVE transaction_block;
         END IF;
 
-        IF i_caller_role_code != 10 THEN
-            SELECT `project_id` INTO v_project_id FROM `api` WHERE `api_id` = v_api_id;
-            SET v_actual_role_code = FN_GET_PROJECT_ROLE_CODE(i_updated_by, v_project_id);
-            IF v_actual_role_code IS NULL OR v_actual_role_code != 20 THEN
-                SELECT 20001 AS RESULT;
-                LEAVE transaction_block;
-            END IF;
+        SELECT `project_id` INTO v_project_id FROM `api` WHERE `api_id` = v_api_id;
+
+        IF NOT FN_IS_PROJECT_DEVELOPER(i_caller_role_code, i_updated_by, v_project_id) THEN
+            SELECT 20001 AS RESULT;
+            LEAVE transaction_block;
         END IF;
 
         -- parameter_name 변경 시 중복 검사
@@ -3856,6 +3832,8 @@ BEGIN
 -- 수정 : 2026-08-12 trisakion - api_index_sync_queue INSERT 추가(같은 트랜잭션, ON DUPLICATE KEY UPDATE로
 --        dedup) - RAG Phase 2(API 정의 검색) rag_server 동기화용 아웃박스 큐 적재. status만 바뀌는
 --        경우(롤백 미트리거)도 검색 인덱스 반영 대상이라 v_do_rollback과 무관하게 항상 큐에 적재한다.
+-- 수정 : 2026-08-19 trisakion - 인라인 스코핑 블록을 FN_IS_PROJECT_DEVELOPER() 호출로 공용화(중복 제거).
+--        project_id 조회를 SUPER_ADMIN 분기 밖으로 꺼냄(함수 인자 평가에 항상 필요).
 -- 내용 : API Response 파라미터 수정
 --        api_response 존재 검사 (31008)
 --        SUPER_ADMIN 외 대상 프로젝트에 DEVELOPER 활성 권한 없음 → 20001
@@ -3868,7 +3846,6 @@ BEGIN
     DECLARE v_now                 DATETIME DEFAULT NOW();
     DECLARE v_api_id              BIGINT;
     DECLARE v_project_id          BIGINT;
-    DECLARE v_actual_role_code    INT;
     DECLARE v_old_parameter_name  VARCHAR(100);
     DECLARE v_old_parameter_type  TINYINT;
     DECLARE v_old_code_group_id   INT;
@@ -3905,13 +3882,11 @@ BEGIN
             LEAVE transaction_block;
         END IF;
 
-        IF i_caller_role_code != 10 THEN
-            SELECT `project_id` INTO v_project_id FROM `api` WHERE `api_id` = v_api_id;
-            SET v_actual_role_code = FN_GET_PROJECT_ROLE_CODE(i_updated_by, v_project_id);
-            IF v_actual_role_code IS NULL OR v_actual_role_code != 20 THEN
-                SELECT 20001 AS RESULT;
-                LEAVE transaction_block;
-            END IF;
+        SELECT `project_id` INTO v_project_id FROM `api` WHERE `api_id` = v_api_id;
+
+        IF NOT FN_IS_PROJECT_DEVELOPER(i_caller_role_code, i_updated_by, v_project_id) THEN
+            SELECT 20001 AS RESULT;
+            LEAVE transaction_block;
         END IF;
 
         -- parameter_name 변경 시 중복 검사
@@ -3989,6 +3964,7 @@ BEGIN
 -- 수정 : 2026-07-31 trisakion - i_caller_role_code 추가, FN_GET_PROJECT_ROLE_CODE로 DEVELOPER 권한을
 --        검증+UPDATE 한 트랜잭션에서 처리(TOCTOU 창 제거). 존재 검사를 project_id도 함께
 --        얻도록 SELECT INTO로 변경.
+-- 수정 : 2026-08-19 trisakion - 인라인 스코핑 블록을 FN_IS_PROJECT_DEVELOPER() 호출로 공용화(중복 제거)
 -- 내용 : 코드 그룹 수정
 --        code_group 존재 검사 (31004)
 --        SUPER_ADMIN 외 대상 프로젝트에 DEVELOPER 활성 권한 없음 → 20001
@@ -3998,7 +3974,6 @@ BEGIN
 -- --------------------------------- --
 
     DECLARE v_project_id       BIGINT;
-    DECLARE v_actual_role_code INT;
 
     DECLARE sql_state      CHAR(5)       DEFAULT '00000';
     DECLARE error_no       INT           DEFAULT 0;
@@ -4022,12 +3997,9 @@ BEGIN
             LEAVE transaction_block;
         END IF;
 
-        IF i_caller_role_code != 10 THEN
-            SET v_actual_role_code = FN_GET_PROJECT_ROLE_CODE(i_updated_by, v_project_id);
-            IF v_actual_role_code IS NULL OR v_actual_role_code != 20 THEN
-                SELECT 20001 AS RESULT;
-                LEAVE transaction_block;
-            END IF;
+        IF NOT FN_IS_PROJECT_DEVELOPER(i_caller_role_code, i_updated_by, v_project_id) THEN
+            SELECT 20001 AS RESULT;
+            LEAVE transaction_block;
         END IF;
 
         START TRANSACTION;
@@ -4070,6 +4042,8 @@ BEGIN
 -- 작성 : 2026-06-29 trisakion
 -- 수정 : 2026-07-31 trisakion - i_caller_role_code 추가, FN_GET_PROJECT_ROLE_CODE로 DEVELOPER 권한을
 --        검증+UPDATE 한 트랜잭션에서 처리(TOCTOU 창 제거). code_group JOIN으로 project_id 함께 조회.
+-- 수정 : 2026-08-19 trisakion - 인라인 스코핑 블록을 FN_IS_PROJECT_DEVELOPER() 호출로 공용화(중복 제거).
+--        project_id 조회를 SUPER_ADMIN 분기 밖으로 꺼냄(함수 인자 평가에 항상 필요).
 -- 내용 : 코드 아이템 수정
 --        code_item 존재 검사 (31005)
 --        SUPER_ADMIN 외 대상 프로젝트에 DEVELOPER 활성 권한 없음 → 20001
@@ -4080,7 +4054,6 @@ BEGIN
 
     DECLARE v_code_group_id    INT;
     DECLARE v_project_id       BIGINT;
-    DECLARE v_actual_role_code INT;
 
     DECLARE sql_state      CHAR(5)       DEFAULT '00000';
     DECLARE error_no       INT           DEFAULT 0;
@@ -4104,13 +4077,11 @@ BEGIN
             LEAVE transaction_block;
         END IF;
 
-        IF i_caller_role_code != 10 THEN
-            SELECT `project_id` INTO v_project_id FROM `code_group` WHERE `code_group_id` = v_code_group_id;
-            SET v_actual_role_code = FN_GET_PROJECT_ROLE_CODE(i_updated_by, v_project_id);
-            IF v_actual_role_code IS NULL OR v_actual_role_code != 20 THEN
-                SELECT 20001 AS RESULT;
-                LEAVE transaction_block;
-            END IF;
+        SELECT `project_id` INTO v_project_id FROM `code_group` WHERE `code_group_id` = v_code_group_id;
+
+        IF NOT FN_IS_PROJECT_DEVELOPER(i_caller_role_code, i_updated_by, v_project_id) THEN
+            SELECT 20001 AS RESULT;
+            LEAVE transaction_block;
         END IF;
 
         START TRANSACTION;
@@ -4394,6 +4365,7 @@ BEGIN
 -- 수정 : 2026-07-31 trisakion - i_caller_user_id/i_caller_role_code 추가(기존엔 호출자 정보 자체가
 --        없어 서비스 레이어가 별도 SP 라운드트립인 assertProjectRole로 먼저 검증했음), FN_GET_PROJECT_ROLE_CODE로
 --        DEVELOPER 권한을 검증+UPDATE 한 트랜잭션에서 처리(TOCTOU 창 제거)
+-- 수정 : 2026-08-19 trisakion - 인라인 스코핑 블록을 FN_IS_PROJECT_DEVELOPER() 호출로 공용화(중복 제거)
 -- 내용 : 프로젝트의 api_base_url만 수정 (project_code/project_name/description/status는 SP_UPDATE_PROJECT 전용)
 --        project 존재 검사 (31002)
 --        SUPER_ADMIN 외 대상 프로젝트에 DEVELOPER 활성 권한 없음 → 20001
@@ -4402,8 +4374,6 @@ BEGIN
 --        수정된 project 전체 정보 반환 (company 정보 포함)
 -- 테이블 적용 순서 : project
 -- --------------------------------- --
-
-    DECLARE v_actual_role_code  INT;
 
     DECLARE sql_state       CHAR(5)       DEFAULT '00000';
     DECLARE error_no        INT           DEFAULT 0;
@@ -4425,12 +4395,9 @@ BEGIN
             LEAVE transaction_block;
         END IF;
 
-        IF i_caller_role_code != 10 THEN
-            SET v_actual_role_code = FN_GET_PROJECT_ROLE_CODE(i_caller_user_id, i_project_id);
-            IF v_actual_role_code IS NULL OR v_actual_role_code != 20 THEN
-                SELECT 20001 AS RESULT;
-                LEAVE transaction_block;
-            END IF;
+        IF NOT FN_IS_PROJECT_DEVELOPER(i_caller_role_code, i_caller_user_id, i_project_id) THEN
+            SELECT 20001 AS RESULT;
+            LEAVE transaction_block;
         END IF;
 
         START TRANSACTION;

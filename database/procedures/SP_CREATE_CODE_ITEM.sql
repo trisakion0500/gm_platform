@@ -18,6 +18,7 @@ BEGIN
 --        함께 얻도록 SELECT INTO로 변경.
 -- 수정 : 2026-08-09 trisakion - UNIQUE 제약 위반(MySQL 1062)을 32001로 매핑하는 전용 핸들러 추가
 --        (사전 중복검사 이후 동시 요청이 끼어드는 TOCTOU 레이스 시 50001 대신 32001로 정확히 응답)
+-- 수정 : 2026-08-19 trisakion - 인라인 스코핑 블록을 FN_IS_PROJECT_DEVELOPER() 호출로 공용화(중복 제거)
 -- 내용 : 코드 아이템 등록
 --        code_group 존재 검사 (31004)
 --        SUPER_ADMIN 외 대상 프로젝트에 DEVELOPER 활성 권한 없음 → 20001
@@ -26,7 +27,6 @@ BEGIN
 -- --------------------------------- --
 
     DECLARE v_project_id       BIGINT;
-    DECLARE v_actual_role_code INT;
 
     DECLARE sql_state      CHAR(5)       DEFAULT '00000';
     DECLARE error_no       INT           DEFAULT 0;
@@ -56,12 +56,9 @@ BEGIN
             LEAVE transaction_block;
         END IF;
 
-        IF i_caller_role_code != 10 THEN
-            SET v_actual_role_code = FN_GET_PROJECT_ROLE_CODE(i_created_by, v_project_id);
-            IF v_actual_role_code IS NULL OR v_actual_role_code != 20 THEN
-                SELECT 20001 AS RESULT;
-                LEAVE transaction_block;
-            END IF;
+        IF NOT FN_IS_PROJECT_DEVELOPER(i_caller_role_code, i_created_by, v_project_id) THEN
+            SELECT 20001 AS RESULT;
+            LEAVE transaction_block;
         END IF;
 
         IF EXISTS (SELECT 1 FROM `code_item` WHERE `code_group_id` = i_code_group_id AND `code_value` = i_code_value) THEN

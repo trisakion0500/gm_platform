@@ -25,6 +25,7 @@ BEGIN
 -- 수정 : 2026-08-12 trisakion - api_index_sync_queue INSERT 추가(같은 트랜잭션, ON DUPLICATE KEY UPDATE로
 --        dedup) - RAG Phase 2(API 정의 검색) rag_server 동기화용 아웃박스 큐 적재. api_request 변경도
 --        소속 api의 검색 인덱스(요청 파라미터 포함)를 최신으로 유지해야 하므로 api_id 기준으로 적재.
+-- 수정 : 2026-08-19 trisakion - 인라인 스코핑 블록을 FN_IS_PROJECT_DEVELOPER() 호출로 공용화(중복 제거)
 -- 내용 : API Request 파라미터 등록
 --        api 존재 검사 (31006)
 --        SUPER_ADMIN 외 대상 프로젝트에 DEVELOPER 활성 권한 없음 → 20001
@@ -36,7 +37,6 @@ BEGIN
 
     DECLARE v_now              DATETIME DEFAULT NOW();
     DECLARE v_project_id       BIGINT;
-    DECLARE v_actual_role_code INT;
 
     DECLARE sql_state      CHAR(5)       DEFAULT '00000';
     DECLARE error_no       INT           DEFAULT 0;
@@ -66,12 +66,9 @@ BEGIN
             LEAVE transaction_block;
         END IF;
 
-        IF i_caller_role_code != 10 THEN
-            SET v_actual_role_code = FN_GET_PROJECT_ROLE_CODE(i_created_by, v_project_id);
-            IF v_actual_role_code IS NULL OR v_actual_role_code != 20 THEN
-                SELECT 20001 AS RESULT;
-                LEAVE transaction_block;
-            END IF;
+        IF NOT FN_IS_PROJECT_DEVELOPER(i_caller_role_code, i_created_by, v_project_id) THEN
+            SELECT 20001 AS RESULT;
+            LEAVE transaction_block;
         END IF;
 
         IF EXISTS (SELECT 1 FROM `api_request` WHERE `api_id` = i_api_id AND `parameter_name` = i_parameter_name) THEN

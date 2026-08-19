@@ -15,6 +15,7 @@ BEGIN
 -- 수정 : 2026-07-31 trisakion - i_caller_user_id/i_caller_role_code 추가(기존엔 호출자 정보 자체가
 --        없어 서비스 레이어가 별도 SP 라운드트립인 assertProjectRole로 먼저 검증했음), FN_GET_PROJECT_ROLE_CODE로
 --        DEVELOPER 권한을 검증+UPDATE 한 트랜잭션에서 처리(TOCTOU 창 제거)
+-- 수정 : 2026-08-19 trisakion - 인라인 스코핑 블록을 FN_IS_PROJECT_DEVELOPER() 호출로 공용화(중복 제거)
 -- 내용 : 프로젝트의 api_base_url만 수정 (project_code/project_name/description/status는 SP_UPDATE_PROJECT 전용)
 --        project 존재 검사 (31002)
 --        SUPER_ADMIN 외 대상 프로젝트에 DEVELOPER 활성 권한 없음 → 20001
@@ -23,8 +24,6 @@ BEGIN
 --        수정된 project 전체 정보 반환 (company 정보 포함)
 -- 테이블 적용 순서 : project
 -- --------------------------------- --
-
-    DECLARE v_actual_role_code  INT;
 
     DECLARE sql_state       CHAR(5)       DEFAULT '00000';
     DECLARE error_no        INT           DEFAULT 0;
@@ -46,12 +45,9 @@ BEGIN
             LEAVE transaction_block;
         END IF;
 
-        IF i_caller_role_code != 10 THEN
-            SET v_actual_role_code = FN_GET_PROJECT_ROLE_CODE(i_caller_user_id, i_project_id);
-            IF v_actual_role_code IS NULL OR v_actual_role_code != 20 THEN
-                SELECT 20001 AS RESULT;
-                LEAVE transaction_block;
-            END IF;
+        IF NOT FN_IS_PROJECT_DEVELOPER(i_caller_role_code, i_caller_user_id, i_project_id) THEN
+            SELECT 20001 AS RESULT;
+            LEAVE transaction_block;
         END IF;
 
         START TRANSACTION;

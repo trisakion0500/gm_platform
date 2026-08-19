@@ -24,6 +24,7 @@ BEGIN
 --        (사전 중복검사 이후 동시 요청이 끼어드는 TOCTOU 레이스 시 50001 대신 32001로 정확히 응답)
 -- 수정 : 2026-08-12 trisakion - api_index_sync_queue INSERT 추가(같은 트랜잭션, ON DUPLICATE KEY UPDATE로
 --        dedup) - RAG Phase 2(API 정의 검색) rag_server 동기화용 아웃박스 큐 적재
+-- 수정 : 2026-08-19 trisakion - 인라인 스코핑 블록을 FN_IS_PROJECT_DEVELOPER() 호출로 공용화(중복 제거)
 -- 내용 : API 수정
 --        api 존재 검사 (31006)
 --        SUPER_ADMIN 외 대상 프로젝트에 DEVELOPER 활성 권한 없음 → 20001
@@ -35,7 +36,6 @@ BEGIN
 -- --------------------------------- --
 
     DECLARE v_now                     DATETIME DEFAULT NOW();
-    DECLARE v_actual_role_code        INT;
     DECLARE v_project_id              BIGINT;
     DECLARE v_old_api_code            VARCHAR(100);
     DECLARE v_old_endpoint            VARCHAR(500);
@@ -76,12 +76,9 @@ BEGIN
             LEAVE transaction_block;
         END IF;
 
-        IF i_caller_role_code != 10 THEN
-            SET v_actual_role_code = FN_GET_PROJECT_ROLE_CODE(i_updated_by, v_project_id);
-            IF v_actual_role_code IS NULL OR v_actual_role_code != 20 THEN
-                SELECT 20001 AS RESULT;
-                LEAVE transaction_block;
-            END IF;
+        IF NOT FN_IS_PROJECT_DEVELOPER(i_caller_role_code, i_updated_by, v_project_id) THEN
+            SELECT 20001 AS RESULT;
+            LEAVE transaction_block;
         END IF;
 
         -- api_code 변경 시 중복 검사

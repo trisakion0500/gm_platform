@@ -15,6 +15,8 @@ BEGIN
 -- 작성 : 2026-06-29 trisakion
 -- 수정 : 2026-07-31 trisakion - i_caller_role_code 추가, FN_GET_PROJECT_ROLE_CODE로 DEVELOPER 권한을
 --        검증+UPDATE 한 트랜잭션에서 처리(TOCTOU 창 제거). code_group JOIN으로 project_id 함께 조회.
+-- 수정 : 2026-08-19 trisakion - 인라인 스코핑 블록을 FN_IS_PROJECT_DEVELOPER() 호출로 공용화(중복 제거).
+--        project_id 조회를 SUPER_ADMIN 분기 밖으로 꺼냄(함수 인자 평가에 항상 필요).
 -- 내용 : 코드 아이템 수정
 --        code_item 존재 검사 (31005)
 --        SUPER_ADMIN 외 대상 프로젝트에 DEVELOPER 활성 권한 없음 → 20001
@@ -25,7 +27,6 @@ BEGIN
 
     DECLARE v_code_group_id    INT;
     DECLARE v_project_id       BIGINT;
-    DECLARE v_actual_role_code INT;
 
     DECLARE sql_state      CHAR(5)       DEFAULT '00000';
     DECLARE error_no       INT           DEFAULT 0;
@@ -49,13 +50,11 @@ BEGIN
             LEAVE transaction_block;
         END IF;
 
-        IF i_caller_role_code != 10 THEN
-            SELECT `project_id` INTO v_project_id FROM `code_group` WHERE `code_group_id` = v_code_group_id;
-            SET v_actual_role_code = FN_GET_PROJECT_ROLE_CODE(i_updated_by, v_project_id);
-            IF v_actual_role_code IS NULL OR v_actual_role_code != 20 THEN
-                SELECT 20001 AS RESULT;
-                LEAVE transaction_block;
-            END IF;
+        SELECT `project_id` INTO v_project_id FROM `code_group` WHERE `code_group_id` = v_code_group_id;
+
+        IF NOT FN_IS_PROJECT_DEVELOPER(i_caller_role_code, i_updated_by, v_project_id) THEN
+            SELECT 20001 AS RESULT;
+            LEAVE transaction_block;
         END IF;
 
         START TRANSACTION;
