@@ -46,6 +46,7 @@ export async function createCompany(
  * @param page 페이지 번호 (1부터)
  * @param pageSize 페이지 크기 (20/30/50/100)
  * @param roleCode 요청자 역할 코드 (10=SUPER_ADMIN 외에는 본인 소속 회사만 조회 가능)
+ * @param callerUserId 요청자 user_id (FN_HAS_COMPANY_ROLE의 SUPER_ADMIN DB 재검증용)
  * @param companyId 요청자 소속 회사 ID (DEVELOPER 스코핑용)
  * @returns 페이지네이션 응답 { page, page_size, total_count, items }
  */
@@ -54,9 +55,10 @@ export async function getCompanyList(
   page: number,
   pageSize: number,
   roleCode: number,
+  callerUserId: number,
   companyId: number,
 ): Promise<{ page: number; page_size: number; total_count: number; items: CompanyRow[] }> {
-  const result = await db.getCompanyList(status, page, pageSize, roleCode, companyId);
+  const result = await db.getCompanyList(status, page, pageSize, roleCode, callerUserId, companyId);
   return { page, page_size: pageSize, ...result };
 }
 
@@ -65,15 +67,17 @@ export async function getCompanyList(
  * @author trisakion
  * @param companyId 조회할 회사 ID
  * @param roleCode 요청자 역할 코드 (10=SUPER_ADMIN 외에는 본인 소속 회사만 조회 가능)
+ * @param callerUserId 요청자 user_id (FN_HAS_COMPANY_ROLE의 SUPER_ADMIN DB 재검증용)
  * @param userCompanyId 요청자 소속 회사 ID (DEVELOPER 스코핑용)
  * @returns 회사 정보
  */
 export async function getCompany(
   companyId: number,
   roleCode: number,
+  callerUserId: number,
   userCompanyId: number,
 ): Promise<CompanyRow> {
-  const company = await db.getCompany(companyId, roleCode, userCompanyId);
+  const company = await db.getCompany(companyId, roleCode, callerUserId, userCompanyId);
   if (!company)
     throw toAppError(ERROR_MAP.COMPANY_NOT_FOUND);
   return company;
@@ -122,7 +126,7 @@ export async function updateCompany(
   callerCompanyId: number,
   callerUserId: number,
 ): Promise<CompanyRow> {
-  const before = await db.getCompany(companyId, 10, 0);
+  const before = await db.getCompany(companyId, 10, 0, 0);
   if (before)
     assertCompanyScope(callerRoleCode, callerCompanyId, before.company_id);
   const after  = await db.updateCompany(companyId, companyCode, companyName, description, status, callerUserId);

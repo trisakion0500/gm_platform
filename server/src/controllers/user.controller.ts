@@ -47,6 +47,7 @@ export async function getUserList(req: Request, res: Response, next: NextFunctio
       paged.page,
       paged.pageSize,
       req.user!.role_code,
+      req.user!.user_id,
       req.user!.company_id,
     );
     success(res, {

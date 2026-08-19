@@ -6,6 +6,7 @@ CREATE PROCEDURE SP_GET_USER_LIST(
     IN  i_page             INT,      -- 페이지 번호 (1부터)
     IN  i_page_size        INT,      -- 페이지 크기 (20/30/50/100)
     IN  i_role_code        INT,      -- 요청자 역할 코드 (10=SUPER_ADMIN, 20=DEVELOPER)
+    IN  i_caller_user_id   BIGINT,   -- 요청자 user_id (FN_HAS_COMPANY_ROLE의 SUPER_ADMIN DB 재검증용)
     IN  i_user_company_id  BIGINT    -- 요청자 소속 회사 ID (DEVELOPER 스코핑용)
 ) COMMENT '사용자 목록 조회 - 페이지네이션, 역할별 스코핑, company 정보 포함'
 BEGIN
@@ -13,6 +14,8 @@ BEGIN
 -- 명칭 : SP_GET_USER_LIST
 -- 작성 : 2026-06-29 trisakion
 -- 수정 : 2026-08-18 trisakion - 회사 스코핑 조건을 FN_HAS_COMPANY_ROLE() 호출로 공용화
+-- 수정 : 2026-08-19 trisakion - FN_HAS_COMPANY_ROLE이 SUPER_ADMIN 판정을 i_caller_user_id로 DB
+--        재검증하도록 바뀌어 파라미터 신설(sp-convention-validator 지적)
 -- 내용 : 사용자 목록 조회
 --        SUPER_ADMIN(10) : 전체 사용자, company_id/status 필터 적용
 --        DEVELOPER(20)   : 본인 소속 회사 사용자 전체(모든 status), status 필터로 좁혀볼 수 있음
@@ -28,7 +31,7 @@ BEGIN
     FROM `user` u
     WHERE (i_status IS NULL OR u.`status` = i_status)
       AND (i_company_id IS NULL OR u.`company_id` = i_company_id)
-      AND FN_HAS_COMPANY_ROLE(i_role_code, i_user_company_id, u.`company_id`);
+      AND FN_HAS_COMPANY_ROLE(i_role_code, i_caller_user_id, i_user_company_id, u.`company_id`);
 
     SELECT u.`user_id`, u.`company_id`, c.`company_code`, c.`company_name`,
            u.`login_id`, u.`user_name`, u.`email`,
@@ -38,7 +41,7 @@ BEGIN
     JOIN `company` c ON c.`company_id` = u.`company_id`
     WHERE (i_status IS NULL OR u.`status` = i_status)
       AND (i_company_id IS NULL OR u.`company_id` = i_company_id)
-      AND FN_HAS_COMPANY_ROLE(i_role_code, i_user_company_id, u.`company_id`)
+      AND FN_HAS_COMPANY_ROLE(i_role_code, i_caller_user_id, i_user_company_id, u.`company_id`)
     ORDER BY u.`created_at` DESC
     LIMIT i_page_size OFFSET v_offset;
 

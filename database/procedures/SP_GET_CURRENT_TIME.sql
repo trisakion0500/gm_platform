@@ -6,7 +6,7 @@ BEGIN
 -- 명칭 : SP_GET_CURRENT_TIME
 -- 작성 : 2026-06-28 trisakion
 -- 내용 : 서버 기동 시 DB 연결 및 SP 호출 가능 여부 확인 목적
---        DB 서버의 현재 시간(UTC) 반환
+--        DB 서버의 현재 시간(OS 로컬 시간대, db.ts의 timezone: "local" 설정과 일관 — UTC 아님) 반환
 -- --------------------------------- --
 
     DECLARE sql_state       CHAR(5)       DEFAULT '00000';

@@ -100,6 +100,7 @@ export async function getCompanyList(req: Request, res: Response, next: NextFunc
       paged.page,
       paged.pageSize,
       req.user!.role_code,
+      req.user!.user_id,
       req.user!.company_id,
     );
     success(res, {
@@ -143,7 +144,7 @@ export async function getCompany(req: Request, res: Response, next: NextFunction
       fail(res, ERROR_MAP.INVALID_FORMAT);
       return;
     }
-    const company = await companyService.getCompany(companyId, req.user!.role_code, req.user!.company_id);
+    const company = await companyService.getCompany(companyId, req.user!.role_code, req.user!.user_id, req.user!.company_id);
     success(res, formatCompany(company));
   } catch (err) {
     next(err);

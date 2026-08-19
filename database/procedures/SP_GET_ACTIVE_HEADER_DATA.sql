@@ -11,6 +11,8 @@ BEGIN
 -- 작성 : 2026-07-05 trisakion
 -- 수정 : 2026-07-17 trisakion - EXISTS 인라인 체크를 FN_HAS_PROJECT_ROLE() 호출로 공용화
 -- 수정 : 2026-08-18 trisakion - 회사 스코핑 조건을 FN_HAS_COMPANY_ROLE() 호출로 공용화
+-- 수정 : 2026-08-19 trisakion - FN_HAS_COMPANY_ROLE에 p_caller_user_id 파라미터 신설(SUPER_ADMIN
+--        판정 DB 재검증)에 맞춰 이미 갖고 있던 i_user_id를 그대로 전달하도록 호출 갱신
 -- 내용 : 헤더 콤보박스가 로그인 시 1회 로드하는 활성 회사/프로젝트 목록을 한 호출로 반환
 --        SUPER_ADMIN(10) : 전체 활성 회사 + 전체 활성 프로젝트
 --        그 외            : 본인 소속 회사만 + 본인이 활성 user_role을 가진 프로젝트만
@@ -21,7 +23,7 @@ BEGIN
     SELECT `company_id`, `company_name`
     FROM `company`
     WHERE `status` = 1
-      AND FN_HAS_COMPANY_ROLE(i_role_code, i_company_id, `company_id`)
+      AND FN_HAS_COMPANY_ROLE(i_role_code, i_user_id, i_company_id, `company_id`)
     ORDER BY `company_name` ASC;
 
     SELECT p.`project_id`, p.`company_id`, p.`project_name`

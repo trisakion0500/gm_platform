@@ -49,6 +49,7 @@ export async function createCompany(
  * @param page 페이지 번호 (1부터)
  * @param pageSize 페이지 크기 (20/30/50/100)
  * @param roleCode 요청자 역할 코드
+ * @param callerUserId 요청자 user_id (FN_HAS_COMPANY_ROLE의 SUPER_ADMIN DB 재검증용)
  * @param companyId 요청자 소속 회사 ID (DEVELOPER 스코핑용)
  * @returns { total_count, items }
  */
@@ -57,9 +58,10 @@ export async function getCompanyList(
   page: number,
   pageSize: number,
   roleCode: number,
+  callerUserId: number,
   companyId: number,
 ): Promise<{ total_count: number; items: CompanyRow[] }> {
-  const [, [countRows, itemRows]] = await callSP('SP_GET_COMPANY_LIST', [status, page, pageSize, roleCode, companyId]);
+  const [, [countRows, itemRows]] = await callSP('SP_GET_COMPANY_LIST', [status, page, pageSize, roleCode, callerUserId, companyId]);
   return {
     total_count: (countRows[0] as unknown as { total_count: number }).total_count,
     items: itemRows as unknown as CompanyRow[],
@@ -72,15 +74,17 @@ export async function getCompanyList(
  * @author trisakion
  * @param companyId 조회할 회사 ID
  * @param roleCode 요청자 역할 코드
+ * @param callerUserId 요청자 user_id (FN_HAS_COMPANY_ROLE의 SUPER_ADMIN DB 재검증용, 0=내부 전용 sentinel)
  * @param userCompanyId 요청자 소속 회사 ID (DEVELOPER 스코핑용)
  * @returns 회사 정보, 없거나 접근 불가이면 null
  */
 export async function getCompany(
   companyId: number,
   roleCode: number,
+  callerUserId: number,
   userCompanyId: number,
 ): Promise<CompanyRow | null> {
-  const [status, [data]] = await callSP('SP_GET_COMPANY', [companyId, roleCode, userCompanyId]);
+  const [status, [data]] = await callSP('SP_GET_COMPANY', [companyId, roleCode, callerUserId, userCompanyId]);
   switch (status[0].RESULT) {
     case 31001: return null;
   }

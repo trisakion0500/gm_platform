@@ -15,6 +15,7 @@ import { invalidateUserSessionCache } from '../config/sessionCache';
  * @param page 페이지 번호 (1부터)
  * @param pageSize 페이지 크기 (20/30/50/100)
  * @param roleCode 요청자 역할 코드 (10=SUPER_ADMIN, 20=DEVELOPER)
+ * @param callerUserId 요청자 user_id (FN_HAS_COMPANY_ROLE의 SUPER_ADMIN DB 재검증용)
  * @param userCompanyId 요청자 소속 회사 ID (DEVELOPER는 본인 소속 회사로 스코핑, status 제한은 없음)
  * @returns 페이지네이션 응답 { page, page_size, total_count, items }
  */
@@ -24,9 +25,10 @@ export async function getUserList(
   page: number,
   pageSize: number,
   roleCode: number,
+  callerUserId: number,
   userCompanyId: number,
 ): Promise<{ page: number; page_size: number; total_count: number; items: UserAdminRow[] }> {
-  const result = await db.getUserList(companyId, status, page, pageSize, roleCode, userCompanyId);
+  const result = await db.getUserList(companyId, status, page, pageSize, roleCode, callerUserId, userCompanyId);
   return {
     page,
     page_size: pageSize,

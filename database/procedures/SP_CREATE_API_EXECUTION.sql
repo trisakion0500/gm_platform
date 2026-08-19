@@ -13,6 +13,8 @@ BEGIN
 -- 작성 : 2026-06-30 trisakion
 -- 수정 : 2026-07-15 trisakion - project.api_key(암호문) 반환 추가, callExternalApi가 복호화해 X-API-Key 헤더로 사용
 -- 수정 : 2026-07-17 trisakion - role_code 조회를 FN_GET_PROJECT_ROLE_CODE() 호출로 공용화
+-- 수정 : 2026-08-19 trisakion - 프로젝트 company 접근 검사 인라인 조건을 FN_HAS_COMPANY_ROLE() 호출로
+--        공용화(sp-convention-validator 지적, 다른 SP들만 적용돼 있던 게 이 SP는 누락돼 있었음)
 -- 내용 : API 실행 이력 생성
 --        api 존재·활성 검사 (31006, 30003)
 --        대상 프로젝트 실제 권한 재검증 (20001, SUPER_ADMIN 제외 — i_role_code는 세션 전역값이라
@@ -95,7 +97,7 @@ BEGIN
         END IF;
 
         -- 프로젝트 company 접근 검사 (SUPER_ADMIN 제외)
-        IF i_role_code != 10 AND v_project_company_id != i_company_id THEN
+        IF NOT FN_HAS_COMPANY_ROLE(i_role_code, i_request_user_id, i_company_id, v_project_company_id) THEN
             SELECT 20001 AS RESULT;
             LEAVE transaction_block;
         END IF;

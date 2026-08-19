@@ -11,6 +11,7 @@ import { toDBError, ERROR_MAP } from '../constants/errors';
  * @param page 페이지 번호 (1부터)
  * @param pageSize 페이지 크기 (20/30/50/100)
  * @param roleCode 요청자 역할 코드
+ * @param callerUserId 요청자 user_id (FN_HAS_COMPANY_ROLE의 SUPER_ADMIN DB 재검증용)
  * @param userCompanyId 요청자 소속 회사 ID (DEVELOPER 스코핑용)
  * @returns { total_count, items }
  */
@@ -20,9 +21,10 @@ export async function getUserList(
   page: number,
   pageSize: number,
   roleCode: number,
+  callerUserId: number,
   userCompanyId: number,
 ): Promise<{ total_count: number; items: UserAdminRow[] }> {
-  const [, [countRows, itemRows]] = await callSP('SP_GET_USER_LIST', [companyId, status, page, pageSize, roleCode, userCompanyId]);
+  const [, [countRows, itemRows]] = await callSP('SP_GET_USER_LIST', [companyId, status, page, pageSize, roleCode, callerUserId, userCompanyId]);
   return {
     total_count: (countRows[0] as unknown as { total_count: number }).total_count,
     items: itemRows as unknown as UserAdminRow[],
