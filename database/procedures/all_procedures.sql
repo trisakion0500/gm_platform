@@ -1565,6 +1565,7 @@ BEGIN
             sql_state     = RETURNED_SQLSTATE,
             error_no      = MYSQL_ERRNO,
             error_message = MESSAGE_TEXT;
+        ROLLBACK;
         SELECT 99 AS RESULT, sql_state AS SQL_STATE, error_no AS ERROR_NO, error_message AS ERROR_MESSAGE;
     END;
 
@@ -1905,6 +1906,7 @@ BEGIN
             sql_state     = RETURNED_SQLSTATE,
             error_no      = MYSQL_ERRNO,
             error_message = MESSAGE_TEXT;
+        ROLLBACK;
         SELECT 99 AS RESULT, sql_state AS SQL_STATE, error_no AS ERROR_NO, error_message AS ERROR_MESSAGE;
     END;
     DECLARE CONTINUE HANDLER FOR NOT FOUND
@@ -2009,6 +2011,7 @@ BEGIN
             sql_state     = RETURNED_SQLSTATE,
             error_no      = MYSQL_ERRNO,
             error_message = MESSAGE_TEXT;
+        ROLLBACK;
         SELECT 99 AS RESULT, sql_state AS SQL_STATE, error_no AS ERROR_NO, error_message AS ERROR_MESSAGE;
     END;
     DECLARE CONTINUE HANDLER FOR NOT FOUND
@@ -2228,6 +2231,7 @@ BEGIN
             sql_state     = RETURNED_SQLSTATE,
             error_no      = MYSQL_ERRNO,
             error_message = MESSAGE_TEXT;
+        ROLLBACK;
         SELECT 99 AS RESULT, sql_state AS SQL_STATE, error_no AS ERROR_NO, error_message AS ERROR_MESSAGE;
     END;
 
@@ -2261,6 +2265,7 @@ BEGIN
             sql_state     = RETURNED_SQLSTATE,
             error_no      = MYSQL_ERRNO,
             error_message = MESSAGE_TEXT;
+        ROLLBACK;
         SELECT 99 AS RESULT, sql_state AS SQL_STATE, error_no AS ERROR_NO, error_message AS ERROR_MESSAGE;
     END;
     DECLARE CONTINUE HANDLER FOR NOT FOUND
@@ -2488,6 +2493,7 @@ BEGIN
             sql_state     = RETURNED_SQLSTATE,
             error_no      = MYSQL_ERRNO,
             error_message = MESSAGE_TEXT;
+        ROLLBACK;
         SELECT 99 AS RESULT, sql_state AS SQL_STATE, error_no AS ERROR_NO, error_message AS ERROR_MESSAGE;
     END;
     DECLARE CONTINUE HANDLER FOR NOT FOUND
@@ -2549,6 +2555,7 @@ BEGIN
             sql_state     = RETURNED_SQLSTATE,
             error_no      = MYSQL_ERRNO,
             error_message = MESSAGE_TEXT;
+        ROLLBACK;
         SELECT 99 AS RESULT, sql_state AS SQL_STATE, error_no AS ERROR_NO, error_message AS ERROR_MESSAGE;
     END;
     DECLARE CONTINUE HANDLER FOR NOT FOUND
@@ -2614,6 +2621,7 @@ BEGIN
             sql_state     = RETURNED_SQLSTATE,
             error_no      = MYSQL_ERRNO,
             error_message = MESSAGE_TEXT;
+        ROLLBACK;
         SELECT 99 AS RESULT, sql_state AS SQL_STATE, error_no AS ERROR_NO, error_message AS ERROR_MESSAGE;
     END;
     DECLARE CONTINUE HANDLER FOR NOT FOUND
@@ -2672,6 +2680,7 @@ BEGIN
             sql_state     = RETURNED_SQLSTATE,
             error_no      = MYSQL_ERRNO,
             error_message = MESSAGE_TEXT;
+        ROLLBACK;
         SELECT 99 AS RESULT, sql_state AS SQL_STATE, error_no AS ERROR_NO, error_message AS ERROR_MESSAGE;
     END;
     DECLARE CONTINUE HANDLER FOR NOT FOUND
@@ -2729,6 +2738,7 @@ BEGIN
             sql_state     = RETURNED_SQLSTATE,
             error_no      = MYSQL_ERRNO,
             error_message = MESSAGE_TEXT;
+        ROLLBACK;
         SELECT 99 AS RESULT, sql_state AS SQL_STATE, error_no AS ERROR_NO, error_message AS ERROR_MESSAGE;
     END;
     DECLARE CONTINUE HANDLER FOR NOT FOUND
@@ -2974,6 +2984,7 @@ BEGIN
             sql_state     = RETURNED_SQLSTATE,
             error_no      = MYSQL_ERRNO,
             error_message = MESSAGE_TEXT;
+        ROLLBACK;
         SELECT 99 AS RESULT, sql_state AS SQL_STATE, error_no AS ERROR_NO, error_message AS ERROR_MESSAGE;
     END;
 
@@ -3009,6 +3020,7 @@ BEGIN
             sql_state     = RETURNED_SQLSTATE,
             error_no      = MYSQL_ERRNO,
             error_message = MESSAGE_TEXT;
+        ROLLBACK;
         SELECT 99 AS RESULT, sql_state AS SQL_STATE, error_no AS ERROR_NO, error_message AS ERROR_MESSAGE;
     END;
 
