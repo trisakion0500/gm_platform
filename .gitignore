@@ -19,14 +19,10 @@ Thumbs.db
 # Local only
 CLAUDE.md
 .mcp.json
+**/.claude/settings.local.json
 
 # 임시 산출물 (설명용 HTML 등)
 tmp/
 
 # rag_server 인덱스 매니페스트 (로컬 재인덱싱 판단용, 재생성 가능)
 rag_server/data/
-
-.claude/
-
-# CLAUDE.md와 동일 성격의 내부 전용 개발 컨벤션 문서 — 외부 공개 금지
-.agents/skills/trisakion-dev-convention-skill/

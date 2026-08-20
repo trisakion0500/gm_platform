@@ -19,7 +19,10 @@
 ```bash
 git clone https://github.com/trisakion0500/gm_platform.git
 cd gm_platform
+npm install
 ```
+
+루트 `npm install`은 `server`/`client`와 별개로 필요하다 — `devDependencies`의 `husky`를 설치하고 `prepare` 스크립트가 `.husky/pre-commit`(커밋 전 크리덴셜 스캔 훅)을 활성화한다. 건너뛰어도 개발 자체는 가능하지만, 실수로 크리덴셜을 커밋하는 걸 막아주는 훅이 걸리지 않는다.
 
 ---
 
@@ -63,14 +66,13 @@ mysql -u root -p gm_platform < database/tables/all_tables.sql
 ## 3.3 스토어드 프로시저 및 함수 생성
 
 ```bash
-mysql -u root -p gm_platform < database/functions/FN_HAS_PROJECT_ROLE.sql
-mysql -u root -p gm_platform < database/functions/FN_GET_PROJECT_ROLE_CODE.sql
+mysql -u root -p gm_platform < database/functions/all_functions.sql
 mysql -u root -p gm_platform < database/procedures/all_procedures.sql
 ```
 
-`database/procedures/all_procedures.sql`은 `database/procedures/*.sql`(SP 65개)을 알파벳순으로 이어붙인 통합 스크립트다(`all_tables.sql`과 동일 패턴). 프로시저가 내부에서 참조하므로 함수(FN_*)를 먼저 생성한다.
+`database/functions/all_functions.sql`은 `database/functions/*.sql`(함수 5개: `FN_GET_PROJECT_ROLE_CODE`/`FN_HAS_COMPANY_ROLE`/`FN_HAS_PROJECT_ROLE`/`FN_IS_PROJECT_DEVELOPER`/`FN_IS_SUPER_ADMIN`)을, `database/procedures/all_procedures.sql`은 `database/procedures/*.sql`(SP 68개)을 각각 알파벳순으로 이어붙인 통합 스크립트다(`all_tables.sql`과 동일 패턴). 프로시저가 내부에서 함수를 참조하므로 함수를 먼저 생성한다.
 
-이 단계를 건너뛰면 테이블만 있고 SP가 없는 상태가 되어, `callSP()`를 거치는 모든 API 호출이 `Table/Procedure doesn't exist` 오류로 실패한다.
+이 단계를 건너뛰면 테이블만 있고 SP/함수가 없는 상태가 되어, `callSP()`를 거치는 모든 API 호출이 `Table/Procedure doesn't exist` 오류로 실패한다.
 
 ## 3.4 로그 DB 초기화 (`gm_platform_log`)
 
@@ -78,12 +80,13 @@ mysql -u root -p gm_platform < database/procedures/all_procedures.sql
 
 ```bash
 mysql -u root -p gm_platform_log < database_log/tables/all_log_tables.sql
+mysql -u root -p gm_platform_log < database_log/functions/all_functions_log.sql
 mysql -u root -p gm_platform_log < database_log/procedures/all_procedures_log.sql
 ```
 
-`database_log/procedures/*.sql`은 메인 DB의 어떤 테이블·함수(`FN_HAS_PROJECT_ROLE` 등)도 참조하지 않는다 — 물리적으로 접근할 수 없는 DB이기 때문이다. 대신 조회 권한 판정(호출자가 어떤 프로젝트의 로그를 볼 수 있는지)은 서버(`logAudit.service.ts`)가 메인 DB를 먼저 조회해 계산한 뒤 파라미터로 넘긴다. 함수 생성 단계가 없으므로 3.3과 순서를 바꿔도 무방하다.
+`database_log/functions/all_functions_log.sql`(`FN_HAS_LOG_AUDIT_ACCESS`)·`database_log/procedures/*.sql`은 메인 DB의 어떤 테이블·함수(`FN_HAS_PROJECT_ROLE` 등)도 참조하지 않는다 — 물리적으로 접근할 수 없는 DB이기 때문이다. 대신 조회 권한 판정(호출자가 어떤 프로젝트의 로그를 볼 수 있는지)은 서버(`logAudit.service.ts`)가 메인 DB를 먼저 조회해 계산한 뒤 파라미터로 넘긴다. 3.3(메인 DB)과는 완전히 독립적이라 순서를 바꿔도 무방하지만, 이 섹션 안에서는 프로시저가 `FN_HAS_LOG_AUDIT_ACCESS`를 참조하므로 함수를 먼저 생성해야 한다.
 
-이 단계를 건너뛰면 `log_audit` 테이블 자체가 없어 감사 로그 기록(`POST`/`PATCH` 계열 API 전체)과 조회(`GET /log-audits`)가 모두 실패한다 — 단, 감사 로그 기록은 fire-and-forget(`logAudit.service.ts`)이라 이 실패가 원래 API 응답 자체를 막지는 않는다.
+이 단계를 건너뛰면 `log_audit` 테이블 자체가 없어 감사 로그 기록(`POST`/`PATCH` 계열 API 전체)과 조회(`GET /log-audits`)가 모두 실패한다 — 단, 감사 로그 기록은 fire-and-forget(`logAudit.service.ts`)이라 이 실패가 원래 API 응답 자체를 막지는 않는다. 함수 생성을 건너뛰면 테이블·프로시저는 정상이어도 조회(`GET /log-audits`, `GET /log-audits/:id`)가 `FUNCTION FN_HAS_LOG_AUDIT_ACCESS does not exist` 오류로 실패한다.
 
 ---
 
