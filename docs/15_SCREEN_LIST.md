@@ -26,6 +26,7 @@ GM-Tool 프론트엔드 화면 목록 및 역할별 접근 권한 정의.
 | SCR-031 | 사용자 상세·수정    | `/admin/users/:user_id`               | O           | O         | -        | -        | 수정·승인·반려·사용중지/재개·비밀번호초기화·권한관리: SUPER_ADMIN만                  |
 | SCR-040 | 감사 로그 목록      | `/admin/audit-logs`                   | O           | O         | O        | -        | SUPER_ADMIN 외: 프로젝트 로그는 실제 배정만, company·user 로그는 자사만 |
 | SCR-041 | 감사 로그 상세      | `/admin/audit-logs/:log_audit_id`     | O           | O         | O        | -        |                                                         |
+| SCR-042 | 감사 로그 검색      | `/admin/audit-logs/search`            | O           | O         | O        | -        | 자연어 검색(rag_server). 헤더 회사/프로젝트로 검색 범위 좁히기 가능(선택), `RAG_ENABLED`/`VITE_RAG_ENABLED` 둘 다 true일 때만 노출 |
 | SCR-130 | 코드그룹·코드아이템 | `/admin/code-groups`            | O           | O         | -        | -        | 헤더 프로젝트 선택 필요. 엑셀형 그리드 한 페이지에서 조회·등록·수정(등록/상세 화면 분리 없음). APPROVER/OPERATOR는 이 화면 접근 불가 — `GET /code-groups/active-with-items`로 API 화면에서 코드값만 참조 |
 | SCR-140 | API 목록(관리)      | `/admin/apis`                   | O           | O         | -        | -        | 헤더 프로젝트 선택 필요, api_stage/상태 필터                |
 | SCR-141 | API 등록(관리)      | `/admin/apis/new`               | O           | O         | -        | -        |                                                         |
@@ -37,6 +38,7 @@ GM-Tool 프론트엔드 화면 목록 및 역할별 접근 권한 정의.
 | SCR-120 | 승인 대기 목록      | `/executions/pending`           | O           | O         | O        | -        | project_id 선택 필요, 조회 전용(승인/반려 버튼 없음)     |
 | SCR-121 | 승인 대기 상세      | `/executions/pending/:api_execution_id` | O   | O         | O        | -        | 승인/반려는 이 화면에서만 처리(파라미터 확인 없이 처리 못 하도록 목록에서 액션 제거) |
 | SCR-150 | 문서 검색           | `/doc-search`                   | O           | O         | O        | O        | `RAG_ENABLED`/`VITE_RAG_ENABLED`가 둘 다 true일 때만 메뉴 노출·라우트 등록(`21_RAG_SERVER.md` 참고) |
+| SCR-151 | API 검색            | `/api-search`                   | O           | O         | O        | O        | 자연어 검색(rag_server). 헤더 선택 프로젝트로 강제 스코핑(SUPER_ADMIN 예외 없음), project_id 미선택 시 검색 UI 대신 안내 문구. `RAG_ENABLED`/`VITE_RAG_ENABLED` 둘 다 true일 때만 노출 |
 | **내 계정** |
 | SCR-200 | 내 계정             | `/my-account`                   | O           | O         | O        | O        | 내 정보 조회 + 비밀번호 변경 + 로그아웃                 |
 
@@ -219,6 +221,20 @@ GM-Tool 프론트엔드 화면 목록 및 역할별 접근 권한 정의.
 
 ---
 
+### SCR-042. 감사 로그 검색
+
+- **Route:** `/admin/audit-logs/search`
+- **접근:** SUPER_ADMIN, DEVELOPER, APPROVER (`GET /log-audits`와 동일 범위 — OPERATOR 접근 불가)
+- **주요 기능:** 질의어 입력 → 감사 로그를 의미 기반으로 검색해 결과 카드(테이블/작업유형/작업자/일시/diff 요약 문장)로 표시. 카드 클릭이 아니라 "더보기"로 인라인 확장(상세 페이지 이동 없음). 헤더의 회사/프로젝트 선택으로 검색 범위를 좁힐 수 있다(선택 — project_id가 있으면 company_id는 무시, 둘 다 없으면 호출자의 전체 권한 범위로 검색). narrow 조건은 항상 호출자 권한 범위와의 교집합으로만 작용해 권한 밖 데이터를 노출하지 않는다.
+- **노출 조건:** 서버 `RAG_ENABLED`와 클라이언트 `VITE_RAG_ENABLED`가 둘 다 `true`일 때만 노출·등록된다(SCR-150과 동일 원칙).
+- **연관 API:**
+
+  | Method | Endpoint          | 설명                          |
+  | ------ | ----------------- | ----------------------------- |
+  | GET    | /log-audit-search | 감사 로그 검색(rag_server 프록시) |
+
+---
+
 ### SCR-130. 코드그룹·코드아이템
 
 - **Route:** `/admin/code-groups`
@@ -374,6 +390,20 @@ GM-Tool 프론트엔드 화면 목록 및 역할별 접근 권한 정의.
   | Method | Endpoint      | 설명                  |
   | ------ | ------------- | --------------------- |
   | GET    | /doc-search   | 문서 검색(rag_server 프록시) |
+
+---
+
+### SCR-151. API 검색
+
+- **Route:** `/api-search`
+- **접근:** 전 역할 (SUPER_ADMIN, DEVELOPER, APPROVER, OPERATOR)
+- **주요 기능:** 질의어 입력 → 헤더에서 선택된 프로젝트의 API 정의(api/api_request/api_response)를 의미 기반으로 검색. 헤더 선택 프로젝트로 강제 스코핑되며(다른 프로젝트 종속 화면과 동일 원칙, SUPER_ADMIN도 예외 없음), 그 안에서 호출자의 실제 role_code로 다시 걸러진다(role_code≤api_stage인 API만 노출). project_id 미선택(SUPER_ADMIN "전체 프로젝트" 상태) 시 검색 UI 대신 "프로젝트를 선택하세요" 안내만 표시.
+- **노출 조건:** 서버 `RAG_ENABLED`와 클라이언트 `VITE_RAG_ENABLED`가 둘 다 `true`일 때만 노출·등록된다(SCR-150과 동일 원칙).
+- **연관 API:**
+
+  | Method | Endpoint    | 설명                       |
+  | ------ | ----------- | -------------------------- |
+  | GET    | /api-search | API 정의 검색(rag_server 프록시, project_id 필수) |
 
 ---
 

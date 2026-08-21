@@ -115,6 +115,9 @@ DB_NAME=gm_platform
 # mysql2 풀 커넥션 수(인스턴스당) — 생략 시 기본값 10. 스케일아웃 시 총 커넥션 = 이 값 × 인스턴스 수이므로 MySQL max_connections와 맞춰 조정
 DB_CONNECTION_LIMIT=10
 
+# 부팅 시 MySQL 최초 연결 확인을 지수 백오프로 재시도할 최대 누적 시간(ms) — 생략 시 기본값 60000(1분)
+# DB_BOOT_RETRY_MAX_MS=60000
+
 # log_audit 전용 DB(3.4에서 만든 gm_platform_log) — 메인 DB와 같은 VM/인스턴스라는 보장이 없어 완전히 별도 설정으로 관리
 LOG_DB_HOST=127.0.0.1
 LOG_DB_PORT=3306
@@ -147,12 +150,24 @@ LOGIN_RATE_LIMIT_MAX=10
 # 만료된 user_session 정리 크론 표현식 — 생략 시 기본값 매일 새벽 4시(0 4 * * *)
 SESSION_CLEANUP_CRON=0 4 * * *
 
+# api_index_sync_queue(아웃박스) 폴링 주기(ms) — RAG_ENABLED=true일 때만 워커가 동작. 생략 시 기본값 15000(15초)
+API_INDEX_SYNC_INTERVAL_MS=15000
+
+# log_audit_index_sync_queue(아웃박스) 폴링 주기(ms) — RAG_ENABLED=true일 때만 워커가 동작. 생략 시 기본값 15000(15초)
+LOG_AUDIT_INDEX_SYNC_INTERVAL_MS=15000
+
 # 로그인 리미터 등 캐시성 기능의 Redis 사용 여부 — false(기본)면 인메모리로 폴백(스케일아웃 시 인스턴스별로 분리됨)
 REDIS_ENABLED=false
 REDIS_HOST=127.0.0.1
 REDIS_PORT=6379
 REDIS_PASSWORD=your_redis_password
 REDIS_KEY_PREFIX=gm:
+
+# rag_server(문서/API 정의/감사로그 자연어 검색) 연동 여부 — false(기본)면 검색 라우트·아웃박스 워커 자체가 등록되지 않는다(rag_server 실행 없이도 정상 기동)
+RAG_ENABLED=false
+RAG_BASE_URL=http://127.0.0.1:3200
+# rag_server의 RAG_API_KEY와 동일한 값. 미설정 시(로컬 개발용) 헤더 없이 호출한다
+RAG_API_KEY=
 ```
 
 `ENCRYPTION_KEY`는 `phone_number` 등 개인정보를 AES-256-CBC로 암호화하는 데 사용하는 32바이트 hex 키다. 아래 명령으로 생성한다.

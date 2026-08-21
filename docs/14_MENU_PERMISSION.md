@@ -74,9 +74,11 @@
 | ------------------ | :---------: | :--------: | :--------: | :------: |
 | 감사 로그 목록 조회 | O (전체)   | O (프로젝트 로그: 실제 배정만 / company·user 로그: 자사만) | O (프로젝트 로그: 실제 배정만 / company·user 로그: 자사만) | -        |
 | 감사 로그 상세 조회 | O          | O (동일)   | O (동일)   | -        |
+| 감사 로그 검색      | O          | O (동일)   | O (동일)   | -        |
 
 > APPROVER 의 감사 로그 조회는 관리 목적이 아니라 API 승인·반려 판단 시 변경 이력을 참조하기 위한 목적으로 오픈된 것이다.
 > `project_id`가 있는 로그(api/api_request/api_response/code_group/code_item/project 등 프로젝트 소속 엔티티 변경)는 "자사 소속"이 아니라 "해당 프로젝트에 role_code≤30(SUPER_ADMIN/DEVELOPER/APPROVER)으로 실제 배정"되어 있어야 조회 가능하다 — 세션 role_code(로그인 시 고정되는, 여러 프로젝트 중 최고 권한 하나)와 정확히 같을 필요는 없다. `project_id`가 없는 로그(company/user 테이블 변경)는 기존대로 회사 스코핑만 적용된다.
+> **감사 로그 검색**(`GET /log-audit-search`, SCR-042)은 목록·상세와 동일한 권한 판정을 그대로 재사용한다(`resolveAllowedProjectIds()` 공유). 헤더의 회사/프로젝트 선택으로 검색 범위를 좁힐 수 있지만, 이 narrow 조건은 항상 위 권한 범위와의 교집합으로만 작용해 권한 밖 데이터를 노출하지 않는다. `RAG_ENABLED`/`VITE_RAG_ENABLED`가 둘 다 `true`일 때만 노출된다(§3.5 참고).
 
 ---
 
@@ -148,3 +150,15 @@ api_stage 별 실행 가능 역할
 | 내 정보 조회    | O           | O         | O        | O        |
 | 비밀번호 변경   | O           | O         | O        | O        |
 | 로그아웃        | O           | O         | O        | O        |
+
+---
+
+## 3.5 검색
+
+rag_server(자연어 검색) 연동 화면. `RAG_ENABLED`(서버)와 `VITE_RAG_ENABLED`(클라이언트)가 둘 다 `true`일 때만 메뉴 노출·라우트 등록·API 자체가 활성화된다 — 하나라도 `false`면 메뉴 항목이 빠지고 직접 URL 진입도 404로 처리된다(`21_RAG_SERVER.md` 참고).
+
+| 메뉴          | SUPER_ADMIN | DEVELOPER | APPROVER | OPERATOR | 비고 |
+| ------------- | :---------: | :-------: | :------: | :------: | ---- |
+| 문서 검색 (SCR-150) | O | O | O | O | 권한 스코핑 없음 — 설계 문서는 공개 자료 |
+| API 검색 (SCR-151)  | O | O | O | O | 헤더 선택 프로젝트로 강제 스코핑, 그 안에서 role_code≤api_stage인 API만 노출 |
+| 감사 로그 검색 (SCR-042) | O | O (§2.5와 동일 스코핑) | O (§2.5와 동일 스코핑) | - | `/admin/audit-logs` 하위 — 관리 메뉴 §2.5 참고 |

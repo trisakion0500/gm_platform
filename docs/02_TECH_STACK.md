@@ -44,6 +44,7 @@
 | `DB_PASSWORD` | ✓ | — | MySQL 접속 비밀번호. |
 | `DB_NAME` | ✓ | — | 사용할 DB 스키마명. |
 | `DB_CONNECTION_LIMIT` | ✗ | `10` | `config/db.ts`의 mysql2 pool `connectionLimit`(인스턴스당). 스케일아웃 시 총 커넥션 = 이 값 × 인스턴스 수이므로 MySQL `max_connections`와 맞춰 배포 단위로 조정. |
+| `DB_BOOT_RETRY_MAX_MS` | ✗ | `60000` | 부팅 시 MySQL 최초 연결 확인을 지수 백오프(1s→2s→4s→...,최대 10s 간격)로 재시도할 최대 누적 시간(ms). 초과하면 `exitAfterFlush(1)`로 종료. 이미 부팅된 이후 런타임 중 장애는 `callSP()`가 매 요청 단위로 처리하므로 이 값과 무관(`app.ts`의 `connectWithRetry`). |
 | `LOG_DB_HOST` | ✓ | — | 감사 로그 전용 DB(`gm_platform_log`) 접속 호스트. 메인 DB와 같은 VM/인스턴스라는 보장이 없어 완전히 별도로 관리(`config/db.ts`의 `logPool`). |
 | `LOG_DB_PORT` | ✓ | — | 감사 로그 전용 DB 접속 포트. |
 | `LOG_DB_USER` | ✓ | — | 감사 로그 전용 DB 접속 계정. |
@@ -62,6 +63,11 @@
 | `LOGIN_RATE_LIMIT_WINDOW_MS` | ✗ | `900000`(15분) | `/auth/login`·`/auth/signup`에 적용되는 `loginLimiter`(express-rate-limit)의 카운트 윈도우. 브루트포스 방지 목적. |
 | `LOGIN_RATE_LIMIT_MAX` | ✗ | `10` | 위 윈도우 동안 IP당 허용되는 최대 요청 수. 초과 시 `40001`(HTTP 429). |
 | `SESSION_CLEANUP_CRON` | ✗ | `0 4 * * *`(매일 새벽 4시) | `jobs/sessionCleanup.job.ts`가 `node-cron`으로 등록하는 만료 세션 정리 주기. `user_session`에서 `expired_at`이 지난 행을 삭제(`SP_CLEANUP_EXPIRED_SESSIONS`)해 테이블 무한 누적을 방지. 스케일아웃 시 인스턴스마다 각자 등록되므로 `config/db.ts`의 `runExclusive`(MySQL advisory lock)로 감싸 한 시점에 한 인스턴스만 실행되도록 함(§6.4 참고). |
+| `RAG_ENABLED` | ✗ | `false` | `rag_server`(문서/API 정의/감사로그 자연어 검색) 연동 여부. `false`면 `GET /doc-search`·`/api-search`·`/log-audit-search`·`/internal/*` 라우트와 `apiIndexSync`/`logAuditIndexSync` 잡 자체가 등록되지 않는다(`routes/index.ts`, `app.ts` — `SWAGGER_ENABLED` 조건부 마운트와 동일 패턴). |
+| `RAG_BASE_URL` | ✗ | `http://127.0.0.1:3200` | `rag_server` base URL. 검색 프록시(`docSearch`/`apiSearch`/`logAuditSearch` service)와 아웃박스 워커(`apiIndexSync`/`logAuditIndexSync` job)가 push/조회에 사용. |
+| `RAG_API_KEY` | ✗ | — | `rag_server`의 `RAG_API_KEY`와 동일 값으로 맞춰야 하는 공유 비밀값. 미설정 시 `X-API-Key` 헤더 없이 호출(로컬 개발용). |
+| `API_INDEX_SYNC_INTERVAL_MS` | ✗ | `15000` | `api_index_sync_queue`(아웃박스, RAG Phase 2) 폴링 주기(ms). `RAG_ENABLED=true`일 때만 워커가 동작. |
+| `LOG_AUDIT_INDEX_SYNC_INTERVAL_MS` | ✗ | `15000` | `log_audit_index_sync_queue`(아웃박스, RAG Phase 3) 폴링 주기(ms). `RAG_ENABLED=true`일 때만 워커가 동작. |
 | `REDIS_ENABLED` | ✗ | `false` | 로그인 리미터·참조 데이터 캐시·세션 캐시의 Redis 사용 여부. `false`면 리미터·참조데이터는 인메모리로, 세션 캐시는 캐시 없이 매 요청 MySQL 조회로 폴백(`config/redis.ts`가 이 값으로 `redisClient` 생성 여부 결정). |
 | `REDIS_HOST` | ✗ | `127.0.0.1` | Redis 접속 호스트. |
 | `REDIS_PORT` | ✗ | `6379` | Redis 접속 포트. |

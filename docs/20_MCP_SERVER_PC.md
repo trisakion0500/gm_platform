@@ -14,7 +14,7 @@
 | Transport | stdio (Claude Code/Desktop이 자식 프로세스로 직접 spawn) |
 | 스택 | Node.js + TypeScript, `@modelcontextprotocol/sdk` + `zod` + `axios` (mcp_server_dev와 동일) |
 | 대상 | GM Platform REST API (`server/`)만 감싼다 |
-| `mcp_server_dev`와의 관계 | **복사가 아니라 확장** — mcp_server_dev는 기존 결정(관리자 기능 확장 안 함)대로 그대로 유지되고, mcp_server_pc가 그 tool 10개를 전부 포함하면서 admin tool 20개를 추가로 얹었다 |
+| `mcp_server_dev`와의 관계 | **복사가 아니라 확장** — mcp_server_dev는 기존 결정(관리자 기능 확장 안 함)대로 그대로 유지되고, mcp_server_pc가 그 tool 13개(`RAG_ENABLED=true` 기준, 검색 3종 포함)를 전부 포함하면서 admin tool 20개를 추가로 얹었다 |
 
 ---
 
@@ -25,12 +25,12 @@
 ```
 mcp_server_pc/
 ├── src/
-│   ├── index.ts                 # tool 30개 등록 + role 게이팅 그룹 3종
+│   ├── index.ts                 # tool 33개(RAG_ENABLED=true 기준) 등록 + role 게이팅 그룹 3종
 │   ├── gmClient.ts              # mcp_server_dev와 verbatim 동일
 │   ├── types.ts                 # 기존 타입 + CompanyRow/ProjectAdminRow/UserAdminRow/UserRoleRow 추가
 │   ├── config/, utils/          # mcp_server_dev와 verbatim 동일
 │   └── tools/
-│       ├── (mcp_server_dev의 10개 tool 파일 verbatim 복사)
+│       ├── (mcp_server_dev의 13개 tool 파일 verbatim 복사 — search_docs/search_apis/search_log_audits 포함)
 │       └── admin*.ts            # 신규 20개 (아래 §4 참고)
 ├── .env / .env.example          # GM_BASE_URL, GM_LOGIN_ID, GM_PASSWORD (예시 계정: sa/1234)
 ├── .mcp.json / .mcp.json.example  # mcpServers 키 "gm-platform-pc" (mcp_server_dev의 "gm-platform"과 구분)
@@ -52,11 +52,11 @@ const SUPER_ADMIN_ONLY = [10];                 // 회사/프로젝트/사용자 
 
 ---
 
-# 4. Tool 목록 (30개)
+# 4. Tool 목록 (33개, `RAG_ENABLED=true` 기준 — false면 30개)
 
-## 전 역할 공통 (10개)
+## 전 역할 공통 (12개, RAG_ENABLED=true 기준 — false면 10개)
 
-mcp_server_dev와 동일한 7개(`list_projects`/`list_apis`/`list_code_groups`/`execute_api`/`list_executions`/`get_execution`/`cancel_execution`) + admin 조회 3개.
+mcp_server_dev와 동일한 9개(`list_projects`/`list_apis`/`list_code_groups`/`execute_api`/`list_executions`/`get_execution`/`cancel_execution` + `search_docs`/`search_apis`, 검색 2종은 `RAG_ENABLED=true`일 때만 등록) + admin 조회 3개.
 
 | tool | GM Platform API | 설명 |
 | --- | --- | --- |
@@ -66,7 +66,7 @@ mcp_server_dev와 동일한 7개(`list_projects`/`list_apis`/`list_code_groups`/
 
 ## role 게이팅 — SUPER_ADMIN, DEVELOPER (7개)
 
-mcp_server_dev와 동일한 3개(`list_pending_executions`/`approve_execution`/`reject_execution`, `APPROVAL_CAPABLE_ROLES` 그룹이라 APPROVER도 포함) + 아래 `SUPER_ADMIN_AND_DEVELOPER` 그룹 7개.
+mcp_server_dev와 동일한 4개(`list_pending_executions`/`approve_execution`/`reject_execution`/`search_log_audits`, `APPROVAL_CAPABLE_ROLES` 그룹이라 APPROVER도 포함 — `search_log_audits`는 `RAG_ENABLED=true`일 때만 등록) + 아래 `SUPER_ADMIN_AND_DEVELOPER` 그룹 7개.
 
 | tool | GM Platform API | 설명 |
 | --- | --- | --- |
@@ -93,7 +93,7 @@ mcp_server_dev와 동일한 3개(`list_pending_executions`/`approve_execution`/`
 | `admin_assign_user_role` | POST /user-roles | 사용자에게 프로젝트 역할 신규 배정 |
 | `admin_update_user_role` | PATCH /user-roles/:user_id/:project_id | 기존 역할 배정 수정 |
 
-계정별 실제 노출 개수(라이브 검증): SUPER_ADMIN 30개, DEVELOPER 20개, APPROVER 13개, OPERATOR 10개.
+계정별 실제 노출 개수(라이브 검증, `RAG_ENABLED=true` 기준): SUPER_ADMIN 33개, DEVELOPER 23개, APPROVER 16개, OPERATOR 12개. 검색 3종 도입 이전(또는 `RAG_ENABLED=false`)에는 각각 30개/20개/13개/10개였다.
 
 ---
 

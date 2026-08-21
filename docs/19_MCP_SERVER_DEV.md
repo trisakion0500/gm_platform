@@ -38,7 +38,10 @@ mcp_server_dev/
 │   │   ├── cancelExecution.ts   # POST /api-executions/:id/cancel
 │   │   ├── listPendingExecutions.ts  # GET /api-executions/pending (role 게이팅)
 │   │   ├── approveExecution.ts       # POST /api-executions/:id/approve (role 게이팅)
-│   │   └── rejectExecution.ts        # POST /api-executions/:id/reject (role 게이팅)
+│   │   ├── rejectExecution.ts        # POST /api-executions/:id/reject (role 게이팅)
+│   │   ├── searchDocs.ts             # GET /doc-search (전 역할, RAG_ENABLED=true일 때만 등록)
+│   │   ├── searchApis.ts             # GET /api-search (전 역할, RAG_ENABLED=true일 때만 등록)
+│   │   └── searchLogAudits.ts        # GET /log-audit-search (role 게이팅 + RAG_ENABLED=true일 때만 등록)
 │   └── utils/
 │       ├── logger.ts
 │       └── toolResult.ts        # ok()/toToolError()/safeTool() — CallToolResult 변환 공통 처리
@@ -77,6 +80,8 @@ mcp_server_dev/
 | `list_executions` | `GET /api-executions` | 실행 이력 조회. OPERATOR 계정은 서버가 본인 요청 건만 자동 스코핑 |
 | `get_execution` | `GET /api-executions/:id` | 실행 이력 단건(요청 파라미터·응답 데이터 포함) |
 | `cancel_execution` | `POST /api-executions/:id/cancel` | 본인이 요청한 PENDING 건 취소 |
+| `search_docs` | `GET /doc-search` | 설계 문서(docs/*.md, README.md) 자연어 검색. `RAG_ENABLED=true`일 때만 등록(rag_server 미사용 환경에선 tool 자체가 없음) |
+| `search_apis` | `GET /api-search` | API 정의 자연어 검색. role 게이팅 없음 — GM Platform이 결과 자체를 프로젝트/role로 스코핑하므로 여기선 노출만 통일. `RAG_ENABLED=true`일 때만 등록 |
 
 ## role 게이팅 (SUPER_ADMIN/DEVELOPER/APPROVER, role_code ∈ {10,20,30})
 
@@ -85,6 +90,7 @@ mcp_server_dev/
 | `list_pending_executions` | `GET /api-executions/pending` | 승인 대기(PENDING) 목록 |
 | `approve_execution` | `POST /api-executions/:id/approve` | 승인 — 즉시 실제 외부 API 호출 발생 |
 | `reject_execution` | `POST /api-executions/:id/reject` | 반려 |
+| `search_log_audits` | `GET /log-audit-search` | 감사 로그 자연어 검색. `GET /log-audits` 자체가 SA/DEV/APV 전용이라 같은 게이팅을 재사용. `RAG_ENABLED=true`일 때만 등록 |
 
 ---
 
@@ -103,7 +109,7 @@ if (APPROVAL_CAPABLE_ROLES.includes(roleCode)) {
 
 이 게이팅은 **UX 차원의 1차 필터일 뿐**이고, 최종 방어선은 여전히 GM Platform 서버의 프로젝트별 재검증(`SP_APPROVE_API_EXECUTION`/`SP_REJECT_API_EXECUTION`의 `i_caller_role_code` 기반 검증, CLAUDE.md 핵심 결정사항 참고)이다. `role_code`는 "가진 프로젝트 중 최고 권한"이라 세션 전역 값인데, MCP 서버는 계정 하나로 프로세스 하나가 뜨는 구조라 이 근사치로도 충분하다 — 실제 프로젝트별 최종 판정은 서버가 한다.
 
-**계정만 바꿔서 여러 인스턴스를 등록하면**, 각 인스턴스가 자기 role_code만큼만 tool을 스스로 노출한다(코드 하나, 등록은 계정 수만큼). OP 계정으로 role_code=40 확인 시 tool 7개, APPROVER 계정(role_code=30)으로는 10개가 노출됨을 실제 계정 전환 테스트로 확인했다.
+**계정만 바꿔서 여러 인스턴스를 등록하면**, 각 인스턴스가 자기 role_code만큼만 tool을 스스로 노출한다(코드 하나, 등록은 계정 수만큼). `RAG_ENABLED=true`(rag_server 검색 3종 포함) 기준 OP 계정으로 role_code=40 확인 시 tool 9개(전 역할 공통 7개 + search_docs/search_apis), APPROVER/DEVELOPER/SUPER_ADMIN 계정(role_code∈{10,20,30})으로는 13개(9개 + role 게이팅 4개: 승인/반려/승인대기 3개 + search_log_audits)가 노출된다. `RAG_ENABLED=false`면 검색 3개 tool이 아예 등록되지 않아 각각 7개/10개로 줄어든다(최초 도입 당시 검증한 수치).
 
 ---
 
