@@ -5,6 +5,8 @@ const MASK_FIELDS = new Set([
   'current_password',
   'refresh_token',
   'access_token',
+  'api_key',
+  'api_secret',
 ]);
 
 export function maskBody(body: unknown): unknown {
