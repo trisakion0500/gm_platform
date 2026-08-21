@@ -82,7 +82,7 @@ GM Platform은 **회사 → 프로젝트 → API** 계층 구조로 데이터 �
 | Runtime     | Node.js 22 LTS                 |
 | Framework   | Express + TypeScript           |
 | Database    | MySQL 8.4                      |
-| Data Access | mysql2 (Native SQL)            |
+| Data Access | mysql2 (Stored Procedure/Function 전용) |
 | 인증        | JWT (HS256) + user_session     |
 | 비밀번호    | bcrypt (rounds=12)             |
 | S2S 호출    | HTTP/HTTPS POST (JSON Payload) |
@@ -91,6 +91,9 @@ GM Platform은 **회사 → 프로젝트 → API** 계층 구조로 데이터 �
 
 > **JWT + user_session을 함께 쓰는 이유**
 > JWT만 사용하면 발급된 토큰이 만료되기 전까지는 서버가 강제로 무효화할 방법이 없다. 하지만 운영 도구 특성상 계정 정지, 권한 변경, 강제 로그아웃처럼 **즉시 반영되어야 하는 상황**이 자주 발생한다. 그래서 JWT는 API 인증(stateless 검증)에 사용하고, `user_session`을 별도로 두어 세션 단위로 무효화 여부를 확인함으로써 토큰이 살아있어도 서버 쪽에서 즉시 접근을 차단할 수 있도록 했다. 세션 무효화가 핵심 이유다.
+
+> **DB 접근을 Stored Procedure/Function으로만 강제하는 이유**
+> 애플리케이션 레이어가 SQL을 직접 조립하지 않으므로 SQL Injection 자체가 구조적으로 발붙일 자리가 없다. 더 중요한 이유는 권한 검증의 마지막 방어선을 DB에 두기 위함이다 — 이 프로젝트는 "요청자가 특정 프로젝트에 실제로 권한이 있는가"를 서비스 레이어에서도 판단하지만, SP 내부에서도 호출자의 역할·배정 여부를 DB에서 다시 조회해 재검증한다. 앱 레이어의 버그나 우회 호출이 있어도 DB가 마지막에 한 번 더 걸러내는 구조다. 여러 단계로 나뉜 검증·쓰기를 앱 레이어(ORM이든 직접 조립한 SQL이든)에서 별도 왕복으로 처리하면 그 사이 시간차를 노린 TOCTOU 레이스가 생기기 쉬운데, 이 프로젝트도 실제로 겪었다 — 검증과 쓰기를 SP 하나(단일 트랜잭션)로 합치고 나서야 해결됐다.
 
 **Frontend**
 
