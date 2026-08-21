@@ -99,10 +99,14 @@ async function processPendingQueue(): Promise<void> {
  * 특정 시각에 맞춘 크론 스케줄이 아니고, 재귀 구조라 한 tick이 API_INDEX_SYNC_INTERVAL_MS보다
  * 오래 걸려도(대량 백로그 등) 다음 tick과 겹치지 않는다(setInterval이었다면 겹칠 수 있음).
  * env.rag.enabled=false(rag_server 미사용)면 app.ts가 이 함수 자체를 호출하지 않는다.
+ * 반환하는 stop 함수는 app.ts의 정상 종료 훅이 호출해 다음 재귀 예약을 멈춘다 — node-cron의
+ * ScheduledTask.stop()과 동등한 역할을 재귀 setTimeout 구조에서 직접 구현한 것.
  * @author trisakion
- * @returns void
+ * @returns 정상 종료 시 호출할 stop 함수
  */
-export function startApiIndexSyncJob(): void {
+export function startApiIndexSyncJob(): () => void {
+  let stopped = false;
+  let timer: ReturnType<typeof setTimeout> | undefined;
   const tick = async () => {
     try {
       const ran = await runExclusive(LOCK_NAME, processPendingQueue);
@@ -111,8 +115,13 @@ export function startApiIndexSyncJob(): void {
     } catch (err) {
       logger.error('API index sync tick failed:', err);
     } finally {
-      setTimeout(tick, env.apiIndexSyncIntervalMs);
+      if (!stopped)
+        timer = setTimeout(tick, env.apiIndexSyncIntervalMs);
     }
   };
   tick();
+  return () => {
+    stopped = true;
+    clearTimeout(timer);
+  };
 }

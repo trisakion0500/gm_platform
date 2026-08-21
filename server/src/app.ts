@@ -4,7 +4,7 @@ import express from "express";
 import cors from "cors";
 import helmet from "helmet";
 import { env } from "./config/env";
-import { callSP } from "./config/db";
+import pool, { callSP, logPool } from "./config/db";
 import logger, { exitAfterFlush } from "./utils/logger";
 import { requestLogger } from "./middleware/requestLogger";
 import { errorHandler } from "./middleware/errorHandler";
@@ -68,17 +68,34 @@ async function start() {
   if (!connected)
     return exitAfterFlush(1);
 
-  startSessionCleanupJob();
+  const sessionCleanupTask = startSessionCleanupJob();
   // RAG_ENABLED=false면 rag_server 자체가 없는 환경이므로 워커를 등록하지 않는다(routes/index.ts의
   // doc-search/internal 라우트 조건부 등록과 동일 패턴) — 등록해봐야 매 tick 실패만 반복해 로그만 채운다.
+  let stopApiIndexSync: (() => void) | undefined;
+  let stopLogAuditIndexSync: (() => void) | undefined;
   if (env.rag.enabled) {
-    startApiIndexSyncJob();
-    startLogAuditIndexSyncJob();
+    stopApiIndexSync = startApiIndexSyncJob();
+    stopLogAuditIndexSync = startLogAuditIndexSyncJob();
   }
 
-  app.listen(env.port, () => {
+  const server = app.listen(env.port, () => {
     logger.info(`Server running on port ${env.port}`);
   });
+
+  // 정상 종료(SIGTERM/SIGINT) 시 크론·워커를 먼저 멈추고 나서 DB pool을 닫는다 — 순서가 바뀌면
+  // pool이 닫힌 뒤에도 살아있는 스케줄이 발동해 "Pool is closed" 에러가 난다(trisakion-dev-convention-skill 5.2).
+  const shutdown = async (signal: string) => {
+    logger.info(`${signal} received, shutting down gracefully`);
+    sessionCleanupTask.stop();
+    stopApiIndexSync?.();
+    stopLogAuditIndexSync?.();
+    await new Promise<void>((resolve) => server.close(() => resolve()));
+    await pool.end();
+    await logPool.end();
+    await exitAfterFlush(0);
+  };
+  process.on("SIGTERM", () => shutdown("SIGTERM"));
+  process.on("SIGINT", () => shutdown("SIGINT"));
 }
 
 start();

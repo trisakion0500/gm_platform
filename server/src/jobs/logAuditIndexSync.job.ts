@@ -116,10 +116,13 @@ async function processPendingQueue(): Promise<void> {
  * apiIndexSync.job.ts와 동일하게 runExclusive(advisory lock, 메인 DB)로 인스턴스 간 중복 실행을 막고,
  * 재귀 setTimeout으로 한 tick이 오래 걸려도 다음 tick과 겹치지 않게 한다. env.rag.enabled=false면
  * app.ts가 이 함수 자체를 호출하지 않는다.
+ * 반환하는 stop 함수는 app.ts의 정상 종료 훅이 호출해 다음 재귀 예약을 멈춘다(apiIndexSync.job.ts와 동일 패턴).
  * @author trisakion
- * @returns void
+ * @returns 정상 종료 시 호출할 stop 함수
  */
-export function startLogAuditIndexSyncJob(): void {
+export function startLogAuditIndexSyncJob(): () => void {
+  let stopped = false;
+  let timer: ReturnType<typeof setTimeout> | undefined;
   const tick = async () => {
     try {
       const ran = await runExclusive(LOCK_NAME, processPendingQueue);
@@ -128,8 +131,13 @@ export function startLogAuditIndexSyncJob(): void {
     } catch (err) {
       logger.error('Log audit index sync tick failed:', err);
     } finally {
-      setTimeout(tick, env.logAuditIndexSyncIntervalMs);
+      if (!stopped)
+        timer = setTimeout(tick, env.logAuditIndexSyncIntervalMs);
     }
   };
   tick();
+  return () => {
+    stopped = true;
+    clearTimeout(timer);
+  };
 }
