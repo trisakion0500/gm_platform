@@ -34,7 +34,7 @@ export async function callSP(
   } catch (err) {
     throw new DBError(
       ERROR_MAP.DB_ERROR.code,
-      `${ERROR_MAP.DB_ERROR.message} [${sp}]: ${err instanceof Error ? err.message : String(err)}`,
+      `${ERROR_MAP.DB_ERROR.message} [${sp}]`,
       ERROR_MAP.DB_ERROR.httpStatus,
       { cause: err },
     );
@@ -51,8 +51,9 @@ export async function callSP(
   if (statusRow.RESULT === 99) {
     throw new DBError(
       ERROR_MAP.DB_ERROR.code,
-      `${ERROR_MAP.DB_ERROR.message} [${sp}]: ${statusRow.ERROR_MESSAGE ?? ""}`,
+      `${ERROR_MAP.DB_ERROR.message} [${sp}]`,
       ERROR_MAP.DB_ERROR.httpStatus,
+      { cause: statusRow.ERROR_MESSAGE },
     );
   }
   const dataSets = sets.slice(1).filter((s) => Array.isArray(s));

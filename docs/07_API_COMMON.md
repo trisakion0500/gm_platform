@@ -552,6 +552,16 @@ script-src-attr 'none'; style-src 'self' https: 'unsafe-inline'; upgrade-insecur
 
 `server/src/config/db.ts`의 `runExclusive(lockName, fn)`으로 크론 콜백을 감싸 MySQL advisory lock(`GET_LOCK`/`RELEASE_LOCK`, `SP_LOCK_ACQUIRE`/`SP_LOCK_RELEASE`)을 획득한 인스턴스만 실제로 정리를 수행하도록 한다. `timeout=0`(non-blocking)으로 시도해 이미 다른 인스턴스가 점유 중이면 대기 없이 즉시 포기하고 다음 스케줄을 기다린다 — Redis 등 별도 분산 락 인프라 없이 이미 쓰는 MySQL만으로 해결한 방식이다. `GET_LOCK`은 커넥션 세션에 종속되므로 `callSP`(pool이 매 호출마다 임의로 커넥션을 고름)를 못 쓰고 `pool.getConnection()`으로 커넥션 하나를 직접 뽑아 락 획득→작업→해제까지 유지한다.
 
+## 6.5 S2S(Server-to-Server) 인증 정책
+
+GM Platform이 외부 게임서버(`project.api_base_url`)를 호출할 때는 `X-API-Key` 헤더 하나로만 인증한다. 발급/재발급은 `POST /projects/:project_id/api-key`(SUPER_ADMIN, DEVELOPER)이며, 평문은 발급 응답에 1회만 노출되고 이후 조회는 `has_api_key`(발급 여부)만 반환한다. `api_base_url`을 변경하면 같은 트랜잭션에서 기존 키가 자동 폐기된다.
+
+### HMAC-SHA256 서명 방식은 검토 후 도입하지 않기로 결정
+
+게임서버 쪽 검증 로직을 GM Platform이 강제할 수 없는 구조다 — `test_game_server`는 검증 목적으로 우리가 직접 만들었지만, 실제 연동 대상인 외부 파트너의 게임서버 코드는 우리가 만들지 않는다. 검증을 받쳐주지 않는 상대는 결국 `X-API-Key` 단독 운영과 동일해진다. 여기에 실제 배포 환경에서는 TLS와 IP/PORT 화이트리스트로 두 시스템 간 연결을 이미 좁혀두는 것이 일반적이라, HMAC이 추가로 막아주는 잔여 위협("허용된 네트워크 안에서 TLS까지 뚫었지만 시크릿은 모르는 공격자")은 매우 좁다. 반면 스키마·SP·서비스 레이어 확장, raw body 바이트 일치, 클럭 동기화, 시크릿 별도 배포·보관 같은 새 실패 지점을 늘리는 비용은 크다고 판단했다.
+
+자매 프로젝트 `coupon_platform`은 게임서버 → 쿠폰서버로 요청을 **받는** 입장이라 검증 로직을 자체 소유해 HMAC이 실질적 방어가 되지만, GM Platform은 게임서버로 요청을 **거는** 입장이라 구조 자체가 다르다.
+
 ---
 
 # 7. Health Check
