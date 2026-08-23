@@ -34,7 +34,7 @@ MainLayout, AdminLayout에서 동일하게 사용한다.
 | [관리] 버튼 | OPERATOR 제외 노출. 클릭 시 `/admin` 이동 |
 | 사용자명 드롭다운 | 내 계정(`/my-account`) / 로그아웃 |
 
-> **관리 화면 잠금**: `/admin/companies`, `/admin/projects`, `/admin/users`, `/admin/apis`, `/admin/audit-logs`(목록 화면)를 제외한 나머지 관리 화면(등록/상세·수정, 코드그룹 편집 그리드 등)에서는 회사·프로젝트 선택 모두 비활성화된다 — 작업 도중 헤더 선택이 바뀌면 상세 내용과 어긋나 보여 혼란을 주기 때문. 관리 메뉴가 아닌 화면(`/apis`, `/executions` 등)은 대상 아님.
+> **관리 화면 잠금**: `/admin/companies`, `/admin/projects`, `/admin/users`, `/admin/apis`, `/admin/audit-logs`(목록 화면), `/admin/audit-logs/search`를 제외한 나머지 관리 화면(등록/상세·수정, 코드그룹 편집 그리드 등)에서는 회사·프로젝트 선택 모두 비활성화된다 — 작업 도중 헤더 선택이 바뀌면 상세 내용과 어긋나 보여 혼란을 주기 때문. `/admin/audit-logs/search`는 검색 범위를 헤더 선택으로 직접 좁히는 기능이라 예외로 둔다. 관리 메뉴가 아닌 화면(`/apis`, `/executions` 등)은 대상 아님.
 
 ## 2.2 역할별 Header 노출
 
@@ -76,12 +76,13 @@ MainLayout, AdminLayout에서 동일하게 사용한다.
 | 실행이력 | `/executions` | O | O | O | O |
 | 승인대기 | `/executions/pending` | O | O | O | - |
 | 문서 검색 | `/doc-search` | O | O | O | O |
+| API 검색 | `/api-search` | O | O | O | O |
 
 > "API"는 다른 항목과 달리 펼치기/접기가 가능한 항목이라 클릭 영역이 둘로 나뉜다 — 캐럿 아이콘(항상 보이는 원형 배경, 호버에 의존하지 않음 — 터치 기기 대응)을 누르면 펼치기/접기만 되고, "API" 텍스트를 누르면 펼침 상태를 유지한 채 `/apis`로 이동한다. 펼치면 현재 선택된 프로젝트의 활성 API가 체크박스 목록으로 나타나고(실행 불가능한 `api_stage`의 API는 숨김, §3.2 기준 역할별 실행 가능 여부로 필터), 체크하면 `/apis`로 이동하며 우측 작업영역에 해당 API 패널이 열린다. 상세 내용은 `15_SCREEN_LIST.md` SCR-100 참고.
 
 > 내 계정(`/my-account`)은 사이드바가 아니라 헤더 우측 아바타 드롭다운에서 접근한다(§2.1) — 같은 화면으로 가는 진입점을 사이드바에 중복 등록하지 않기 위함.
 
-> "문서 검색"은 서버 `RAG_ENABLED`/클라이언트 `VITE_RAG_ENABLED`가 둘 다 `true`일 때만 노출된다 — `false`면 이 메뉴 항목 자체가 배열에서 빠지고 `/doc-search` 라우트도 등록되지 않아 직접 URL로 접근해도 404 처리된다(`21_RAG_SERVER.md` 참고). 두 값은 각각 서버·클라이언트 빌드타임에 독립적으로 읽히므로 반드시 같은 값으로 맞춰야 한다.
+> "문서 검색"/"API 검색"은 서버 `RAG_ENABLED`/클라이언트 `VITE_RAG_ENABLED`가 둘 다 `true`일 때만 노출된다 — `false`면 이 메뉴 항목들 자체가 배열에서 빠지고 `/doc-search`·`/api-search` 라우트도 등록되지 않아 직접 URL로 접근해도 404 처리된다(`21_RAG_SERVER.md` 참고). 두 값은 각각 서버·클라이언트 빌드타임에 독립적으로 읽히므로 반드시 같은 값으로 맞춰야 한다.
 
 ---
 
