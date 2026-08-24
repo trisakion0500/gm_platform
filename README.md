@@ -246,6 +246,8 @@ AI는 문서 초안 작성과 반복적인 코드 작업의 속도를 높이는 
 | ChatGPT     | 설계 아이디어 검토 및 트레이드오프 논의 |
 | Claude Code | 문서 초안 작성 및 코드 보조             |
 
+또한 커밋 전 검증을 자동화한 커스텀 서브에이전트 시스템([trisakion-dev-convention-skill](https://github.com/trisakion0500/trisakion-dev-convention-skill))을 이 프로젝트에 실전 적용해, SUPER_ADMIN 권한 우회 등 실제 이슈를 발견·수정하는 데 활용하였다.
+
 ---
 
 ## 현재 상태
