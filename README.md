@@ -53,7 +53,7 @@
 - 게임사가 여러 타이틀을 운영해도 하나의 플랫폼에서 통합 관리 가능 — 타이틀마다 별도 GM-Tool을 유지하지 않아도 됨
 - 회사 단위 격리가 데이터 모델에 이미 반영돼 있어, 여러 고객사가 하나의 플랫폼을 공유하는 SaaS 형태로 확장할 때도 테이블 구조를 크게 바꾸지 않고 접근 가능 (단, 실제 SaaS 온보딩/과금 흐름은 미구현 — [한계 및 개선 과제](#한계-및-개선-과제) 참고)
 
-![Company-Project-API 데이터 격리 계층](docs/svg/data_hierarchy.svg)
+<img src="docs/svg/data_hierarchy.svg" alt="Company-Project-API 데이터 격리 계층" width="700">
 
 ---
 
@@ -95,7 +95,7 @@
 
 **시스템 아키텍처**
 
-![시스템 아키텍처](docs/svg/system_architecture.svg)
+<img src="docs/svg/system_architecture.svg" alt="시스템 아키텍처" width="700">
 
 **Backend**
 
