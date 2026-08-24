@@ -9,7 +9,6 @@
 - **한 줄 요약**: 백엔드 개발자가 프론트엔드 코드 없이 API 정의만으로 GM-Tool 화면을 자동 생성하는 멀티테넌트(회사→프로젝트→API) 운영 플랫폼
 - **핵심 스택**: Node.js 22 + Express + TypeScript + MySQL 8.4(Stored Procedure/Function 전용) · React 18 + Vite + Ant Design · Qdrant + 로컬 임베딩(RAG 검색) · MCP(Claude Code/Desktop 연동)
 - **정량 성과**: API 통합 테스트 **764/764 PASS**(3회 반복) · MCP tool 역할별 게이팅 SUPER_ADMIN 33개/DEVELOPER 23개/APPROVER 16개/OPERATOR 12개 · RAG 임베딩 모델 교체로 "기술 스택" 질의 순위 471위→2위(코퍼스 1093건 기준) 개선
-- **링크**: [GitHub](#) · [블로그](#) · [이력서](#) <!-- TODO: 실제 URL로 교체 -->
 
 ---
 
