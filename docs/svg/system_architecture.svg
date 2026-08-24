@@ -17,8 +17,8 @@
 <text x="520" y="61" text-anchor="middle" font-family="sans-serif" font-size="14" font-weight="500" fill="#3C3489">Claude (MCP)</text>
 <text x="520" y="79" text-anchor="middle" font-family="sans-serif" font-size="12" fill="#534AB7">gm-platform-pc 도구</text>
 
-<line x1="220" y1="96" x2="380" y2="150" stroke="#5F5E5A" stroke-width="0.5" marker-end="url(#arrow)"/>
-<line x1="460" y1="96" x2="360" y2="150" stroke="#5F5E5A" stroke-width="0.5" marker-end="url(#arrow)"/>
+<line x1="220" y1="96" x2="300" y2="150" stroke="#5F5E5A" stroke-width="0.5" marker-end="url(#arrow)"/>
+<line x1="460" y1="96" x2="380" y2="150" stroke="#5F5E5A" stroke-width="0.5" marker-end="url(#arrow)"/>
 
 <rect x="240" y="150" width="200" height="56" rx="8" fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.5"/>
 <text x="340" y="171" text-anchor="middle" font-family="sans-serif" font-size="14" font-weight="500" fill="#085041">Backend server/</text>
@@ -26,7 +26,7 @@
 
 <line x1="280" y1="206" x2="140" y2="260" stroke="#5F5E5A" stroke-width="0.5" marker-end="url(#arrow)"/>
 <text x="180" y="230" text-anchor="middle" font-family="sans-serif" font-size="12" fill="#5F5E5A">세션 조회</text>
-<line x1="340" y1="206" x2="340" y2="270" stroke="#5F5E5A" stroke-width="0.5" marker-end="url(#arrow)"/>
+<line x1="340" y1="206" x2="340" y2="360" stroke="#5F5E5A" stroke-width="0.5" marker-end="url(#arrow)"/>
 <line x1="400" y1="206" x2="500" y2="270" stroke="#5F5E5A" stroke-width="0.5" marker-end="url(#arrow)"/>
 
 <rect x="40" y="260" width="200" height="56" rx="8" fill="#FCEBEB" stroke="#A32D2D" stroke-width="0.5"/>
@@ -44,11 +44,11 @@
 <text x="520" y="291" text-anchor="middle" font-family="sans-serif" font-size="14" font-weight="500" fill="#712B13">rag_server/ :3200</text>
 <text x="520" y="309" text-anchor="middle" font-family="sans-serif" font-size="12" fill="#993C1D">docs 검색, 로컬 임베딩</text>
 
-<path d="M340 206 L340 450 L520 450 L520 326" fill="none" stroke="#5F5E5A" stroke-width="0.5" marker-end="url(#arrow)"/>
-<text x="430" y="442" text-anchor="middle" font-family="sans-serif" font-size="12" fill="#5F5E5A">프록시 경유</text>
+<path d="M440 180 L660 180 L660 300 L620 300" fill="none" stroke="#5F5E5A" stroke-width="0.5" marker-end="url(#arrow)"/>
+<text x="550" y="172" text-anchor="middle" font-family="sans-serif" font-size="12" fill="#5F5E5A">프록시 경유</text>
 
-<line x1="440" y1="388" x2="480" y2="360" stroke="#B4B2A9" stroke-width="0.5" stroke-dasharray="2 2"/>
-<text x="480" y="345" text-anchor="middle" font-family="sans-serif" font-size="12" fill="#5F5E5A">advisory lock 공유</text>
+<line x1="440" y1="388" x2="480" y2="326" stroke="#B4B2A9" stroke-width="0.5" stroke-dasharray="2 2"/>
+<text x="500" y="355" text-anchor="middle" font-family="sans-serif" font-size="12" fill="#5F5E5A">advisory lock 공유</text>
 
 <line x1="520" y1="326" x2="520" y2="480" stroke="#5F5E5A" stroke-width="0.5" marker-end="url(#arrow)"/>
 <rect x="420" y="480" width="200" height="56" rx="8" fill="#F1EFE8" stroke="#5F5E5A" stroke-width="0.5"/>
