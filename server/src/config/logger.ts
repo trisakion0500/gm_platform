@@ -30,6 +30,7 @@ log4js.configure({
       filename: `logs/app${instanceSuffix}.log`,
       pattern: 'yyyy-MM-dd',
       keepFileExt: true,
+      numBackups: 30,
       layout,
     },
     errorFile: {
@@ -37,6 +38,7 @@ log4js.configure({
       filename: `logs/error${instanceSuffix}.log`,
       pattern: 'yyyy-MM-dd',
       keepFileExt: true,
+      numBackups: 30,
       layout,
     },
     errorOnly: {

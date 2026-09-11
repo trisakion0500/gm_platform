@@ -18,6 +18,7 @@ log4js.configure({
       filename: path.join(logDir, "app.log"),
       pattern: "yyyy-MM-dd",
       keepFileExt: true,
+      numBackups: 30,
       layout,
     },
     errorFile: {
@@ -25,6 +26,7 @@ log4js.configure({
       filename: path.join(logDir, "error.log"),
       pattern: "yyyy-MM-dd",
       keepFileExt: true,
+      numBackups: 30,
       layout,
     },
     errorOnly: {
