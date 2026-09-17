@@ -19,6 +19,7 @@ const COLUMNS: ColumnsType<ApiRow> = [
   { title: 'API명', dataIndex: 'api_name' },
   { title: 'Endpoint', dataIndex: 'endpoint' },
   { title: '운영단계', dataIndex: 'api_stage', render: (stage: number) => API_STAGE_LABEL[stage] ?? stage },
+  { title: '표시순서', dataIndex: 'display_order' },
   { title: '상태', dataIndex: 'status', render: (status: number) => <StatusBadge status={status} map={API_STATUS_MAP} /> },
   { title: '등록일', dataIndex: 'created_at' },
 ];
