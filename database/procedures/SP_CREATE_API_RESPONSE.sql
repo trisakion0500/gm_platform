@@ -23,6 +23,10 @@ BEGIN
 -- 수정 : 2026-08-12 trisakion - api_index_sync_queue INSERT 추가(같은 트랜잭션, ON DUPLICATE KEY UPDATE로
 --        dedup) - RAG Phase 2(API 정의 검색) rag_server 동기화용 아웃박스 큐 적재
 -- 수정 : 2026-08-19 trisakion - 인라인 스코핑 블록을 FN_IS_PROJECT_DEVELOPER() 호출로 공용화(중복 제거)
+-- 수정 : 2026-09-17 trisakion - INSERT 직후 LAST_INSERT_ID()를 v_response_id로 즉시 캡처하도록 수정.
+--        기존엔 최종 SELECT에서 LAST_INSERT_ID()를 직접 썼는데, 그 사이 api_index_sync_queue INSERT가
+--        해당 api_id 최초 적재(신규 auto-increment 발급)일 때만 세션의 LAST_INSERT_ID()를 큐 테이블 ID로
+--        덮어써 최종 SELECT가 0행을 반환하는 버그가 있었음(새 API의 첫 응답 파라미터 등록만 500 재현).
 -- 내용 : API Response 파라미터 등록
 --        api 존재 검사 (31006)
 --        SUPER_ADMIN 외 대상 프로젝트에 DEVELOPER 활성 권한 없음 → 20001
@@ -33,6 +37,7 @@ BEGIN
 
     DECLARE v_now              DATETIME DEFAULT NOW();
     DECLARE v_project_id       BIGINT;
+    DECLARE v_response_id      BIGINT;
 
     DECLARE sql_state      CHAR(5)       DEFAULT '00000';
     DECLARE error_no       INT           DEFAULT 0;
@@ -81,6 +86,7 @@ BEGIN
                 i_api_id, i_parameter_name, i_parameter_label, i_parameter_type,
                 i_code_group_id, i_description, i_display_order, 1, i_created_by, i_created_by
             );
+            SET v_response_id = LAST_INSERT_ID();
 
             UPDATE `api`
             SET `api_stage`  = 20,
@@ -98,7 +104,7 @@ BEGIN
                `parameter_type`, `code_group_id`, `description`,
                `display_order`, `status`, `created_by`, `updated_by`, `created_at`, `updated_at`
         FROM `api_response`
-        WHERE `api_response_id` = LAST_INSERT_ID();
+        WHERE `api_response_id` = v_response_id;
 
     END;
 
