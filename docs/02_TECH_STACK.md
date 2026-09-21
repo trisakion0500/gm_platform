@@ -58,7 +58,7 @@
 | `CORS_ALLOWED_ORIGINS` | ✓ | — | 허용할 Origin 목록(쉼표 구분 → 배열 파싱). `app.ts`의 CORS 미들웨어 설정에 사용. |
 | `PORT` | ✗ | `3000` | Express 서버가 리슨할 포트. |
 | `LOG_DEBUG_ERRORS` | ✗ | `false` | `true`일 때 500번대 오류의 스택(`AppError`의 `cause` 체인 포함)을 로그에 남김. `config/errors.ts`/`errorHandler` 계열에서 참조 — 운영 환경에서 민감한 내부 스택 노출을 막기 위한 스위치. |
-| `SWAGGER_ENABLED` | ✗ | `false` | `true`일 때만 `app.ts`가 `swagger-ui-express`/`swagger-jsdoc`을 `require()`로 로드해 `/api-docs`를 노출(꺼져 있으면 모듈 자체가 메모리에 올라오지 않음). helmet의 CSP도 이 값이 `true`일 때만 비활성화(Swagger UI 인라인 스크립트/스타일 허용 목적). |
+| `SWAGGER_ENABLED` | ✗ | `false` | `true`일 때만 `app.ts`가 `swagger-ui-express`/`swagger-jsdoc`을 `require()`로 로드해 `/api/docs`를 노출(꺼져 있으면 모듈 자체가 메모리에 올라오지 않음). helmet의 CSP도 이 값이 `true`일 때만 비활성화(Swagger UI 인라인 스크립트/스타일 허용 목적). |
 | `API_EXECUTION_TIMEOUT_MS` | ✗ | `10000` | `POST /apis/:api_id/execute`가 외부 게임서버(S2S)를 호출할 때 axios 타임아웃. 대상 서버가 응답 없을 때 실행을 FAILED로 처리하기까지 대기하는 최대 시간. |
 | `LOGIN_RATE_LIMIT_WINDOW_MS` | ✗ | `900000`(15분) | `/auth/login`·`/auth/signup`에 적용되는 `loginLimiter`(express-rate-limit)의 카운트 윈도우. 브루트포스 방지 목적. |
 | `LOGIN_RATE_LIMIT_MAX` | ✗ | `10` | 위 윈도우 동안 IP당 허용되는 최대 요청 수. 초과 시 `40001`(HTTP 429). |
