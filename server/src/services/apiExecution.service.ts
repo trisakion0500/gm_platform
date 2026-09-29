@@ -51,6 +51,7 @@ async function callExternalApi(executionId: number, url: string, body: unknown, 
  * @param requestJson 요청 파라미터 (parsed object)
  * @param roleCode 요청자 역할 코드
  * @param companyId 요청자 company_id
+ * @param isUpdate true면 api.update_endpoint로 실행(편집 그리드 저장), false면 api.endpoint로 일반 실행
  * @returns 실행 이력 (즉시실행 시 최종 상태, 승인대기 시 PENDING)
  */
 export async function executeApi(
@@ -59,8 +60,9 @@ export async function executeApi(
   requestJson: unknown,
   roleCode: number,
   companyId: number,
+  isUpdate: boolean,
 ): Promise<APIExecutionRow> {
-  const row = await db.createApiExecution(apiId, requestUserId, JSON.stringify(requestJson), roleCode, companyId);
+  const row = await db.createApiExecution(apiId, requestUserId, JSON.stringify(requestJson), roleCode, companyId, isUpdate);
   const { api_base_url, api_key, is_immediate, ...execution } = row;
 
   if (is_immediate === 1) {

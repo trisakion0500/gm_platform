@@ -33,6 +33,7 @@ interface ApiEditFormValues {
   api_stage: number;
   is_required_approval: number;
   response_view_type: number;
+  update_endpoint?: string;
   display_order: number;
   status: number;
 }
@@ -70,6 +71,8 @@ function ApiDetailPage() {
   const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [editing, setEditing] = useState(false);
+  const [basicForm] = Form.useForm<ApiEditFormValues>();
+  const editResponseViewType = Form.useWatch('response_view_type', basicForm);
   const [submitting, setSubmitting] = useState(false);
   const [createRequestOpen, setCreateRequestOpen] = useState(false);
   const [editingRequest, setEditingRequest] = useState<ApiRequestRow | null>(null);
@@ -222,6 +225,7 @@ function ApiDetailPage() {
 
   const basicInfoTab = editing ? (
     <Form<ApiEditFormValues>
+      form={basicForm}
       layout="vertical"
       style={{ maxWidth: 560 }}
       initialValues={{
@@ -232,6 +236,7 @@ function ApiDetailPage() {
         api_stage: api.api_stage,
         is_required_approval: api.is_required_approval,
         response_view_type: api.response_view_type,
+        update_endpoint: api.update_endpoint ?? undefined,
         display_order: api.display_order,
         status: api.status,
       }}
@@ -242,7 +247,7 @@ function ApiDetailPage() {
         type="warning"
         showIcon
         style={{ marginBottom: 16 }}
-        message="API코드 / Endpoint / 승인필요여부 / 응답표시방식을 변경하면 운영단계가 자동으로 개발(20)로 초기화됩니다."
+        message="API코드 / Endpoint / 승인필요여부 / 응답표시방식 / 저장 Endpoint를 변경하면 운영단계가 자동으로 개발(20)로 초기화됩니다."
       />
       <Form.Item
         name="api_code"
@@ -269,6 +274,16 @@ function ApiDetailPage() {
       <Form.Item name="response_view_type" label="응답 표시 방식" rules={[{ required: true }]}>
         <Select options={RESPONSE_VIEW_TYPE_OPTIONS} />
       </Form.Item>
+      {editResponseViewType === 3 && (
+        <Form.Item
+          name="update_endpoint"
+          label="저장 Endpoint"
+          rules={[{ required: true, message: '저장 Endpoint를 입력하세요.' }]}
+          extra="편집 그리드의 저장 버튼이 호출할 Endpoint. { data: [...전체 행] } 고정 계약으로 실행된다"
+        >
+          <Input placeholder="/v1/game/update-user-list" />
+        </Form.Item>
+      )}
       <Form.Item name="display_order" label="표시 순서">
         <InputNumber style={{ width: '100%' }} />
       </Form.Item>
@@ -297,6 +312,9 @@ function ApiDetailPage() {
         </Descriptions.Item>
         <Descriptions.Item label="승인 필요 여부">{APPROVAL_LABEL[api.is_required_approval]}</Descriptions.Item>
         <Descriptions.Item label="응답 표시 방식">{RESPONSE_VIEW_TYPE_LABEL[api.response_view_type]}</Descriptions.Item>
+        {api.response_view_type === 3 && (
+          <Descriptions.Item label="저장 Endpoint">{api.update_endpoint ?? '-'}</Descriptions.Item>
+        )}
         <Descriptions.Item label="표시 순서">{api.display_order}</Descriptions.Item>
         <Descriptions.Item label="상태">
           <StatusBadge status={api.status} map={API_STATUS_MAP} />

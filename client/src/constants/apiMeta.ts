@@ -17,8 +17,9 @@ export const APPROVAL_LABEL: Record<number, string> = { 0: '즉시실행', 1: '�
 export const RESPONSE_VIEW_TYPE_OPTIONS = [
   { value: 1, label: 'KEY_VALUE' },
   { value: 2, label: 'GRID' },
+  { value: 3, label: 'EDITABLE_GRID' },
 ];
-export const RESPONSE_VIEW_TYPE_LABEL: Record<number, string> = { 1: 'KEY_VALUE', 2: 'GRID' };
+export const RESPONSE_VIEW_TYPE_LABEL: Record<number, string> = { 1: 'KEY_VALUE', 2: 'GRID', 3: 'EDITABLE_GRID' };
 
 export const PARAMETER_TYPE_OPTIONS = [
   { value: 1, label: 'STRING' },

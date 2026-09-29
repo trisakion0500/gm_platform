@@ -85,7 +85,7 @@ BEGIN
         COMMIT;
 
         SELECT 0 AS RESULT;
-        SELECT ae.`api_execution_id`, ae.`api_id`, ae.`api_name`, ae.`endpoint`, ae.`is_required_approval`,
+        SELECT ae.`api_execution_id`, ae.`api_id`, ae.`api_name`, ae.`endpoint`, ae.`is_required_approval`, ae.`is_update_execution`,
                ae.`request_user_id`, ae.`approve_user_id`, ae.`status`,
                ae.`request_json`, ae.`response_data`, ae.`reject_reason`, ae.`error_message`,
                ae.`requested_at`, ae.`approved_at`, ae.`executed_at`, ae.`updated_at`,
@@ -98,7 +98,6 @@ BEGIN
 END$
 
 DELIMITER ;
-
 DROP PROCEDURE IF EXISTS SP_APPROVE_USER;
 DELIMITER $
 CREATE PROCEDURE SP_APPROVE_USER(
@@ -172,7 +171,6 @@ BEGIN
 END$
 
 DELIMITER ;
-
 DROP PROCEDURE IF EXISTS SP_CANCEL_API_EXECUTION;
 DELIMITER $
 CREATE PROCEDURE SP_CANCEL_API_EXECUTION(
@@ -248,7 +246,7 @@ BEGIN
         COMMIT;
 
         SELECT 0 AS RESULT;
-        SELECT `api_execution_id`, `api_id`, `api_name`, `endpoint`, `is_required_approval`,
+        SELECT `api_execution_id`, `api_id`, `api_name`, `endpoint`, `is_required_approval`, `is_update_execution`,
                `request_user_id`, `approve_user_id`, `status`,
                `request_json`, `response_data`, `reject_reason`, `error_message`,
                `requested_at`, `approved_at`, `executed_at`, `updated_at`
@@ -260,7 +258,6 @@ BEGIN
 END$
 
 DELIMITER ;
-
 DROP PROCEDURE IF EXISTS SP_CLEANUP_EXPIRED_SESSIONS;
 DELIMITER $
 CREATE PROCEDURE SP_CLEANUP_EXPIRED_SESSIONS() COMMENT '만료된 세션 삭제 - expired_at이 지난 user_session 행을 status와 무관하게 DELETE'
@@ -309,7 +306,6 @@ BEGIN
 END$
 
 DELIMITER ;
-
 DROP PROCEDURE IF EXISTS SP_CREATE_API;
 DELIMITER $
 CREATE PROCEDURE SP_CREATE_API(
@@ -319,7 +315,8 @@ CREATE PROCEDURE SP_CREATE_API(
     IN  i_endpoint               VARCHAR(500),  -- 서비스 호출 Endpoint
     IN  i_description            VARCHAR(1000), -- API 설명 (NULL 허용)
     IN  i_is_required_approval   TINYINT,       -- 승인 필요 여부 (0:즉시실행, 1:승인필요)
-    IN  i_response_view_type     TINYINT,       -- 응답 표시 방식 (1:KEY_VALUE, 2:GRID)
+    IN  i_response_view_type     TINYINT,       -- 응답 표시 방식 (1:KEY_VALUE, 2:GRID, 3:EDITABLE_GRID)
+    IN  i_update_endpoint        VARCHAR(500),  -- 편집 그리드 저장 시 호출할 Endpoint (response_view_type=3 시 필수)
     IN  i_display_order          INT,           -- 화면 표시 순서
     IN  i_created_by             BIGINT,        -- 생성자 user_id
     IN  i_caller_role_code       INT            -- 생성자 역할 코드 (10=SUPER_ADMIN 외에는 대상 프로젝트 실제 DEVELOPER 권한 재검증)
@@ -336,10 +333,15 @@ BEGIN
 -- 수정 : 2026-08-12 trisakion - api_index_sync_queue INSERT 추가(같은 트랜잭션, ON DUPLICATE KEY UPDATE로
 --        dedup) - RAG Phase 2(API 정의 검색) rag_server 동기화용 아웃박스 큐 적재
 -- 수정 : 2026-08-19 trisakion - 인라인 스코핑 블록을 FN_IS_PROJECT_DEVELOPER() 호출로 공용화(중복 제거)
+-- 수정 : 2026-09-29 trisakion - save_api_id(다른 API를 참조) 대신 update_endpoint(문자열) 도입.
+--        response_view_type=3인데 update_endpoint 미지정이면 30003 — 별도 API 등록 없이 같은 API 정의에
+--        저장용 Endpoint 하나만 추가하면 되도록 단순화(저장 요청 바디는 api_response와 동일 계약이라
+--        별도 api_request/api_response 정의 자체가 불필요하다는 설계 재검토에 따른 변경)
 -- 내용 : API 등록
 --        project 존재 및 활성 검사 (31002)
 --        SUPER_ADMIN 외 대상 프로젝트에 DEVELOPER 활성 권한 없음 → 20001
 --        api_code 프로젝트 내 중복 검사 (32001)
+--        response_view_type=3 시 update_endpoint 필수 (30003)
 --        초기값 : api_stage=20(개발), status=1(사용)
 -- 테이블 적용 순서 : api → api_index_sync_queue
 -- --------------------------------- --
@@ -383,15 +385,20 @@ BEGIN
             LEAVE transaction_block;
         END IF;
 
+        IF i_response_view_type = 3 AND (i_update_endpoint IS NULL OR i_update_endpoint = '') THEN
+            SELECT 30003 AS RESULT;
+            LEAVE transaction_block;
+        END IF;
+
         START TRANSACTION;
 
             INSERT INTO `api` (
                 `project_id`, `api_code`, `api_name`, `endpoint`, `description`,
-                `api_stage`, `is_required_approval`, `response_view_type`,
+                `api_stage`, `is_required_approval`, `response_view_type`, `update_endpoint`,
                 `status`, `display_order`, `created_by`, `updated_by`
             ) VALUES (
                 i_project_id, i_api_code, i_api_name, i_endpoint, i_description,
-                20, i_is_required_approval, i_response_view_type,
+                20, i_is_required_approval, i_response_view_type, IF(i_response_view_type = 3, i_update_endpoint, NULL),
                 1, i_display_order, i_created_by, i_created_by
             );
             SET v_api_id = LAST_INSERT_ID();
@@ -404,7 +411,7 @@ BEGIN
 
         SELECT 0 AS RESULT;
         SELECT `api_id`, `project_id`, `api_code`, `api_name`, `endpoint`, `description`,
-               `api_stage`, `is_required_approval`, `response_view_type`,
+               `api_stage`, `is_required_approval`, `response_view_type`, `update_endpoint`,
                `status`, `display_order`, `created_by`, `updated_by`, `created_at`, `updated_at`
         FROM `api`
         WHERE `api_id` = v_api_id;
@@ -414,7 +421,6 @@ BEGIN
 END$
 
 DELIMITER ;
-
 DROP PROCEDURE IF EXISTS SP_CREATE_API_EXECUTION;
 DELIMITER $
 CREATE PROCEDURE SP_CREATE_API_EXECUTION(
@@ -422,7 +428,8 @@ CREATE PROCEDURE SP_CREATE_API_EXECUTION(
     IN  i_request_user_id   BIGINT,    -- 요청자 user_id
     IN  i_request_json      LONGTEXT,  -- 요청 파라미터 JSON
     IN  i_role_code         INT,       -- 요청자 역할 코드
-    IN  i_company_id        BIGINT     -- 요청자 company_id (접근 검사용)
+    IN  i_company_id        BIGINT,    -- 요청자 company_id (접근 검사용)
+    IN  i_is_update         TINYINT    -- 1이면 api.update_endpoint로 실행(편집 그리드 저장), 0이면 api.endpoint로 일반 실행
 ) COMMENT 'API 실행 생성 - 검증, 스냅샷 저장, 즉시실행 여부 반환'
 BEGIN
 -- --------------------------------- --
@@ -432,13 +439,17 @@ BEGIN
 -- 수정 : 2026-07-17 trisakion - role_code 조회를 FN_GET_PROJECT_ROLE_CODE() 호출로 공용화
 -- 수정 : 2026-08-19 trisakion - 프로젝트 company 접근 검사 인라인 조건을 FN_HAS_COMPANY_ROLE() 호출로
 --        공용화(sp-convention-validator 지적, 다른 SP들만 적용돼 있던 게 이 SP는 누락돼 있었음)
+-- 수정 : 2026-09-29 trisakion - i_is_update 추가. 1이면 response_view_type=3 + update_endpoint 필수(30003)
+--        검증 후 update_endpoint를 endpoint 스냅샷으로 사용 — 편집 그리드 저장 버튼이 같은 api_id를
+--        그대로 호출해 승인/이력/감사 파이프라인을 조회 실행과 동일하게 타도록 함(별도 저장용 API 불필요)
 -- 내용 : API 실행 이력 생성
 --        api 존재·활성 검사 (31006, 30003)
+--        i_is_update=1인데 response_view_type != 3 또는 update_endpoint 없음 (30003)
 --        대상 프로젝트 실제 권한 재검증 (20001, SUPER_ADMIN 제외 — i_role_code는 세션 전역값이라
 --        다른 프로젝트 권한으로 이 프로젝트의 api_stage 게이트를 통과하지 못하도록 user_role을 다시 조회)
 --        api_stage 역할 접근 검사 (20001, 프로젝트 실제 권한 기준)
 --        프로젝트 company 접근 검사 (20001, SUPER_ADMIN 제외)
---        api_name/endpoint 스냅샷 저장
+--        api_name/endpoint(is_update에 따라 endpoint 또는 update_endpoint)/is_update_execution 스냅샷 저장
 --        is_immediate: is_required_approval=0 또는 OPERATOR(40) 아닌 경우 1 (프로젝트 실제 권한 기준)
 -- 테이블 적용 순서 : api_execution
 -- --------------------------------- --
@@ -446,6 +457,9 @@ BEGIN
     DECLARE v_now                   DATETIME      DEFAULT NOW();
     DECLARE v_api_name              VARCHAR(200);
     DECLARE v_endpoint              VARCHAR(500);
+    DECLARE v_update_endpoint       VARCHAR(500);
+    DECLARE v_response_view_type    TINYINT;
+    DECLARE v_target_endpoint       VARCHAR(500);
     DECLARE v_api_stage             TINYINT;
     DECLARE v_is_required_approval  TINYINT;
     DECLARE v_api_status            TINYINT;
@@ -471,9 +485,9 @@ BEGIN
 
     transaction_block: BEGIN
 
-        SELECT a.`api_name`, a.`endpoint`, a.`api_stage`, a.`is_required_approval`,
+        SELECT a.`api_name`, a.`endpoint`, a.`update_endpoint`, a.`response_view_type`, a.`api_stage`, a.`is_required_approval`,
                a.`status`, a.`project_id`, p.`company_id`, p.`api_base_url`, p.`api_key`
-        INTO   v_api_name, v_endpoint, v_api_stage, v_is_required_approval,
+        INTO   v_api_name, v_endpoint, v_update_endpoint, v_response_view_type, v_api_stage, v_is_required_approval,
                v_api_status, v_project_id, v_project_company_id, v_api_base_url, v_api_key
         FROM `api` a
         JOIN `project` p ON p.`project_id` = a.`project_id`
@@ -488,6 +502,13 @@ BEGIN
             SELECT 30003 AS RESULT;
             LEAVE transaction_block;
         END IF;
+
+        IF i_is_update = 1 AND (v_response_view_type != 3 OR v_update_endpoint IS NULL) THEN
+            SELECT 30003 AS RESULT;
+            LEAVE transaction_block;
+        END IF;
+
+        SET v_target_endpoint = IF(i_is_update = 1, v_update_endpoint, v_endpoint);
 
         -- 대상 프로젝트 실제 권한 재검증 — i_role_code(세션 전역 role_code, 가진 프로젝트 중 최고 권한)를
         -- 그대로 신뢰하면 다른 프로젝트의 권한으로 이 프로젝트의 api_stage 게이트를 통과할 수 있다.
@@ -525,17 +546,17 @@ BEGIN
         START TRANSACTION;
 
             INSERT INTO `api_execution` (
-                `api_id`, `api_name`, `endpoint`, `is_required_approval`,
+                `api_id`, `api_name`, `endpoint`, `is_required_approval`, `is_update_execution`,
                 `request_user_id`, `status`, `request_json`, `requested_at`, `updated_at`
             ) VALUES (
-                i_api_id, v_api_name, v_endpoint, v_is_required_approval,
+                i_api_id, v_api_name, v_target_endpoint, v_is_required_approval, i_is_update,
                 i_request_user_id, 10, i_request_json, v_now, v_now
             );
 
         COMMIT;
 
         SELECT 0 AS RESULT;
-        SELECT ae.`api_execution_id`, ae.`api_id`, ae.`api_name`, ae.`endpoint`, ae.`is_required_approval`,
+        SELECT ae.`api_execution_id`, ae.`api_id`, ae.`api_name`, ae.`endpoint`, ae.`is_required_approval`, ae.`is_update_execution`,
                ae.`request_user_id`, ae.`approve_user_id`, ae.`status`,
                ae.`request_json`, ae.`response_data`, ae.`reject_reason`, ae.`error_message`,
                ae.`requested_at`, ae.`approved_at`, ae.`executed_at`, ae.`updated_at`,
@@ -548,7 +569,6 @@ BEGIN
 END$
 
 DELIMITER ;
-
 DROP PROCEDURE IF EXISTS SP_CREATE_API_REQUEST;
 DELIMITER $
 CREATE PROCEDURE SP_CREATE_API_REQUEST(
@@ -674,7 +694,6 @@ BEGIN
 END$
 
 DELIMITER ;
-
 DROP PROCEDURE IF EXISTS SP_CREATE_API_RESPONSE;
 DELIMITER $
 CREATE PROCEDURE SP_CREATE_API_RESPONSE(
@@ -788,7 +807,6 @@ BEGIN
 END$
 
 DELIMITER ;
-
 DROP PROCEDURE IF EXISTS SP_CREATE_CODE_GROUP;
 DELIMITER $
 CREATE PROCEDURE SP_CREATE_CODE_GROUP(
@@ -869,7 +887,6 @@ BEGIN
 END$
 
 DELIMITER ;
-
 DROP PROCEDURE IF EXISTS SP_CREATE_CODE_ITEM;
 DELIMITER $
 CREATE PROCEDURE SP_CREATE_CODE_ITEM(
@@ -956,7 +973,6 @@ BEGIN
 END$
 
 DELIMITER ;
-
 DROP PROCEDURE IF EXISTS SP_CREATE_COMPANY;
 DELIMITER $
 CREATE PROCEDURE SP_CREATE_COMPANY(
@@ -1034,7 +1050,6 @@ BEGIN
 END$
 
 DELIMITER ;
-
 DROP PROCEDURE IF EXISTS SP_CREATE_LOGIN_SESSION;
 DELIMITER $
 CREATE PROCEDURE SP_CREATE_LOGIN_SESSION(
@@ -1093,7 +1108,6 @@ BEGIN
 END$
 
 DELIMITER ;
-
 DROP PROCEDURE IF EXISTS SP_CREATE_PROJECT;
 DELIMITER $
 CREATE PROCEDURE SP_CREATE_PROJECT(
@@ -1183,7 +1197,6 @@ BEGIN
 END$
 
 DELIMITER ;
-
 DROP PROCEDURE IF EXISTS SP_CREATE_USER_ROLE;
 DELIMITER $
 CREATE PROCEDURE SP_CREATE_USER_ROLE(
@@ -1291,7 +1304,6 @@ BEGIN
 END$
 
 DELIMITER ;
-
 DROP PROCEDURE IF EXISTS SP_DELETE_API_INDEX_SYNC;
 DELIMITER $
 CREATE PROCEDURE SP_DELETE_API_INDEX_SYNC(
@@ -1339,20 +1351,21 @@ BEGIN
 END$
 
 DELIMITER ;
-
 DROP PROCEDURE IF EXISTS SP_GET_ACTIVE_APIS;
 DELIMITER $
 CREATE PROCEDURE SP_GET_ACTIVE_APIS(
-    IN  i_project_id        BIGINT,  -- 대상 프로젝트 ID
-    IN  i_caller_role_code  INT,     -- 요청자 역할 코드 (10=SUPER_ADMIN)
-    IN  i_caller_user_id    BIGINT   -- 요청자 user_id (비SUPER_ADMIN 프로젝트 접근 검사)
-) COMMENT '사이드바 API 메뉴용 활성 API 전체 조회 - 페이지네이션 없음'
+    IN  i_project_id            BIGINT,   -- 대상 프로젝트 ID
+    IN  i_caller_role_code      INT,      -- 요청자 역할 코드 (10=SUPER_ADMIN)
+    IN  i_caller_user_id        BIGINT    -- 요청자 user_id (비SUPER_ADMIN 프로젝트 접근 검사)
+) COMMENT '활성 API 전체 조회 - 페이지네이션 없음, 사이드바 실행 메뉴/관리 화면 공용'
 BEGIN
 -- --------------------------------- --
 -- 명칭 : SP_GET_ACTIVE_APIS
 -- 작성 : 2026-07-05 trisakion
 -- 수정 : 2026-07-17 trisakion - EXISTS 인라인 체크를 FN_HAS_PROJECT_ROLE() 호출로 공용화
 -- 수정 : 2026-07-17 trisakion - 미권한 시 빈 목록 대신 20001 반환, 가드절을 최상단으로 이동
+-- 수정 : 2026-09-29 trisakion - i_exclude_save_targets 제거(save_api_id 자체가 update_endpoint 컬럼으로
+--        대체되며 "저장 전용 API" 개념이 사라짐 — 이제 모든 API가 일반 실행 대상)
 -- 내용 : 활성(status=1) API 전체 조회 (페이지네이션 없음)
 --        SUPER_ADMIN(10) : 해당 프로젝트 전체 조회
 --        일반 사용자     : user_role 에 등록된 프로젝트가 아니면 20001
@@ -1378,7 +1391,6 @@ BEGIN
 END$
 
 DELIMITER ;
-
 DROP PROCEDURE IF EXISTS SP_GET_ACTIVE_CODE_GROUPS_WITH_ITEMS;
 DELIMITER $
 CREATE PROCEDURE SP_GET_ACTIVE_CODE_GROUPS_WITH_ITEMS(
@@ -1422,7 +1434,6 @@ BEGIN
 END$
 
 DELIMITER ;
-
 DROP PROCEDURE IF EXISTS SP_GET_ACTIVE_CODE_ITEMS;
 DELIMITER $
 CREATE PROCEDURE SP_GET_ACTIVE_CODE_ITEMS(
@@ -1469,7 +1480,6 @@ BEGIN
 END$
 
 DELIMITER ;
-
 DROP PROCEDURE IF EXISTS SP_GET_ACTIVE_HEADER_DATA;
 DELIMITER $
 CREATE PROCEDURE SP_GET_ACTIVE_HEADER_DATA(
@@ -1507,7 +1517,6 @@ BEGIN
 END$
 
 DELIMITER ;
-
 DROP PROCEDURE IF EXISTS SP_GET_API;
 DELIMITER $
 CREATE PROCEDURE SP_GET_API(
@@ -1521,6 +1530,8 @@ BEGIN
 -- 작성 : 2026-06-30 trisakion
 -- 수정 : 2026-07-17 trisakion - 프로젝트 스코핑 추가 (i_caller_role_code, i_caller_user_id)
 -- 수정 : 2026-07-17 trisakion - EXISTS 인라인 체크를 FN_HAS_PROJECT_ROLE() 호출로 공용화
+-- 수정 : 2026-09-29 trisakion - save_api_id(다른 API 참조) → update_endpoint(문자열)로 전환에 따라
+--        LEFT JOIN 제거, update_endpoint를 그대로 SELECT
 -- 내용 : API 상세 조회
 --        SUPER_ADMIN(10) : 모든 API 조회 가능
 --        그 외           : 본인이 활성 user_role을 가진 프로젝트 소속 API만 조회 가능
@@ -1541,11 +1552,11 @@ BEGIN
 
         SELECT 0 AS RESULT;
 
-        SELECT `api_id`, `project_id`, `api_code`, `api_name`, `endpoint`, `description`,
-               `api_stage`, `is_required_approval`, `response_view_type`,
-               `status`, `display_order`, `created_by`, `updated_by`, `created_at`, `updated_at`
-        FROM `api`
-        WHERE `api_id` = i_api_id;
+        SELECT a.`api_id`, a.`project_id`, a.`api_code`, a.`api_name`, a.`endpoint`, a.`description`,
+               a.`api_stage`, a.`is_required_approval`, a.`response_view_type`, a.`update_endpoint`,
+               a.`status`, a.`display_order`, a.`created_by`, a.`updated_by`, a.`created_at`, a.`updated_at`
+        FROM `api` a
+        WHERE a.`api_id` = i_api_id;
 
         SELECT `api_request_id`, `api_id`, `parameter_name`, `parameter_label`,
                `parameter_type`, `component_type`, `code_group_id`, `is_required`,
@@ -1566,7 +1577,6 @@ BEGIN
 END$
 
 DELIMITER ;
-
 DROP PROCEDURE IF EXISTS SP_GET_API_EXECUTION;
 DELIMITER $
 CREATE PROCEDURE SP_GET_API_EXECUTION(
@@ -1625,7 +1635,7 @@ BEGIN
         END IF;
 
         SELECT 0 AS RESULT;
-        SELECT ae.`api_execution_id`, ae.`api_id`, ae.`api_name`, ae.`endpoint`, ae.`is_required_approval`,
+        SELECT ae.`api_execution_id`, ae.`api_id`, ae.`api_name`, ae.`endpoint`, ae.`is_required_approval`, ae.`is_update_execution`,
                ae.`request_user_id`, u1.`user_name` AS `request_user_name`, u2.`user_name` AS `approve_user_name`, ae.`status`,
                ae.`request_json`, ae.`response_data`, ae.`reject_reason`, ae.`error_message`,
                ae.`requested_at`, ae.`approved_at`, ae.`executed_at`, ae.`updated_at`
@@ -1639,7 +1649,6 @@ BEGIN
 END$
 
 DELIMITER ;
-
 DROP PROCEDURE IF EXISTS SP_GET_API_EXECUTION_LIST;
 DELIMITER $
 CREATE PROCEDURE SP_GET_API_EXECUTION_LIST(
@@ -1687,7 +1696,7 @@ BEGIN
           AND (i_status          IS NULL OR ae.`status`          = i_status)
           AND (i_required_approval_only IS NULL OR ae.`is_required_approval` = i_required_approval_only);
 
-        SELECT ae.`api_execution_id`, ae.`api_id`, ae.`api_name`, ae.`endpoint`, ae.`is_required_approval`,
+        SELECT ae.`api_execution_id`, ae.`api_id`, ae.`api_name`, ae.`endpoint`, ae.`is_required_approval`, ae.`is_update_execution`,
                ae.`request_user_id`, u1.`user_name` AS `request_user_name`, u2.`user_name` AS `approve_user_name`, ae.`status`,
                ae.`reject_reason`, ae.`error_message`,
                ae.`requested_at`, ae.`approved_at`, ae.`executed_at`, ae.`updated_at`
@@ -1708,7 +1717,6 @@ BEGIN
 END$
 
 DELIMITER ;
-
 DROP PROCEDURE IF EXISTS SP_GET_API_EXECUTION_PENDING;
 DELIMITER $
 CREATE PROCEDURE SP_GET_API_EXECUTION_PENDING(
@@ -1748,7 +1756,7 @@ BEGIN
         WHERE a.`project_id` = i_project_id
           AND ae.`status` = 10;
 
-        SELECT ae.`api_execution_id`, ae.`api_id`, ae.`api_name`, ae.`endpoint`, ae.`is_required_approval`,
+        SELECT ae.`api_execution_id`, ae.`api_id`, ae.`api_name`, ae.`endpoint`, ae.`is_required_approval`, ae.`is_update_execution`,
                ae.`request_user_id`, u1.`user_name` AS `request_user_name`, u2.`user_name` AS `approve_user_name`, ae.`status`,
                ae.`reject_reason`, ae.`error_message`,
                ae.`requested_at`, ae.`approved_at`, ae.`executed_at`, ae.`updated_at`
@@ -1766,7 +1774,6 @@ BEGIN
 END$
 
 DELIMITER ;
-
 DROP PROCEDURE IF EXISTS SP_GET_API_LIST;
 DELIMITER $
 CREATE PROCEDURE SP_GET_API_LIST(
@@ -1784,6 +1791,8 @@ BEGIN
 -- 작성 : 2026-06-30 trisakion
 -- 수정 : 2026-07-17 trisakion - EXISTS 인라인 체크를 FN_HAS_PROJECT_ROLE() 호출로 공용화
 -- 수정 : 2026-07-17 trisakion - 미권한 시 빈 목록 대신 20001 반환, 가드절을 최상단으로 이동
+-- 수정 : 2026-09-29 trisakion - save_api_id(다른 API 참조) → update_endpoint(문자열)로 전환에 따라
+--        LEFT JOIN 제거, update_endpoint를 그대로 SELECT
 -- 내용 : API 목록 조회
 --        SUPER_ADMIN(10) : 해당 프로젝트 전체 조회
 --        일반 사용자     : user_role 에 등록된 프로젝트가 아니면 20001
@@ -1809,7 +1818,7 @@ BEGIN
           AND (i_api_stage IS NULL OR a.`api_stage` = i_api_stage);
 
         SELECT a.`api_id`, a.`project_id`, a.`api_code`, a.`api_name`, a.`endpoint`,
-               a.`description`, a.`api_stage`, a.`is_required_approval`, a.`response_view_type`,
+               a.`description`, a.`api_stage`, a.`is_required_approval`, a.`response_view_type`, a.`update_endpoint`,
                a.`status`, a.`display_order`, a.`created_by`, a.`updated_by`, a.`created_at`, a.`updated_at`
         FROM `api` a
         WHERE a.`project_id` = i_project_id
@@ -1823,7 +1832,6 @@ BEGIN
 END$
 
 DELIMITER ;
-
 DROP PROCEDURE IF EXISTS SP_GET_API_REQUEST;
 DELIMITER $
 CREATE PROCEDURE SP_GET_API_REQUEST(
@@ -1868,7 +1876,6 @@ BEGIN
 END$
 
 DELIMITER ;
-
 DROP PROCEDURE IF EXISTS SP_GET_API_RESPONSE;
 DELIMITER $
 CREATE PROCEDURE SP_GET_API_RESPONSE(
@@ -1913,7 +1920,6 @@ BEGIN
 END$
 
 DELIMITER ;
-
 DROP PROCEDURE IF EXISTS SP_GET_CODE_GROUP;
 DELIMITER $
 CREATE PROCEDURE SP_GET_CODE_GROUP(
@@ -1976,7 +1982,6 @@ BEGIN
 END$
 
 DELIMITER ;
-
 DROP PROCEDURE IF EXISTS SP_GET_CODE_GROUP_LIST;
 DELIMITER $
 CREATE PROCEDURE SP_GET_CODE_GROUP_LIST(
@@ -2020,7 +2025,6 @@ BEGIN
 END$
 
 DELIMITER ;
-
 DROP PROCEDURE IF EXISTS SP_GET_CODE_ITEM;
 DELIMITER $
 CREATE PROCEDURE SP_GET_CODE_ITEM(
@@ -2084,7 +2088,6 @@ BEGIN
 END$
 
 DELIMITER ;
-
 DROP PROCEDURE IF EXISTS SP_GET_CODE_ITEM_LIST;
 DELIMITER $
 CREATE PROCEDURE SP_GET_CODE_ITEM_LIST(
@@ -2132,7 +2135,6 @@ BEGIN
 END$
 
 DELIMITER ;
-
 DROP PROCEDURE IF EXISTS SP_GET_COMPANY;
 DELIMITER $
 CREATE PROCEDURE SP_GET_COMPANY(
@@ -2175,7 +2177,6 @@ BEGIN
 END$
 
 DELIMITER ;
-
 DROP PROCEDURE IF EXISTS SP_GET_COMPANY_BY_CODE;
 DELIMITER $
 CREATE PROCEDURE SP_GET_COMPANY_BY_CODE(
@@ -2212,7 +2213,6 @@ BEGIN
 END$
 
 DELIMITER ;
-
 DROP PROCEDURE IF EXISTS SP_GET_COMPANY_LIST;
 DELIMITER $
 CREATE PROCEDURE SP_GET_COMPANY_LIST(
@@ -2255,7 +2255,6 @@ BEGIN
 END$
 
 DELIMITER ;
-
 DROP PROCEDURE IF EXISTS SP_GET_CURRENT_TIME;
 DELIMITER $
 CREATE PROCEDURE SP_GET_CURRENT_TIME() COMMENT 'DB 현재 시간 조회 - 서버 기동 시 DB 연결 확인용'
@@ -2286,7 +2285,6 @@ BEGIN
 END$
 
 DELIMITER ;
-
 DROP PROCEDURE IF EXISTS SP_GET_PASSWORD_HASH_BY_ID;
 DELIMITER $
 CREATE PROCEDURE SP_GET_PASSWORD_HASH_BY_ID(
@@ -2339,7 +2337,6 @@ BEGIN
 END$
 
 DELIMITER ;
-
 DROP PROCEDURE IF EXISTS SP_GET_PENDING_API_INDEX_SYNC;
 DELIMITER $
 CREATE PROCEDURE SP_GET_PENDING_API_INDEX_SYNC(
@@ -2378,7 +2375,6 @@ BEGIN
 END$
 
 DELIMITER ;
-
 DROP PROCEDURE IF EXISTS SP_GET_PROJECT;
 DELIMITER $
 CREATE PROCEDURE SP_GET_PROJECT(
@@ -2426,7 +2422,6 @@ BEGIN
 END$
 
 DELIMITER ;
-
 DROP PROCEDURE IF EXISTS SP_GET_PROJECT_BY_CODE;
 DELIMITER $
 CREATE PROCEDURE SP_GET_PROJECT_BY_CODE(
@@ -2466,7 +2461,6 @@ BEGIN
 END$
 
 DELIMITER ;
-
 DROP PROCEDURE IF EXISTS SP_GET_PROJECT_LIST;
 DELIMITER $
 CREATE PROCEDURE SP_GET_PROJECT_LIST(
@@ -2518,7 +2512,6 @@ BEGIN
 END$
 
 DELIMITER ;
-
 DROP PROCEDURE IF EXISTS SP_GET_SESSION_BY_JTI;
 DELIMITER $
 CREATE PROCEDURE SP_GET_SESSION_BY_JTI(
@@ -2577,7 +2570,6 @@ BEGIN
 END$
 
 DELIMITER ;
-
 DROP PROCEDURE IF EXISTS SP_GET_SESSION_BY_REFRESH;
 DELIMITER $
 CREATE PROCEDURE SP_GET_SESSION_BY_REFRESH(
@@ -2647,7 +2639,6 @@ BEGIN
 END$
 
 DELIMITER ;
-
 DROP PROCEDURE IF EXISTS SP_GET_USER;
 DELIMITER $
 CREATE PROCEDURE SP_GET_USER(
@@ -2708,7 +2699,6 @@ BEGIN
 END$
 
 DELIMITER ;
-
 DROP PROCEDURE IF EXISTS SP_GET_USER_BY_ID;
 DELIMITER $
 CREATE PROCEDURE SP_GET_USER_BY_ID(
@@ -2767,7 +2757,6 @@ BEGIN
 END$
 
 DELIMITER ;
-
 DROP PROCEDURE IF EXISTS SP_GET_USER_BY_LOGIN_ID;
 DELIMITER $
 CREATE PROCEDURE SP_GET_USER_BY_LOGIN_ID(
@@ -2833,7 +2822,6 @@ BEGIN
 END$
 
 DELIMITER ;
-
 DROP PROCEDURE IF EXISTS SP_GET_USER_LIST;
 DELIMITER $
 CREATE PROCEDURE SP_GET_USER_LIST(
@@ -2884,7 +2872,6 @@ BEGIN
 END$
 
 DELIMITER ;
-
 DROP PROCEDURE IF EXISTS SP_GET_USER_ROLE_LIST;
 DELIMITER $
 CREATE PROCEDURE SP_GET_USER_ROLE_LIST(
@@ -2923,7 +2910,6 @@ BEGIN
 END$
 
 DELIMITER ;
-
 DROP PROCEDURE IF EXISTS SP_ISSUE_PROJECT_API_KEY;
 DELIMITER $
 CREATE PROCEDURE SP_ISSUE_PROJECT_API_KEY(
@@ -3012,7 +2998,6 @@ BEGIN
 END$
 
 DELIMITER ;
-
 DROP PROCEDURE IF EXISTS SP_LOCK_ACQUIRE;
 DELIMITER $
 CREATE PROCEDURE SP_LOCK_ACQUIRE(
@@ -3053,7 +3038,6 @@ BEGIN
 END$
 
 DELIMITER ;
-
 DROP PROCEDURE IF EXISTS SP_LOCK_RELEASE;
 DELIMITER $
 CREATE PROCEDURE SP_LOCK_RELEASE(
@@ -3090,7 +3074,6 @@ BEGIN
 END$
 
 DELIMITER ;
-
 DROP PROCEDURE IF EXISTS SP_LOGOUT_ALL_SESSIONS;
 DELIMITER $
 CREATE PROCEDURE SP_LOGOUT_ALL_SESSIONS(
@@ -3136,7 +3119,6 @@ BEGIN
 END$
 
 DELIMITER ;
-
 DROP PROCEDURE IF EXISTS SP_LOGOUT_SESSION;
 DELIMITER $
 CREATE PROCEDURE SP_LOGOUT_SESSION(
@@ -3181,7 +3163,6 @@ BEGIN
 END$
 
 DELIMITER ;
-
 DROP PROCEDURE IF EXISTS SP_MARK_API_INDEX_SYNC_FAILED;
 DELIMITER $
 CREATE PROCEDURE SP_MARK_API_INDEX_SYNC_FAILED(
@@ -3221,7 +3202,6 @@ BEGIN
 END$
 
 DELIMITER ;
-
 DROP PROCEDURE IF EXISTS SP_REJECT_API_EXECUTION;
 DELIMITER $
 CREATE PROCEDURE SP_REJECT_API_EXECUTION(
@@ -3306,7 +3286,7 @@ BEGIN
         COMMIT;
 
         SELECT 0 AS RESULT;
-        SELECT `api_execution_id`, `api_id`, `api_name`, `endpoint`, `is_required_approval`,
+        SELECT `api_execution_id`, `api_id`, `api_name`, `endpoint`, `is_required_approval`, `is_update_execution`,
                `request_user_id`, `approve_user_id`, `status`,
                `request_json`, `response_data`, `reject_reason`, `error_message`,
                `requested_at`, `approved_at`, `executed_at`, `updated_at`
@@ -3318,7 +3298,6 @@ BEGIN
 END$
 
 DELIMITER ;
-
 DROP PROCEDURE IF EXISTS SP_REJECT_USER;
 DELIMITER $
 CREATE PROCEDURE SP_REJECT_USER(
@@ -3392,7 +3371,6 @@ BEGIN
 END$
 
 DELIMITER ;
-
 DROP PROCEDURE IF EXISTS SP_SIGNUP_USER;
 DELIMITER $
 CREATE PROCEDURE SP_SIGNUP_USER(
@@ -3482,7 +3460,6 @@ BEGIN
 END$
 
 DELIMITER ;
-
 DROP PROCEDURE IF EXISTS SP_UPDATE_API;
 DELIMITER $
 CREATE PROCEDURE SP_UPDATE_API(
@@ -3493,7 +3470,8 @@ CREATE PROCEDURE SP_UPDATE_API(
     IN  i_description            VARCHAR(1000), -- 설명 (NULL=변경 없음)
     IN  i_api_stage              TINYINT,       -- 운영 단계 (NULL=변경 없음, 롤백 시 무시됨)
     IN  i_is_required_approval   TINYINT,       -- 승인 필요 여부 (NULL=변경 없음)
-    IN  i_response_view_type     TINYINT,       -- 응답 표시 방식 (NULL=변경 없음)
+    IN  i_response_view_type     TINYINT,       -- 응답 표시 방식 (NULL=변경 없음, 1:KEY_VALUE, 2:GRID, 3:EDITABLE_GRID)
+    IN  i_update_endpoint        VARCHAR(500),  -- 편집 그리드 저장 시 호출할 Endpoint (NULL=변경 없음, response_view_type=3 시 필수)
     IN  i_display_order          INT,           -- 표시 순서 (NULL=변경 없음)
     IN  i_status                 TINYINT,       -- 상태 (NULL=변경 없음)
     IN  i_updated_by             BIGINT,        -- 수정자 user_id
@@ -3510,11 +3488,15 @@ BEGIN
 -- 수정 : 2026-08-12 trisakion - api_index_sync_queue INSERT 추가(같은 트랜잭션, ON DUPLICATE KEY UPDATE로
 --        dedup) - RAG Phase 2(API 정의 검색) rag_server 동기화용 아웃박스 큐 적재
 -- 수정 : 2026-08-19 trisakion - 인라인 스코핑 블록을 FN_IS_PROJECT_DEVELOPER() 호출로 공용화(중복 제거)
+-- 수정 : 2026-09-29 trisakion - save_api_id(다른 API를 참조) 대신 update_endpoint(문자열) 도입. 최종
+--        response_view_type이 3이면 최종 update_endpoint가 있어야 함(30003) — update_endpoint 변경도
+--        endpoint 변경과 동일하게 핵심 동작(어디로 저장되는지) 변경이라 롤백 트리거에 포함
 -- 내용 : API 수정
 --        api 존재 검사 (31006)
 --        SUPER_ADMIN 외 대상 프로젝트에 DEVELOPER 활성 권한 없음 → 20001
 --        api_code 변경 시 프로젝트 내 중복 검사 (32001)
---        롤백 트리거 필드(api_code/endpoint/is_required_approval/response_view_type) 변경 시
+--        최종 response_view_type=3 시 최종 update_endpoint 필수 (30003)
+--        롤백 트리거 필드(api_code/endpoint/is_required_approval/response_view_type/update_endpoint) 변경 시
 --        api_stage 강제 20 (i_api_stage 무시)
 --        NULL 입력 시 기존 값 유지 (COALESCE)
 -- 테이블 적용 순서 : api → api_index_sync_queue
@@ -3526,7 +3508,10 @@ BEGIN
     DECLARE v_old_endpoint            VARCHAR(500);
     DECLARE v_old_is_required_approval TINYINT;
     DECLARE v_old_response_view_type  TINYINT;
+    DECLARE v_old_update_endpoint     VARCHAR(500);
     DECLARE v_old_api_stage           TINYINT;
+    DECLARE v_new_response_view_type  TINYINT;
+    DECLARE v_new_update_endpoint     VARCHAR(500);
     DECLARE v_new_api_stage           TINYINT;
     DECLARE v_do_rollback             TINYINT DEFAULT 0;
 
@@ -3551,8 +3536,8 @@ BEGIN
 
     transaction_block: BEGIN
 
-        SELECT `project_id`, `api_code`, `endpoint`, `is_required_approval`, `response_view_type`, `api_stage`
-        INTO   v_project_id, v_old_api_code, v_old_endpoint, v_old_is_required_approval, v_old_response_view_type, v_old_api_stage
+        SELECT `project_id`, `api_code`, `endpoint`, `is_required_approval`, `response_view_type`, `update_endpoint`, `api_stage`
+        INTO   v_project_id, v_old_api_code, v_old_endpoint, v_old_is_required_approval, v_old_response_view_type, v_old_update_endpoint, v_old_api_stage
         FROM `api`
         WHERE `api_id` = i_api_id;
 
@@ -3574,6 +3559,14 @@ BEGIN
             END IF;
         END IF;
 
+        -- 최종 response_view_type=3 시 최종 update_endpoint 필수
+        SET v_new_response_view_type = COALESCE(i_response_view_type, v_old_response_view_type);
+        SET v_new_update_endpoint    = COALESCE(i_update_endpoint, v_old_update_endpoint);
+        IF v_new_response_view_type = 3 AND (v_new_update_endpoint IS NULL OR v_new_update_endpoint = '') THEN
+            SELECT 30003 AS RESULT;
+            LEAVE transaction_block;
+        END IF;
+
         -- 운영 단계 자동 롤백 판정
         IF (i_api_code IS NOT NULL AND i_api_code != v_old_api_code) THEN
             SET v_do_rollback = 1;
@@ -3585,6 +3578,9 @@ BEGIN
             SET v_do_rollback = 1;
         END IF;
         IF (i_response_view_type IS NOT NULL AND i_response_view_type != v_old_response_view_type) THEN
+            SET v_do_rollback = 1;
+        END IF;
+        IF (i_update_endpoint IS NOT NULL AND i_update_endpoint != IFNULL(v_old_update_endpoint, '')) THEN
             SET v_do_rollback = 1;
         END IF;
 
@@ -3599,7 +3595,8 @@ BEGIN
                 `description`           = COALESCE(i_description,          `description`),
                 `api_stage`             = v_new_api_stage,
                 `is_required_approval`  = COALESCE(i_is_required_approval, `is_required_approval`),
-                `response_view_type`    = COALESCE(i_response_view_type,   `response_view_type`),
+                `response_view_type`    = v_new_response_view_type,
+                `update_endpoint`       = IF(v_new_response_view_type = 3, v_new_update_endpoint, NULL),
                 `display_order`         = COALESCE(i_display_order,        `display_order`),
                 `status`                = COALESCE(i_status,               `status`),
                 `updated_by`            = i_updated_by
@@ -3613,7 +3610,7 @@ BEGIN
 
         SELECT 0 AS RESULT;
         SELECT `api_id`, `project_id`, `api_code`, `api_name`, `endpoint`, `description`,
-               `api_stage`, `is_required_approval`, `response_view_type`,
+               `api_stage`, `is_required_approval`, `response_view_type`, `update_endpoint`,
                `status`, `display_order`, `created_by`, `updated_by`, `created_at`, `updated_at`
         FROM `api`
         WHERE `api_id` = i_api_id;
@@ -3623,7 +3620,6 @@ BEGIN
 END$
 
 DELIMITER ;
-
 DROP PROCEDURE IF EXISTS SP_UPDATE_API_EXECUTION_RESULT;
 DELIMITER $
 CREATE PROCEDURE SP_UPDATE_API_EXECUTION_RESULT(
@@ -3691,7 +3687,6 @@ BEGIN
 END$
 
 DELIMITER ;
-
 DROP PROCEDURE IF EXISTS SP_UPDATE_API_REQUEST;
 DELIMITER $
 CREATE PROCEDURE SP_UPDATE_API_REQUEST(
@@ -3843,7 +3838,6 @@ BEGIN
 END$
 
 DELIMITER ;
-
 DROP PROCEDURE IF EXISTS SP_UPDATE_API_RESPONSE;
 DELIMITER $
 CREATE PROCEDURE SP_UPDATE_API_RESPONSE(
@@ -3983,7 +3977,6 @@ BEGIN
 END$
 
 DELIMITER ;
-
 DROP PROCEDURE IF EXISTS SP_UPDATE_CODE_GROUP;
 DELIMITER $
 CREATE PROCEDURE SP_UPDATE_CODE_GROUP(
@@ -4061,7 +4054,6 @@ BEGIN
 END$
 
 DELIMITER ;
-
 DROP PROCEDURE IF EXISTS SP_UPDATE_CODE_ITEM;
 DELIMITER $
 CREATE PROCEDURE SP_UPDATE_CODE_ITEM(
@@ -4144,7 +4136,6 @@ BEGIN
 END$
 
 DELIMITER ;
-
 DROP PROCEDURE IF EXISTS SP_UPDATE_COMPANY;
 DELIMITER $
 CREATE PROCEDURE SP_UPDATE_COMPANY(
@@ -4232,7 +4223,6 @@ BEGIN
 END$
 
 DELIMITER ;
-
 DROP PROCEDURE IF EXISTS SP_UPDATE_PASSWORD;
 DELIMITER $
 CREATE PROCEDURE SP_UPDATE_PASSWORD(
@@ -4284,7 +4274,6 @@ BEGIN
 END$
 
 DELIMITER ;
-
 DROP PROCEDURE IF EXISTS SP_UPDATE_PROJECT;
 DELIMITER $
 CREATE PROCEDURE SP_UPDATE_PROJECT(
@@ -4384,7 +4373,6 @@ BEGIN
 END$
 
 DELIMITER ;
-
 DROP PROCEDURE IF EXISTS SP_UPDATE_PROJECT_CONNECTION;
 DELIMITER $
 CREATE PROCEDURE SP_UPDATE_PROJECT_CONNECTION(
@@ -4460,7 +4448,6 @@ BEGIN
 END$
 
 DELIMITER ;
-
 DROP PROCEDURE IF EXISTS SP_UPDATE_SESSION_JTI;
 DELIMITER $
 CREATE PROCEDURE SP_UPDATE_SESSION_JTI(
@@ -4523,7 +4510,6 @@ BEGIN
 END$
 
 DELIMITER ;
-
 DROP PROCEDURE IF EXISTS SP_UPDATE_USER;
 DELIMITER $
 CREATE PROCEDURE SP_UPDATE_USER(
@@ -4619,7 +4605,6 @@ BEGIN
 END$
 
 DELIMITER ;
-
 DROP PROCEDURE IF EXISTS SP_UPDATE_USER_ROLE;
 DELIMITER $
 CREATE PROCEDURE SP_UPDATE_USER_ROLE(
@@ -4699,4 +4684,3 @@ BEGIN
 END$
 
 DELIMITER ;
-

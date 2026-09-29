@@ -366,8 +366,10 @@ export interface APIRow {
   api_stage: number;
   /** 승인 필요 여부 (0:즉시 실행, 1:승인 필요) */
   is_required_approval: number;
-  /** 응답 표시 방식 (1:KEY_VALUE, 2:GRID) */
+  /** 응답 표시 방식 (1:KEY_VALUE, 2:GRID, 3:EDITABLE_GRID) */
   response_view_type: number;
+  /** 편집 그리드 저장 시 호출할 Endpoint (response_view_type=3 전용, 그 외 null) */
+  update_endpoint: string | null;
   /** 상태 (1:사용, 0:중지) */
   status: number;
   /** 화면 표시 순서 */
@@ -468,6 +470,8 @@ export interface APIExecutionRow {
   endpoint: string;
   /** 실행 시점 승인 필요 여부 스냅샷 (0:즉시실행, 1:승인필요) */
   is_required_approval: number;
+  /** 저장(업데이트) 호출 여부 (0:조회/일반 실행, 1:편집 그리드 저장) */
+  is_update_execution: number;
   /** 요청자 user_id (취소 버튼 등 본인 여부 판단용) */
   request_user_id: number;
   /** 요청자 이름 */

@@ -142,13 +142,15 @@ ORDER BY status DESC,
 ### 실제 호출 URL 조합
 
 ```text
-project.api_base_url + api.endpoint
+project.api_base_url + (is_update=1 이면 api.update_endpoint, 아니면 api.endpoint)
 
 예시)
 api_base_url = https://game.com/gm-api
 endpoint     = /reward/give
 호출 URL     = https://game.com/gm-api/reward/give
 ```
+
+`is_update=1`(편집 그리드 저장 실행)은 response_view_type=3(EDITABLE_GRID) API에서만 허용되며 `update_endpoint`가 미설정이면 30003을 반환한다.
 
 ---
 
@@ -164,10 +166,11 @@ SUPER_ADMIN, DEVELOPER 가 PATCH /apis/{api_id} 로 api_stage 를 변경한다.
 
 ### 응답 표시 방식
 
-| 값  | 설명      |
-| --- | --------- |
-| 1   | KEY_VALUE |
-| 2   | GRID      |
+| 값  | 설명          |
+| --- | ------------- |
+| 1   | KEY_VALUE     |
+| 2   | GRID          |
+| 3   | EDITABLE_GRID |
 
 ---
 
@@ -279,7 +282,7 @@ API 승인 및 실행 이력
 - 실제 요청 파라미터 전체 저장
 - 승인 프로세스 지원
 - 실행 결과 저장
-- api_name/endpoint/is_required_approval은 실행 시점 값을 스냅샷으로 저장(이후 api 테이블 값이 바뀌어도 과거 이력 판정에 영향 없음)
+- api_name/endpoint/is_required_approval/is_update_execution은 실행 시점 값을 스냅샷으로 저장(이후 api 테이블 값이 바뀌어도 과거 이력 판정에 영향 없음) — endpoint는 is_update_execution 값에 따라 api.endpoint 또는 api.update_endpoint 중 실제 호출된 값이 저장됨
 
 ### 상태
 

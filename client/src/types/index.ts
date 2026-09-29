@@ -150,6 +150,7 @@ export interface ApiRow {
   api_stage: number;
   is_required_approval: number;
   response_view_type: number;
+  update_endpoint: string | null;
   status: number;
   display_order: number;
   created_by: number;
@@ -204,6 +205,7 @@ export interface ApiExecutionRow {
   api_name: string;
   endpoint: string;
   is_required_approval: number;
+  is_update_execution: number;
   request_user_id: number;
   request_user_name: string;
   approve_user_name: string | null;

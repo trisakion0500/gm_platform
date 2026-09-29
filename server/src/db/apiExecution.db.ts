@@ -5,14 +5,15 @@ import logger from '../utils/logger';
 
 /**
  * API 실행 이력을 생성하고 생성된 이력 + HTTP 호출 정보를 반환한다.
- * api 미존재 시 DBError(31006), api 비활성 시 DBError(30003),
- * api_stage 또는 project 접근 불가 시 DBError(20001)를 던진다.
+ * api 미존재 시 DBError(31006), api 비활성 또는(isUpdate=true인데 response_view_type != 3 이거나
+ * update_endpoint 없음) 시 DBError(30003), api_stage 또는 project 접근 불가 시 DBError(20001)를 던진다.
  * @author trisakion
  * @param apiId 실행할 API ID
  * @param requestUserId 요청자 user_id
  * @param requestJson 요청 파라미터 JSON 문자열
  * @param roleCode 요청자 역할 코드
  * @param companyId 요청자 company_id
+ * @param isUpdate true면 api.update_endpoint로 실행(편집 그리드 저장), false면 api.endpoint로 일반 실행
  * @returns 생성된 실행 이력 + api_base_url + api_key(암호문, 미발급 시 null) + is_immediate (1=즉시실행, 0=승인대기)
  */
 export async function createApiExecution(
@@ -21,9 +22,10 @@ export async function createApiExecution(
   requestJson: string,
   roleCode: number,
   companyId: number,
+  isUpdate: boolean,
 ): Promise<APIExecutionRow & { api_base_url: string; api_key: string | null; is_immediate: number }> {
   const [status, [data]] = await callSP('SP_CREATE_API_EXECUTION', [
-    apiId, requestUserId, requestJson, roleCode, companyId,
+    apiId, requestUserId, requestJson, roleCode, companyId, isUpdate ? 1 : 0,
   ]);
   switch (status[0].RESULT) {
     case 31006: throw toDBError(ERROR_MAP.API_NOT_FOUND);

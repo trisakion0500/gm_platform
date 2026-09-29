@@ -1,7 +1,7 @@
 import axiosInstance, { unwrap } from './axios';
 import type { ActiveApi, ApiDetail, ApiExecutionRow, ApiRequestRow, ApiResponseRow, ApiRow, PaginatedResponse } from '../types';
 
-// 사이드바 API 메뉴용 활성 API 전체 조회 (페이지네이션 없음)
+// 활성 API 전체 조회 (페이지네이션 없음).
 export function getActiveApis(projectId: number): Promise<ActiveApi[]> {
   return axiosInstance.get('/apis/active', { params: { project_id: projectId } }).then(unwrap<ActiveApi[]>);
 }
@@ -30,6 +30,7 @@ export interface CreateApiPayload {
   description?: string;
   is_required_approval: number;
   response_view_type: number;
+  update_endpoint?: string | null;
   display_order?: number;
 }
 
@@ -45,6 +46,7 @@ export interface UpdateApiPayload {
   api_stage?: number;
   is_required_approval?: number;
   response_view_type?: number;
+  update_endpoint?: string | null;
   display_order?: number;
   status?: number;
 }
@@ -81,6 +83,6 @@ export function createApiResponse(apiId: number, payload: CreateApiResponsePaylo
   return axiosInstance.post(`/apis/${apiId}/responses`, payload).then(unwrap<ApiResponseRow>);
 }
 
-export function executeApi(apiId: number, requestJson: Record<string, unknown>): Promise<ApiExecutionRow> {
-  return axiosInstance.post(`/apis/${apiId}/execute`, { request_json: requestJson }).then(unwrap<ApiExecutionRow>);
+export function executeApi(apiId: number, requestJson: Record<string, unknown>, isUpdate = false): Promise<ApiExecutionRow> {
+  return axiosInstance.post(`/apis/${apiId}/execute`, { request_json: requestJson, is_update: isUpdate ? 1 : undefined }).then(unwrap<ApiExecutionRow>);
 }

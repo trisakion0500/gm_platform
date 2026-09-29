@@ -705,6 +705,34 @@ Check "API 생성 실패 - 없는 프로젝트 #1" (Req POST /apis @{ project_id
 Check "API 생성 실패 - 없는 프로젝트 #2" (Req POST /apis @{ project_id=99992; api_code="X2_$TS"; api_name="X"; endpoint="/x" } $TOKEN) 31002
 Check "API 생성 실패 - 없는 프로젝트 #3" (Req POST /apis @{ project_id=99993; api_code="X3_$TS"; api_name="X"; endpoint="/x" } $TOKEN) 31002
 
+# response_view_type=3(EDITABLE_GRID) — update_endpoint 필수
+Check "API 생성 실패 - EDITABLE_GRID update_endpoint 누락 #1" (Req POST /apis @{ project_id=$PROJID; api_code="EG1_$TS"; api_name="EG"; endpoint="/x"; response_view_type=3 } $TOKEN) 30003
+Check "API 생성 실패 - EDITABLE_GRID update_endpoint 누락 #2" (Req POST /apis @{ project_id=$PROJID; api_code="EG2_$TS"; api_name="EG"; endpoint="/x"; response_view_type=3 } $TOKEN) 30003
+Check "API 생성 실패 - EDITABLE_GRID update_endpoint 누락 #3" (Req POST /apis @{ project_id=$PROJID; api_code="EG3_$TS"; api_name="EG"; endpoint="/x"; response_view_type=3 } $TOKEN) 30003
+
+$egApi = Check "API 생성 - EDITABLE_GRID #1" (Req POST /apis @{ project_id=$PROJID; api_code="EG7_$TS"; api_name="EG본체"; endpoint="/api/eg1"; response_view_type=3; update_endpoint="/api/eg1-update" } $TOKEN)
+Check "API 생성 - EDITABLE_GRID #2" (Req POST /apis @{ project_id=$PROJID; api_code="EG8_$TS"; api_name="EG본체"; endpoint="/api/eg2"; response_view_type=3; update_endpoint="/api/eg2-update" } $TOKEN)
+Check "API 생성 - EDITABLE_GRID #3" (Req POST /apis @{ project_id=$PROJID; api_code="EG9_$TS"; api_name="EG본체"; endpoint="/api/eg3"; response_view_type=3; update_endpoint="/api/eg3-update" } $TOKEN)
+if ($egApi.data.update_endpoint -ne "/api/eg1-update") { Write-Host "  [FAIL] update_endpoint 미반영 (actual=$($egApi.data.update_endpoint))" -ForegroundColor Red; $script:FAIL++ } else { Write-Host "  [PASS] update_endpoint 반영 확인" -ForegroundColor Green; $script:PASS++ }
+$EGAPIID = $egApi.data.api_id
+
+# 롤백 트리거: update_endpoint 변경 시 api_stage 강제 20 복구
+$rEg1 = Check "EDITABLE_GRID api_stage 40 승급 #1" (Req PATCH /apis/$EGAPIID @{ api_stage=40 } $TOKEN)
+Check         "EDITABLE_GRID api_stage 40 승급 #2" (Req PATCH /apis/$EGAPIID @{ api_stage=40 } $TOKEN)
+Check         "EDITABLE_GRID api_stage 40 승급 #3" (Req PATCH /apis/$EGAPIID @{ api_stage=40 } $TOKEN)
+if ($rEg1.data.api_stage -ne 40) { Write-Host "  [FAIL] EDITABLE_GRID api_stage=40 미반영 (actual=$($rEg1.data.api_stage))" -ForegroundColor Red; $script:FAIL++ } else { Write-Host "  [PASS] EDITABLE_GRID api_stage=40 반영 확인" -ForegroundColor Green; $script:PASS++ }
+
+$rEg2 = Check "api_stage 롤백 (update_endpoint 변경) #1" (Req PATCH /apis/$EGAPIID @{ update_endpoint="/api/eg1-update-v2" } $TOKEN)
+Check         "api_stage 롤백 (update_endpoint 변경) #2" (Req PATCH /apis/$EGAPIID @{ update_endpoint="/api/eg1-update-v2" } $TOKEN)
+Check         "api_stage 롤백 (update_endpoint 변경) #3" (Req PATCH /apis/$EGAPIID @{ update_endpoint="/api/eg1-update-v2" } $TOKEN)
+if ($rEg2.data.api_stage -ne 20) { Write-Host "  [FAIL] update_endpoint 변경 시 api_stage 롤백 미동작 (actual=$($rEg2.data.api_stage))" -ForegroundColor Red; $script:FAIL++ } else { Write-Host "  [PASS] update_endpoint 변경 시 api_stage 롤백 확인" -ForegroundColor Green; $script:PASS++ }
+
+# response_view_type을 3에서 다른 값으로 바꾸면 update_endpoint는 자동으로 NULL 초기화된다
+$rEg3 = Check "response_view_type 3→1 전환 시 update_endpoint 자동 초기화 #1" (Req PATCH /apis/$EGAPIID @{ response_view_type=1 } $TOKEN)
+Check         "response_view_type 3→1 전환 시 update_endpoint 자동 초기화 #2" (Req PATCH /apis/$EGAPIID @{ response_view_type=1 } $TOKEN)
+Check         "response_view_type 3→1 전환 시 update_endpoint 자동 초기화 #3" (Req PATCH /apis/$EGAPIID @{ response_view_type=1 } $TOKEN)
+if ($null -ne $rEg3.data.update_endpoint) { Write-Host "  [FAIL] update_endpoint 자동 초기화 안됨 (actual=$($rEg3.data.update_endpoint))" -ForegroundColor Red; $script:FAIL++ } else { Write-Host "  [PASS] response_view_type 이탈 시 update_endpoint 자동 초기화 확인" -ForegroundColor Green; $script:PASS++ }
+
 $APIID = $a1.data.api_id
 
 Check "API 목록 조회 #1" (Req GET "/apis?project_id=$PROJID&page=1&page_size=20" $null $TOKEN)
@@ -861,6 +889,27 @@ Check "즉시실행 OP  #1" (Req POST /apis/$EAID_IMMED/execute @{ request_json=
 Check "즉시실행 OP  #2" (Req POST /apis/$EAID_IMMED/execute @{ request_json=@{ user_id=1 } } $TOKEN_OP)
 Check "즉시실행 OP  #3" (Req POST /apis/$EAID_IMMED/execute @{ request_json=@{ user_id=1 } } $TOKEN_OP)
 $EX_SA_ID = $ex_sa.data.api_execution_id
+if ($ex_sa.data.is_update_execution -ne 0) { Write-Host "  [FAIL] 일반 실행인데 is_update_execution!=0 (actual=$($ex_sa.data.is_update_execution))" -ForegroundColor Red; $script:FAIL++ } else { Write-Host "  [PASS] 일반 실행 is_update_execution=0 확인" -ForegroundColor Green; $script:PASS++ }
+
+# -------------------------------------------------------
+# Flow A2: EDITABLE_GRID 저장(is_update=1) 실행 — api.endpoint 대신 api.update_endpoint를 호출하고
+# api_execution.is_update_execution=1로 스냅샷된다. update_endpoint를 test_game_server의 실제
+# 엔드포인트(/get-user)로 두어 저장 파이프라인이 실제로 그 URL을 호출하는지까지 검증한다.
+# -------------------------------------------------------
+$egSave = Check "EDITABLE_GRID API 생성(저장 실행 검증용)" (Req POST /apis @{ project_id=$EXEC_PID; api_code="EGSAVE_$TS"; api_name="EG저장검증"; endpoint="/get-user-list"; response_view_type=3; update_endpoint="/get-user" } $TOKEN)
+$EAID_EGSAVE = $egSave.data.api_id
+Check "EDITABLE_GRID 저장검증 API api_stage=40" (Req PATCH /apis/$EAID_EGSAVE @{ api_stage=40 } $TOKEN)
+
+$egEx1 = Check "EDITABLE_GRID 저장 실행(is_update=1) #1" (Req POST /apis/$EAID_EGSAVE/execute @{ request_json=@{ data=@(@{ user_id=1 }) }; is_update=1 } $TOKEN)
+Check          "EDITABLE_GRID 저장 실행(is_update=1) #2" (Req POST /apis/$EAID_EGSAVE/execute @{ request_json=@{ data=@(@{ user_id=1 }) }; is_update=1 } $TOKEN)
+Check          "EDITABLE_GRID 저장 실행(is_update=1) #3" (Req POST /apis/$EAID_EGSAVE/execute @{ request_json=@{ data=@(@{ user_id=1 }) }; is_update=1 } $TOKEN)
+if ($egEx1.data.is_update_execution -ne 1) { Write-Host "  [FAIL] 저장 실행인데 is_update_execution!=1 (actual=$($egEx1.data.is_update_execution))" -ForegroundColor Red; $script:FAIL++ } else { Write-Host "  [PASS] 저장 실행 is_update_execution=1 확인" -ForegroundColor Green; $script:PASS++ }
+if ($egEx1.data.endpoint -ne "/get-user") { Write-Host "  [FAIL] 저장 실행 endpoint 스냅샷이 update_endpoint가 아님 (actual=$($egEx1.data.endpoint))" -ForegroundColor Red; $script:FAIL++ } else { Write-Host "  [PASS] 저장 실행 endpoint=update_endpoint 스냅샷 확인" -ForegroundColor Green; $script:PASS++ }
+
+# is_update=1인데 response_view_type != 3 이면 30003
+Check "저장 실행 실패 - response_view_type!=3 #1" (Req POST /apis/$EAID_IMMED/execute @{ request_json=@{ data=@() }; is_update=1 } $TOKEN) 30003
+Check "저장 실행 실패 - response_view_type!=3 #2" (Req POST /apis/$EAID_IMMED/execute @{ request_json=@{ data=@() }; is_update=1 } $TOKEN) 30003
+Check "저장 실행 실패 - response_view_type!=3 #3" (Req POST /apis/$EAID_IMMED/execute @{ request_json=@{ data=@() }; is_update=1 } $TOKEN) 30003
 
 # -------------------------------------------------------
 # Flow B: api_stage 접근 제어 (api_stage=20 → SA/DEV만 가능)

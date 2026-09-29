@@ -289,7 +289,7 @@ GM-Tool 프론트엔드 화면 목록 및 역할별 접근 권한 정의.
 - **Route:** `/admin/apis/:api_id`
 - **접근:** SUPER_ADMIN, DEVELOPER
 - **주요 기능:** Tabs(기본정보/Request/Response) 구성. 기본정보 조회·수정, Request/Response 파라미터 등록·수정
-- **비고:** 핵심 필드(`api_code`/`endpoint`/`is_required_approval`/`response_view_type`) 수정 시 api_stage 자동 개발(20) 롤백
+- **비고:** 핵심 필드(`api_code`/`endpoint`/`is_required_approval`/`response_view_type`/`update_endpoint`) 수정 시 api_stage 자동 개발(20) 롤백. `response_view_type=3`(EDITABLE_GRID) 선택 시 `update_endpoint`(편집 그리드 저장 시 호출할 Endpoint) 입력 필드가 노출되며 필수 입력
 - **연관 API:**
 
   | Method | Endpoint                         | 설명                                |
@@ -310,7 +310,7 @@ GM-Tool 프론트엔드 화면 목록 및 역할별 접근 권한 정의.
 - **Route:** `/apis`
 - **접근:** SUPER_ADMIN, DEVELOPER, APPROVER, OPERATOR
 - **List/New/Detail 3분할 패턴이 아닌 예외 화면** — 코드그룹(SCR-130)과 마찬가지로 등록·상세를 분리하지 않고, 좌측 사이드바 "API" 메뉴를 펼치면 현재 선택된 프로젝트의 활성 API가 체크박스 목록으로 나타난다(`api_stage`별 실행 가능 역할에 안 맞는 API는 목록에서 아예 숨김 — `14_MENU_PERMISSION.md` §3.2 기준). 체크하면 우측 작업영역에 해당 API 패널이 선택한 순서대로 열리고, 해제(체크 해제 또는 패널의 X 버튼)하면 닫힌다 — 좌측 체크박스와 우측 패널 상태는 항상 동기화.
-- **패널 구성**: API Name(승인 필요 API면 OPERATOR에게만 "승인필요" 태그 표시) → Request(파라미터별 `component_type` 입력 컨트롤 + 실행 버튼) → Response(실행 전엔 필드 정의만, 실행 후엔 `response_view_type`에 따라 KEY_VALUE/GRID로 실제 결과 표시, GRID는 20행 초과 시 스크롤).
+- **패널 구성**: API Name(승인 필요 API면 OPERATOR에게만 "승인필요" 태그 표시) → Request(파라미터별 `component_type` 입력 컨트롤 + 실행 버튼) → Response(실행 전엔 필드 정의만, 실행 후엔 `response_view_type`에 따라 KEY_VALUE/GRID/EDITABLE_GRID로 실제 결과 표시, GRID는 20행 초과 시 스크롤). EDITABLE_GRID(3)는 GRID와 동일하게 표시하되 각 셀이 편집 가능하고 하단에 "저장" 버튼이 있다 — 클릭 시 전체 행(`{ data: [...전체 행] }` 고정 계약)을 `update_endpoint`로 실행 요청(`is_update=1`)한다. 이 저장 실행도 일반 실행과 동일하게 `api_stage`/역할 제한과 승인 파이프라인(`is_required_approval`)을 그대로 따른다.
 - **응답 처리**: 외부 API는 모두 `{ result, message, data: [...] }` 봉투로 응답 — `data`는 항상 배열이며 KEY_VALUE는 `data[0]`, GRID는 `data` 전체를 사용. `result`가 0이 아니면(HTTP 200이어도) 실행이력을 FAILED로 처리하고 `message`를 오류로 표시.
 - **상태 유지**: 열린 패널·입력값·실행결과는 zustand 스토어(`apiWorkspaceStore`)에 보관되어 다른 메뉴로 이동했다 돌아와도 유지되고, 로그아웃 또는 프로젝트 변경 시 초기화됨.
 - **연관 API:**

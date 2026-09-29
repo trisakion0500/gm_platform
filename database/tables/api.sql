@@ -17,7 +17,8 @@ CREATE TABLE `api` (
   `description`				VARCHAR(1000)						DEFAULT NULL											COMMENT 'API 설명',
   `api_stage`				TINYINT		UNSIGNED	NOT NULL	DEFAULT 20												COMMENT 'API 운영 단계 (20:개발, 30:승인, 40:운영)',
   `is_required_approval`	TINYINT		UNSIGNED	NOT NULL	DEFAULT 0												COMMENT '승인 필요 여부 (0:즉시 실행, 1:승인 필요)',
-  `response_view_type`		TINYINT		UNSIGNED	NOT NULL	DEFAULT 1												COMMENT '응답 표시 방식 (1:KEY_VALUE, 2:GRID)',
+  `response_view_type`		TINYINT		UNSIGNED	NOT NULL	DEFAULT 1												COMMENT '응답 표시 방식 (1:KEY_VALUE, 2:GRID, 3:EDITABLE_GRID)',
+  `update_endpoint`		VARCHAR(500)						DEFAULT NULL											COMMENT '편집 그리드 저장 시 호출할 Endpoint(response_view_type=3 전용) - {data:[...전체 행]} 고정 계약으로 실행, api_request 정의와 무관',
   `status`					TINYINT		UNSIGNED	NOT NULL	DEFAULT 1												COMMENT '상태 (1:사용, 0:중지)',
   `display_order`			INT			UNSIGNED	NOT NULL	DEFAULT 0												COMMENT '화면 표시 순서',
   `created_by`				BIGINT		UNSIGNED	NOT NULL															COMMENT '생성자 사용자 ID',
@@ -33,13 +34,13 @@ CREATE TABLE `api` (
   CONSTRAINT `fk_api_created_by` FOREIGN KEY (`created_by`) REFERENCES `user` (`user_id`),
   CONSTRAINT `fk_api_updated_by` FOREIGN KEY (`updated_by`) REFERENCES `user` (`user_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='GM API 정의';
-INSERT INTO `api` (`api_id`, `project_id`, `api_code`, `api_name`, `endpoint`, `description`, `api_stage`, `is_required_approval`, `response_view_type`, `status`, `display_order`, `created_by`, `updated_by`, `created_at`, `updated_at`)
+INSERT INTO `api` (`api_id`, `project_id`, `api_code`, `api_name`, `endpoint`, `description`, `api_stage`, `is_required_approval`, `response_view_type`, `update_endpoint`, `status`, `display_order`, `created_by`, `updated_by`, `created_at`, `updated_at`)
 VALUES
-(1, 2, 'GET_USER', '유저 조회', '/api/get-user', 'user_id로 유저 상세 조회', 40, 0, 1, 1, 1, 1, 1, '2026-07-13 21:51:57', '2026-07-13 22:01:57'),
-(2, 2, 'GET_USER_LIST', '유저 목록 조회', '/api/get-user-list', '닉네임/생성일시/수정일시 조건으로 유저 목록 조회', 40, 0, 2, 1, 2, 1, 1, '2026-07-13 21:51:57', '2026-07-13 22:01:57'),
-(3, 2, 'UPDATE_USER_STATUS', '유저 상태 변경', '/api/update-user-status', '유저 상태를 정상/일시정지/영구정지로 변경', 40, 1, 1, 1, 3, 1, 1, '2026-07-13 21:51:58', '2026-07-13 22:01:57'),
-(4, 2, 'GET_CURRENCY_LIST', '재화 잔액 조회', '/api/get-currency-list', 'user_id로 재화 잔액 목록 조회', 40, 0, 2, 1, 4, 1, 1, '2026-07-13 21:51:58', '2026-07-13 22:01:57'),
-(5, 2, 'GRANT_CURRENCY', '재화 지급/차감', '/api/grant-currency', '유저 재화를 amount만큼 증감 (음수=차감)', 40, 1, 1, 1, 5, 1, 1, '2026-07-13 21:51:58', '2026-07-13 22:01:57'),
-(6, 2, 'GET_CARD_LIST', '보유 카드 조회', '/api/get-card-list', '유저 보유 카드 목록 조회 (카드코드/기간 필터)', 40, 0, 2, 1, 6, 1, 1, '2026-07-13 21:51:58', '2026-07-13 22:01:57'),
-(7, 2, 'GRANT_CARD', '카드 지급', '/api/grant-card', '유저에게 카드를 지급 (기존 보유 시 수량 누적)', 40, 1, 1, 1, 7, 1, 1, '2026-07-13 21:51:58', '2026-07-13 22:01:57');
+(1, 2, 'GET_USER', '유저 조회', '/api/get-user', 'user_id로 유저 상세 조회', 40, 0, 1, NULL, 1, 1, 1, 1, '2026-07-13 21:51:57', '2026-07-13 22:01:57'),
+(2, 2, 'GET_USER_LIST', '유저 목록 조회', '/api/get-user-list', '닉네임/생성일시/수정일시 조건으로 유저 목록 조회', 40, 0, 2, NULL, 1, 2, 1, 1, '2026-07-13 21:51:57', '2026-07-13 22:01:57'),
+(3, 2, 'UPDATE_USER_STATUS', '유저 상태 변경', '/api/update-user-status', '유저 상태를 정상/일시정지/영구정지로 변경', 40, 1, 1, NULL, 1, 3, 1, 1, '2026-07-13 21:51:58', '2026-07-13 22:01:57'),
+(4, 2, 'GET_CURRENCY_LIST', '재화 잔액 조회', '/api/get-currency-list', 'user_id로 재화 잔액 목록 조회', 40, 0, 2, NULL, 1, 4, 1, 1, '2026-07-13 21:51:58', '2026-07-13 22:01:57'),
+(5, 2, 'GRANT_CURRENCY', '재화 지급/차감', '/api/grant-currency', '유저 재화를 amount만큼 증감 (음수=차감)', 40, 1, 1, NULL, 1, 5, 1, 1, '2026-07-13 21:51:58', '2026-07-13 22:01:57'),
+(6, 2, 'GET_CARD_LIST', '보유 카드 조회', '/api/get-card-list', '유저 보유 카드 목록 조회 (카드코드/기간 필터)', 40, 0, 2, NULL, 1, 6, 1, 1, '2026-07-13 21:51:58', '2026-07-13 22:01:57'),
+(7, 2, 'GRANT_CARD', '카드 지급', '/api/grant-card', '유저에게 카드를 지급 (기존 보유 시 수량 누적)', 40, 1, 1, NULL, 1, 7, 1, 1, '2026-07-13 21:51:58', '2026-07-13 22:01:57');
 SET FOREIGN_KEY_CHECKS = 1;

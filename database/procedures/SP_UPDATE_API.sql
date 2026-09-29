@@ -8,7 +8,8 @@ CREATE PROCEDURE SP_UPDATE_API(
     IN  i_description            VARCHAR(1000), -- 설명 (NULL=변경 없음)
     IN  i_api_stage              TINYINT,       -- 운영 단계 (NULL=변경 없음, 롤백 시 무시됨)
     IN  i_is_required_approval   TINYINT,       -- 승인 필요 여부 (NULL=변경 없음)
-    IN  i_response_view_type     TINYINT,       -- 응답 표시 방식 (NULL=변경 없음)
+    IN  i_response_view_type     TINYINT,       -- 응답 표시 방식 (NULL=변경 없음, 1:KEY_VALUE, 2:GRID, 3:EDITABLE_GRID)
+    IN  i_update_endpoint        VARCHAR(500),  -- 편집 그리드 저장 시 호출할 Endpoint (NULL=변경 없음, response_view_type=3 시 필수)
     IN  i_display_order          INT,           -- 표시 순서 (NULL=변경 없음)
     IN  i_status                 TINYINT,       -- 상태 (NULL=변경 없음)
     IN  i_updated_by             BIGINT,        -- 수정자 user_id
@@ -25,11 +26,15 @@ BEGIN
 -- 수정 : 2026-08-12 trisakion - api_index_sync_queue INSERT 추가(같은 트랜잭션, ON DUPLICATE KEY UPDATE로
 --        dedup) - RAG Phase 2(API 정의 검색) rag_server 동기화용 아웃박스 큐 적재
 -- 수정 : 2026-08-19 trisakion - 인라인 스코핑 블록을 FN_IS_PROJECT_DEVELOPER() 호출로 공용화(중복 제거)
+-- 수정 : 2026-09-29 trisakion - save_api_id(다른 API를 참조) 대신 update_endpoint(문자열) 도입. 최종
+--        response_view_type이 3이면 최종 update_endpoint가 있어야 함(30003) — update_endpoint 변경도
+--        endpoint 변경과 동일하게 핵심 동작(어디로 저장되는지) 변경이라 롤백 트리거에 포함
 -- 내용 : API 수정
 --        api 존재 검사 (31006)
 --        SUPER_ADMIN 외 대상 프로젝트에 DEVELOPER 활성 권한 없음 → 20001
 --        api_code 변경 시 프로젝트 내 중복 검사 (32001)
---        롤백 트리거 필드(api_code/endpoint/is_required_approval/response_view_type) 변경 시
+--        최종 response_view_type=3 시 최종 update_endpoint 필수 (30003)
+--        롤백 트리거 필드(api_code/endpoint/is_required_approval/response_view_type/update_endpoint) 변경 시
 --        api_stage 강제 20 (i_api_stage 무시)
 --        NULL 입력 시 기존 값 유지 (COALESCE)
 -- 테이블 적용 순서 : api → api_index_sync_queue
@@ -41,7 +46,10 @@ BEGIN
     DECLARE v_old_endpoint            VARCHAR(500);
     DECLARE v_old_is_required_approval TINYINT;
     DECLARE v_old_response_view_type  TINYINT;
+    DECLARE v_old_update_endpoint     VARCHAR(500);
     DECLARE v_old_api_stage           TINYINT;
+    DECLARE v_new_response_view_type  TINYINT;
+    DECLARE v_new_update_endpoint     VARCHAR(500);
     DECLARE v_new_api_stage           TINYINT;
     DECLARE v_do_rollback             TINYINT DEFAULT 0;
 
@@ -66,8 +74,8 @@ BEGIN
 
     transaction_block: BEGIN
 
-        SELECT `project_id`, `api_code`, `endpoint`, `is_required_approval`, `response_view_type`, `api_stage`
-        INTO   v_project_id, v_old_api_code, v_old_endpoint, v_old_is_required_approval, v_old_response_view_type, v_old_api_stage
+        SELECT `project_id`, `api_code`, `endpoint`, `is_required_approval`, `response_view_type`, `update_endpoint`, `api_stage`
+        INTO   v_project_id, v_old_api_code, v_old_endpoint, v_old_is_required_approval, v_old_response_view_type, v_old_update_endpoint, v_old_api_stage
         FROM `api`
         WHERE `api_id` = i_api_id;
 
@@ -89,6 +97,14 @@ BEGIN
             END IF;
         END IF;
 
+        -- 최종 response_view_type=3 시 최종 update_endpoint 필수
+        SET v_new_response_view_type = COALESCE(i_response_view_type, v_old_response_view_type);
+        SET v_new_update_endpoint    = COALESCE(i_update_endpoint, v_old_update_endpoint);
+        IF v_new_response_view_type = 3 AND (v_new_update_endpoint IS NULL OR v_new_update_endpoint = '') THEN
+            SELECT 30003 AS RESULT;
+            LEAVE transaction_block;
+        END IF;
+
         -- 운영 단계 자동 롤백 판정
         IF (i_api_code IS NOT NULL AND i_api_code != v_old_api_code) THEN
             SET v_do_rollback = 1;
@@ -100,6 +116,9 @@ BEGIN
             SET v_do_rollback = 1;
         END IF;
         IF (i_response_view_type IS NOT NULL AND i_response_view_type != v_old_response_view_type) THEN
+            SET v_do_rollback = 1;
+        END IF;
+        IF (i_update_endpoint IS NOT NULL AND i_update_endpoint != IFNULL(v_old_update_endpoint, '')) THEN
             SET v_do_rollback = 1;
         END IF;
 
@@ -114,7 +133,8 @@ BEGIN
                 `description`           = COALESCE(i_description,          `description`),
                 `api_stage`             = v_new_api_stage,
                 `is_required_approval`  = COALESCE(i_is_required_approval, `is_required_approval`),
-                `response_view_type`    = COALESCE(i_response_view_type,   `response_view_type`),
+                `response_view_type`    = v_new_response_view_type,
+                `update_endpoint`       = IF(v_new_response_view_type = 3, v_new_update_endpoint, NULL),
                 `display_order`         = COALESCE(i_display_order,        `display_order`),
                 `status`                = COALESCE(i_status,               `status`),
                 `updated_by`            = i_updated_by
@@ -128,7 +148,7 @@ BEGIN
 
         SELECT 0 AS RESULT;
         SELECT `api_id`, `project_id`, `api_code`, `api_name`, `endpoint`, `description`,
-               `api_stage`, `is_required_approval`, `response_view_type`,
+               `api_stage`, `is_required_approval`, `response_view_type`, `update_endpoint`,
                `status`, `display_order`, `created_by`, `updated_by`, `created_at`, `updated_at`
         FROM `api`
         WHERE `api_id` = i_api_id;

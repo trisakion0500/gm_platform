@@ -5,7 +5,8 @@ CREATE PROCEDURE SP_CREATE_API_EXECUTION(
     IN  i_request_user_id   BIGINT,    -- 요청자 user_id
     IN  i_request_json      LONGTEXT,  -- 요청 파라미터 JSON
     IN  i_role_code         INT,       -- 요청자 역할 코드
-    IN  i_company_id        BIGINT     -- 요청자 company_id (접근 검사용)
+    IN  i_company_id        BIGINT,    -- 요청자 company_id (접근 검사용)
+    IN  i_is_update         TINYINT    -- 1이면 api.update_endpoint로 실행(편집 그리드 저장), 0이면 api.endpoint로 일반 실행
 ) COMMENT 'API 실행 생성 - 검증, 스냅샷 저장, 즉시실행 여부 반환'
 BEGIN
 -- --------------------------------- --
@@ -15,13 +16,17 @@ BEGIN
 -- 수정 : 2026-07-17 trisakion - role_code 조회를 FN_GET_PROJECT_ROLE_CODE() 호출로 공용화
 -- 수정 : 2026-08-19 trisakion - 프로젝트 company 접근 검사 인라인 조건을 FN_HAS_COMPANY_ROLE() 호출로
 --        공용화(sp-convention-validator 지적, 다른 SP들만 적용돼 있던 게 이 SP는 누락돼 있었음)
+-- 수정 : 2026-09-29 trisakion - i_is_update 추가. 1이면 response_view_type=3 + update_endpoint 필수(30003)
+--        검증 후 update_endpoint를 endpoint 스냅샷으로 사용 — 편집 그리드 저장 버튼이 같은 api_id를
+--        그대로 호출해 승인/이력/감사 파이프라인을 조회 실행과 동일하게 타도록 함(별도 저장용 API 불필요)
 -- 내용 : API 실행 이력 생성
 --        api 존재·활성 검사 (31006, 30003)
+--        i_is_update=1인데 response_view_type != 3 또는 update_endpoint 없음 (30003)
 --        대상 프로젝트 실제 권한 재검증 (20001, SUPER_ADMIN 제외 — i_role_code는 세션 전역값이라
 --        다른 프로젝트 권한으로 이 프로젝트의 api_stage 게이트를 통과하지 못하도록 user_role을 다시 조회)
 --        api_stage 역할 접근 검사 (20001, 프로젝트 실제 권한 기준)
 --        프로젝트 company 접근 검사 (20001, SUPER_ADMIN 제외)
---        api_name/endpoint 스냅샷 저장
+--        api_name/endpoint(is_update에 따라 endpoint 또는 update_endpoint)/is_update_execution 스냅샷 저장
 --        is_immediate: is_required_approval=0 또는 OPERATOR(40) 아닌 경우 1 (프로젝트 실제 권한 기준)
 -- 테이블 적용 순서 : api_execution
 -- --------------------------------- --
@@ -29,6 +34,9 @@ BEGIN
     DECLARE v_now                   DATETIME      DEFAULT NOW();
     DECLARE v_api_name              VARCHAR(200);
     DECLARE v_endpoint              VARCHAR(500);
+    DECLARE v_update_endpoint       VARCHAR(500);
+    DECLARE v_response_view_type    TINYINT;
+    DECLARE v_target_endpoint       VARCHAR(500);
     DECLARE v_api_stage             TINYINT;
     DECLARE v_is_required_approval  TINYINT;
     DECLARE v_api_status            TINYINT;
@@ -54,9 +62,9 @@ BEGIN
 
     transaction_block: BEGIN
 
-        SELECT a.`api_name`, a.`endpoint`, a.`api_stage`, a.`is_required_approval`,
+        SELECT a.`api_name`, a.`endpoint`, a.`update_endpoint`, a.`response_view_type`, a.`api_stage`, a.`is_required_approval`,
                a.`status`, a.`project_id`, p.`company_id`, p.`api_base_url`, p.`api_key`
-        INTO   v_api_name, v_endpoint, v_api_stage, v_is_required_approval,
+        INTO   v_api_name, v_endpoint, v_update_endpoint, v_response_view_type, v_api_stage, v_is_required_approval,
                v_api_status, v_project_id, v_project_company_id, v_api_base_url, v_api_key
         FROM `api` a
         JOIN `project` p ON p.`project_id` = a.`project_id`
@@ -71,6 +79,13 @@ BEGIN
             SELECT 30003 AS RESULT;
             LEAVE transaction_block;
         END IF;
+
+        IF i_is_update = 1 AND (v_response_view_type != 3 OR v_update_endpoint IS NULL) THEN
+            SELECT 30003 AS RESULT;
+            LEAVE transaction_block;
+        END IF;
+
+        SET v_target_endpoint = IF(i_is_update = 1, v_update_endpoint, v_endpoint);
 
         -- 대상 프로젝트 실제 권한 재검증 — i_role_code(세션 전역 role_code, 가진 프로젝트 중 최고 권한)를
         -- 그대로 신뢰하면 다른 프로젝트의 권한으로 이 프로젝트의 api_stage 게이트를 통과할 수 있다.
@@ -108,17 +123,17 @@ BEGIN
         START TRANSACTION;
 
             INSERT INTO `api_execution` (
-                `api_id`, `api_name`, `endpoint`, `is_required_approval`,
+                `api_id`, `api_name`, `endpoint`, `is_required_approval`, `is_update_execution`,
                 `request_user_id`, `status`, `request_json`, `requested_at`, `updated_at`
             ) VALUES (
-                i_api_id, v_api_name, v_endpoint, v_is_required_approval,
+                i_api_id, v_api_name, v_target_endpoint, v_is_required_approval, i_is_update,
                 i_request_user_id, 10, i_request_json, v_now, v_now
             );
 
         COMMIT;
 
         SELECT 0 AS RESULT;
-        SELECT ae.`api_execution_id`, ae.`api_id`, ae.`api_name`, ae.`endpoint`, ae.`is_required_approval`,
+        SELECT ae.`api_execution_id`, ae.`api_id`, ae.`api_name`, ae.`endpoint`, ae.`is_required_approval`, ae.`is_update_execution`,
                ae.`request_user_id`, ae.`approve_user_id`, ae.`status`,
                ae.`request_json`, ae.`response_data`, ae.`reject_reason`, ae.`error_message`,
                ae.`requested_at`, ae.`approved_at`, ae.`executed_at`, ae.`updated_at`,

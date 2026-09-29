@@ -33,7 +33,8 @@ const router = Router();
  *               endpoint:             { type: string, example: /v1/game/give-item }
  *               description:          { type: string, nullable: true, example: null }
  *               is_required_approval: { type: integer, description: '0=즉시실행, 1=승인필요', example: 1 }
- *               response_view_type:   { type: integer, description: '1=KEY_VALUE, 2=GRID', example: 1 }
+ *               response_view_type:   { type: integer, description: '1=KEY_VALUE, 2=GRID, 3=EDITABLE_GRID', example: 1 }
+ *               update_endpoint:      { type: string, nullable: true, description: 'response_view_type=3 시 필수 — 편집 그리드의 저장 버튼이 호출할 Endpoint. {data:[...전체 행]} 고정 계약으로 실행된다', example: null }
  *               display_order:        { type: integer, example: 1 }
  *     responses:
  *       201:
@@ -139,8 +140,9 @@ router.get('/',            authenticate, requireRole(ROLE.SUPER_ADMIN, ROLE.DEVE
  * /apis/active:
  *   get:
  *     tags: [Api]
- *     summary: 사이드바 API 메뉴용 활성 API 전체 조회 (페이지네이션 없음)
- *     description: 프로젝트의 활성(status=1) API 전체를 한 번에 반환한다. 페이지네이션 없이 `api_id`/`api_name`/`api_stage`만 포함.
+ *     summary: 활성 API 전체 조회 (페이지네이션 없음)
+ *     description: |
+ *       프로젝트의 활성(status=1) API 전체를 한 번에 반환한다. 페이지네이션 없이 `api_id`/`api_name`/`api_stage`만 포함.
  *     security:
  *       - bearerAuth: []
  *     x-required-roles: SUPER_ADMIN, DEVELOPER, APPROVER, OPERATOR
@@ -244,7 +246,7 @@ router.get('/:api_id',     authenticate, requireRole(ROLE.SUPER_ADMIN, ROLE.DEVE
  *     description: |
  *       전달한 필드만 업데이트된다. 생략하면 기존 값 유지.
  *
- *       **롤백 트리거**: `api_code`, `endpoint`, `is_required_approval`, `response_view_type` 중 하나라도 변경되면
+ *       **롤백 트리거**: `api_code`, `endpoint`, `is_required_approval`, `response_view_type`, `update_endpoint` 중 하나라도 변경되면
  *       `api_stage`가 강제로 **20(개발)**으로 롤백된다. `i_api_stage` 값을 함께 전달해도 무시된다.
  *     security:
  *       - bearerAuth: []
@@ -266,7 +268,8 @@ router.get('/:api_id',     authenticate, requireRole(ROLE.SUPER_ADMIN, ROLE.DEVE
  *               description:          { type: string, nullable: true, example: null }
  *               api_stage:            { type: integer, description: '20=개발, 30=스테이징, 40=운영', example: 30 }
  *               is_required_approval: { type: integer, description: '0=즉시실행, 1=승인필요', example: 1 }
- *               response_view_type:   { type: integer, description: '1=KEY_VALUE, 2=GRID', example: 1 }
+ *               response_view_type:   { type: integer, description: '1=KEY_VALUE, 2=GRID, 3=EDITABLE_GRID', example: 1 }
+ *               update_endpoint:      { type: string, nullable: true, description: 'response_view_type=3 시 필수 — 편집 그리드의 저장 버튼이 호출할 Endpoint', example: null }
  *               status:               { type: integer, description: '1=사용, 0=중지', example: 1 }
  *               display_order:        { type: integer, example: 1 }
  *     responses:
@@ -414,6 +417,8 @@ router.post('/:api_id/responses', authenticate, requireRole(ROLE.SUPER_ADMIN, RO
  *     description: |
  *       - `is_required_approval = 0` (즉시실행): 바로 게임 서버 API를 호출하고 결과를 반환한다.
  *       - `is_required_approval = 1` (승인필요): 실행 이력이 PENDING 상태로 생성되어 승인자를 기다린다.
+ *       - `is_update = 1`: response_view_type=3(EDITABLE_GRID) 편집 그리드의 저장 버튼 전용 — `api.endpoint`
+ *         대신 `api.update_endpoint`를 호출한다. 같은 api_id를 그대로 재사용해 승인/이력/감사 파이프라인을 공유한다.
  *     security:
  *       - bearerAuth: []
  *     x-required-roles: SUPER_ADMIN, DEVELOPER, APPROVER, OPERATOR
@@ -432,11 +437,15 @@ router.post('/:api_id/responses', authenticate, requireRole(ROLE.SUPER_ADMIN, RO
  *             properties:
  *               request_json:
  *                 type: object
- *                 description: 'API 요청 파라미터를 key-value 형태로 전달. 키는 parameter_name과 일치해야 한다.'
+ *                 description: 'API 요청 파라미터를 key-value 형태로 전달. 키는 parameter_name과 일치해야 한다. is_update=1이면 { data: [...전체 행] } 고정 계약.'
  *                 example:
  *                   character_id: 12345
  *                   item_id: 9001
  *                   quantity: 1
+ *               is_update:
+ *                 type: integer
+ *                 description: '1이면 편집 그리드 저장(api.update_endpoint) 호출, 생략 시 0(일반 실행)'
+ *                 example: 0
  *     responses:
  *       201:
  *         description: 실행 완료(SUCCESS/FAILED) 또는 PENDING 생성 — 실행 이력(api_execution) 전체를 반환한다.

@@ -15,12 +15,15 @@ interface ApiFormValues {
   description?: string;
   is_required_approval: number;
   response_view_type: number;
+  update_endpoint?: string;
   display_order?: number;
 }
 
 function ApiNewPage() {
   const navigate = useNavigate();
   const projectId = useGlobalStore((state) => state.selectedProjectId);
+  const [form] = Form.useForm<ApiFormValues>();
+  const responseViewType = Form.useWatch('response_view_type', form);
   const [submitting, setSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
@@ -30,7 +33,7 @@ function ApiNewPage() {
     setErrorMessage(null);
     setSubmitting(true);
     try {
-      const api = await apiApi.createApi({ ...values, project_id: projectId });
+      const api = await apiApi.createApi({ ...values, update_endpoint: values.update_endpoint ?? null, project_id: projectId });
       navigate(`/admin/apis/${api.api_id}`);
     } catch (err) {
       setErrorMessage(getErrorMessage(err, 'API 등록에 실패했습니다.'));
@@ -54,6 +57,7 @@ function ApiNewPage() {
       <Card style={{ maxWidth: 560 }}>
         {errorMessage && <Alert type="error" message={errorMessage} showIcon style={{ marginBottom: 16 }} />}
         <Form<ApiFormValues>
+          form={form}
           layout="vertical"
           onFinish={handleSubmit}
           disabled={submitting}
@@ -84,6 +88,16 @@ function ApiNewPage() {
           <Form.Item name="response_view_type" label="응답 표시 방식" rules={[{ required: true }]}>
             <Select options={RESPONSE_VIEW_TYPE_OPTIONS} />
           </Form.Item>
+          {responseViewType === 3 && (
+            <Form.Item
+              name="update_endpoint"
+              label="저장 Endpoint"
+              rules={[{ required: true, message: '저장 Endpoint를 입력하세요.' }]}
+              extra="편집 그리드의 저장 버튼이 호출할 Endpoint. { data: [...전체 행] } 고정 계약으로 실행된다"
+            >
+              <Input placeholder="/v1/game/update-user-list" />
+            </Form.Item>
+          )}
           <Form.Item name="display_order" label="표시 순서">
             <InputNumber style={{ width: '100%' }} />
           </Form.Item>

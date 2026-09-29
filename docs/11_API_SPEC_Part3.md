@@ -110,9 +110,12 @@ request_json 은 반드시 저장한다.
 {
   "request_json": {
     "...": "생략"
-  }
+  },
+  "is_update": 0
 }
 ```
+
+`is_update`(선택, 기본 0) — 1이면 response_view_type=3(EDITABLE_GRID) 편집 그리드의 저장 버튼 전용 호출로 처리한다. `api.endpoint` 대신 `api.update_endpoint`를 호출 대상으로 삼으며, response_view_type != 3 이거나 `update_endpoint` 미설정이면 30003을 반환한다. 같은 api_id를 그대로 재사용해 승인/이력/감사 파이프라인을 조회 실행과 동일하게 공유한다(별도 저장 전용 API 등록 불필요).
 
 ---
 
@@ -133,15 +136,16 @@ request_json 은 반드시 저장한다.
 api_name
 endpoint
 is_required_approval
+is_update_execution
 request_json
 ```
 
-`is_required_approval`은 관리자가 API의 승인 필요 여부를 이후에 바꾸더라도 과거 실행 이력의 판정(승인 시나리오를 탔는지)이 흔들리지 않도록 실행 시점 값을 그대로 저장한다.
+`is_required_approval`은 관리자가 API의 승인 필요 여부를 이후에 바꾸더라도 과거 실행 이력의 판정(승인 시나리오를 탔는지)이 흔들리지 않도록 실행 시점 값을 그대로 저장한다. `is_update_execution`은 요청의 `is_update` 값을 그대로 스냅샷한 것으로, 실행 이력의 `endpoint` 컬럼에 `api.endpoint`/`api.update_endpoint` 중 어느 쪽이 담겼는지 구분하는 용도다.
 
 실제 호출 URL 조합
 
 ```text
-project.api_base_url + api.endpoint
+project.api_base_url + (is_update=1이면 api.update_endpoint, 아니면 api.endpoint)
 
 예시)
 api_base_url = https://game.com/gm-api

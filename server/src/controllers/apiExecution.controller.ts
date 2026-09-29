@@ -21,7 +21,7 @@ function formatApiExecution(e: APIExecutionRow) {
 /**
  * POST /apis/:api_id/execute — API 실행 요청 (전체 역할, api_stage 조건 있음)
  * @author trisakion
- * @param req params: { api_id }, body: { request_json }
+ * @param req params: { api_id }, body: { request_json, is_update? } — is_update=1이면 편집 그리드 저장(api.update_endpoint) 호출
  * @param res 201 — 실행 이력 (즉시실행 시 최종 상태, 승인대기 시 PENDING)
  * @param next 오류 전달
  */
@@ -32,7 +32,7 @@ export async function executeApi(req: Request, res: Response, next: NextFunction
       fail(res, ERROR_MAP.INVALID_FORMAT);
       return;
     }
-    const { request_json } = req.body;
+    const { request_json, is_update } = req.body;
     if (request_json === undefined || request_json === null) {
       fail(res, ERROR_MAP.REQUIRED_MISSING);
       return;
@@ -47,6 +47,7 @@ export async function executeApi(req: Request, res: Response, next: NextFunction
       request_json,
       req.user!.role_code,
       req.user!.company_id,
+      is_update === 1 || is_update === true,
     );
     success(res, formatApiExecution(execution), 201);
   } catch (err) {

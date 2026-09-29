@@ -15,6 +15,7 @@ import { redisKeys } from '../config/redis';
  * @param description 설명 (없으면 null)
  * @param isRequiredApproval 승인 필요 여부
  * @param responseViewType 응답 표시 방식
+ * @param updateEndpoint 편집 그리드 저장 시 호출할 Endpoint (response_view_type=3 시 필수, 그 외 null)
  * @param displayOrder 화면 표시 순서
  * @param createdBy 생성자 user_id
  * @param callerRoleCode 생성자 JWT의 전역 role_code (SUPER_ADMIN 외에는 projectId 소속 DEVELOPER 여부를 SP 내부에서 원자적으로 재검증)
@@ -28,11 +29,12 @@ export async function createApi(
   description: string | null,
   isRequiredApproval: number,
   responseViewType: number,
+  updateEndpoint: string | null,
   displayOrder: number,
   createdBy: number,
   callerRoleCode: number,
 ): Promise<APIRow> {
-  const after = await db.createApi(projectId, apiCode, apiName, endpoint, description, isRequiredApproval, responseViewType, displayOrder, createdBy, callerRoleCode);
+  const after = await db.createApi(projectId, apiCode, apiName, endpoint, description, isRequiredApproval, responseViewType, updateEndpoint, displayOrder, createdBy, callerRoleCode);
   audit.logCreateApi(after.project_id, after as unknown as Record<string, unknown>, createdBy);
   return after;
 }
@@ -62,7 +64,7 @@ export async function getApiList(
 }
 
 /**
- * 사이드바 API 메뉴용 활성 API 전체를 조회한다 (페이지네이션 없음).
+ * 활성 API 전체를 조회한다 (페이지네이션 없음).
  * @author trisakion
  * @param projectId 프로젝트 ID
  * @param callerRoleCode 요청자 역할 코드
@@ -111,6 +113,7 @@ export async function getApi(
  * @param apiStage 운영 단계 (null=변경 없음)
  * @param isRequiredApproval 승인 필요 여부 (null=변경 없음)
  * @param responseViewType 응답 표시 방식 (null=변경 없음)
+ * @param updateEndpoint 편집 그리드 저장 시 호출할 Endpoint (null=변경 없음)
  * @param displayOrder 화면 표시 순서 (null=변경 없음)
  * @param status 상태 (null=변경 없음)
  * @param updatedBy 수정자 user_id
@@ -126,6 +129,7 @@ export async function updateApi(
   apiStage: number | null,
   isRequiredApproval: number | null,
   responseViewType: number | null,
+  updateEndpoint: string | null,
   displayOrder: number | null,
   status: number | null,
   updatedBy: number,
@@ -134,7 +138,7 @@ export async function updateApi(
   const beforeResult = await db.getApi(apiId, callerRoleCode, updatedBy);
   if (!beforeResult)
     throw toAppError(ERROR_MAP.API_NOT_FOUND);
-  const after = await db.updateApi(apiId, apiCode, apiName, endpoint, description, apiStage, isRequiredApproval, responseViewType, displayOrder, status, updatedBy, callerRoleCode);
+  const after = await db.updateApi(apiId, apiCode, apiName, endpoint, description, apiStage, isRequiredApproval, responseViewType, updateEndpoint, displayOrder, status, updatedBy, callerRoleCode);
   audit.logUpdateApi(after.project_id,
     beforeResult.api as unknown as Record<string, unknown>,
     after            as unknown as Record<string, unknown>,

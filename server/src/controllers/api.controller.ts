@@ -32,13 +32,13 @@ function formatApiResponse(r: APIResponseRow) {
 /**
  * POST /apis — API 생성 (SUPER_ADMIN, DEVELOPER)
  * @author trisakion
- * @param req body: { project_id, api_code, api_name, endpoint, description?, is_required_approval?, response_view_type?, display_order? }
+ * @param req body: { project_id, api_code, api_name, endpoint, description?, is_required_approval?, response_view_type?, update_endpoint?, display_order? }
  * @param res 201 — 생성된 API 정보
  * @param next 오류 전달
  */
 export async function createApi(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
-    const { project_id, api_code, api_name, endpoint, description, is_required_approval, response_view_type, display_order } = req.body;
+    const { project_id, api_code, api_name, endpoint, description, is_required_approval, response_view_type, update_endpoint, display_order } = req.body;
     if (!project_id || !api_code || !api_name || !endpoint) {
       fail(res, ERROR_MAP.REQUIRED_MISSING);
       return;
@@ -56,6 +56,7 @@ export async function createApi(req: Request, res: Response, next: NextFunction)
       description ?? null,
       is_required_approval ?? 0,
       response_view_type ?? 1,
+      update_endpoint ?? null,
       display_order ?? 0,
       req.user!.user_id,
       req.user!.role_code,
@@ -111,7 +112,7 @@ export async function getApiList(req: Request, res: Response, next: NextFunction
 }
 
 /**
- * GET /apis/active — 사이드바 API 메뉴용 활성 API 전체 조회 (전체 역할, 페이지네이션 없음)
+ * GET /apis/active — 활성 API 전체 조회 (전체 역할, 페이지네이션 없음)
  * @author trisakion
  * @param req query: { project_id }
  * @param res 200 — 활성 API 목록 배열
@@ -164,7 +165,7 @@ export async function getApi(req: Request, res: Response, next: NextFunction): P
 /**
  * PATCH /apis/:api_id — API 수정 (SUPER_ADMIN, DEVELOPER)
  * @author trisakion
- * @param req params: { api_id }, body: { api_code?, api_name?, endpoint?, description?, api_stage?, is_required_approval?, response_view_type?, display_order?, status? }
+ * @param req params: { api_id }, body: { api_code?, api_name?, endpoint?, description?, api_stage?, is_required_approval?, response_view_type?, update_endpoint?, display_order?, status? }
  * @param res 200 — 수정된 API 정보
  * @param next 오류 전달
  */
@@ -175,7 +176,7 @@ export async function updateApi(req: Request, res: Response, next: NextFunction)
       fail(res, ERROR_MAP.INVALID_FORMAT);
       return;
     }
-    const { api_code, api_name, endpoint, description, api_stage, is_required_approval, response_view_type, display_order, status } = req.body;
+    const { api_code, api_name, endpoint, description, api_stage, is_required_approval, response_view_type, update_endpoint, display_order, status } = req.body;
     const api = await apiService.updateApi(
       apiId,
       api_code ?? null,
@@ -185,6 +186,7 @@ export async function updateApi(req: Request, res: Response, next: NextFunction)
       api_stage ?? null,
       is_required_approval ?? null,
       response_view_type ?? null,
+      update_endpoint ?? null,
       display_order ?? null,
       status ?? null,
       req.user!.user_id,

@@ -7,7 +7,8 @@ CREATE PROCEDURE SP_CREATE_API(
     IN  i_endpoint               VARCHAR(500),  -- 서비스 호출 Endpoint
     IN  i_description            VARCHAR(1000), -- API 설명 (NULL 허용)
     IN  i_is_required_approval   TINYINT,       -- 승인 필요 여부 (0:즉시실행, 1:승인필요)
-    IN  i_response_view_type     TINYINT,       -- 응답 표시 방식 (1:KEY_VALUE, 2:GRID)
+    IN  i_response_view_type     TINYINT,       -- 응답 표시 방식 (1:KEY_VALUE, 2:GRID, 3:EDITABLE_GRID)
+    IN  i_update_endpoint        VARCHAR(500),  -- 편집 그리드 저장 시 호출할 Endpoint (response_view_type=3 시 필수)
     IN  i_display_order          INT,           -- 화면 표시 순서
     IN  i_created_by             BIGINT,        -- 생성자 user_id
     IN  i_caller_role_code       INT            -- 생성자 역할 코드 (10=SUPER_ADMIN 외에는 대상 프로젝트 실제 DEVELOPER 권한 재검증)
@@ -24,10 +25,15 @@ BEGIN
 -- 수정 : 2026-08-12 trisakion - api_index_sync_queue INSERT 추가(같은 트랜잭션, ON DUPLICATE KEY UPDATE로
 --        dedup) - RAG Phase 2(API 정의 검색) rag_server 동기화용 아웃박스 큐 적재
 -- 수정 : 2026-08-19 trisakion - 인라인 스코핑 블록을 FN_IS_PROJECT_DEVELOPER() 호출로 공용화(중복 제거)
+-- 수정 : 2026-09-29 trisakion - save_api_id(다른 API를 참조) 대신 update_endpoint(문자열) 도입.
+--        response_view_type=3인데 update_endpoint 미지정이면 30003 — 별도 API 등록 없이 같은 API 정의에
+--        저장용 Endpoint 하나만 추가하면 되도록 단순화(저장 요청 바디는 api_response와 동일 계약이라
+--        별도 api_request/api_response 정의 자체가 불필요하다는 설계 재검토에 따른 변경)
 -- 내용 : API 등록
 --        project 존재 및 활성 검사 (31002)
 --        SUPER_ADMIN 외 대상 프로젝트에 DEVELOPER 활성 권한 없음 → 20001
 --        api_code 프로젝트 내 중복 검사 (32001)
+--        response_view_type=3 시 update_endpoint 필수 (30003)
 --        초기값 : api_stage=20(개발), status=1(사용)
 -- 테이블 적용 순서 : api → api_index_sync_queue
 -- --------------------------------- --
@@ -71,15 +77,20 @@ BEGIN
             LEAVE transaction_block;
         END IF;
 
+        IF i_response_view_type = 3 AND (i_update_endpoint IS NULL OR i_update_endpoint = '') THEN
+            SELECT 30003 AS RESULT;
+            LEAVE transaction_block;
+        END IF;
+
         START TRANSACTION;
 
             INSERT INTO `api` (
                 `project_id`, `api_code`, `api_name`, `endpoint`, `description`,
-                `api_stage`, `is_required_approval`, `response_view_type`,
+                `api_stage`, `is_required_approval`, `response_view_type`, `update_endpoint`,
                 `status`, `display_order`, `created_by`, `updated_by`
             ) VALUES (
                 i_project_id, i_api_code, i_api_name, i_endpoint, i_description,
-                20, i_is_required_approval, i_response_view_type,
+                20, i_is_required_approval, i_response_view_type, IF(i_response_view_type = 3, i_update_endpoint, NULL),
                 1, i_display_order, i_created_by, i_created_by
             );
             SET v_api_id = LAST_INSERT_ID();
@@ -92,7 +103,7 @@ BEGIN
 
         SELECT 0 AS RESULT;
         SELECT `api_id`, `project_id`, `api_code`, `api_name`, `endpoint`, `description`,
-               `api_stage`, `is_required_approval`, `response_view_type`,
+               `api_stage`, `is_required_approval`, `response_view_type`, `update_endpoint`,
                `status`, `display_order`, `created_by`, `updated_by`, `created_at`, `updated_at`
         FROM `api`
         WHERE `api_id` = v_api_id;

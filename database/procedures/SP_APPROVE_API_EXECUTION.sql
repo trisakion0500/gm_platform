@@ -85,7 +85,7 @@ BEGIN
         COMMIT;
 
         SELECT 0 AS RESULT;
-        SELECT ae.`api_execution_id`, ae.`api_id`, ae.`api_name`, ae.`endpoint`, ae.`is_required_approval`,
+        SELECT ae.`api_execution_id`, ae.`api_id`, ae.`api_name`, ae.`endpoint`, ae.`is_required_approval`, ae.`is_update_execution`,
                ae.`request_user_id`, ae.`approve_user_id`, ae.`status`,
                ae.`request_json`, ae.`response_data`, ae.`reject_reason`, ae.`error_message`,
                ae.`requested_at`, ae.`approved_at`, ae.`executed_at`, ae.`updated_at`,

@@ -41,6 +41,7 @@ POST /apis
 - api_name 필수
 - endpoint 필수
 - project_id + api_code 중복 불가
+- response_view_type=3(EDITABLE_GRID) 시 update_endpoint 필수(30003)
 
 ### Initial Value
 
@@ -197,6 +198,7 @@ description
 api_stage
 is_required_approval
 response_view_type
+update_endpoint
 display_order
 status
 ```
@@ -234,6 +236,7 @@ api_code
 endpoint
 is_required_approval
 response_view_type
+update_endpoint
 ```
 
 아래 컬럼 변경 시에는 api_stage 유지
@@ -545,10 +548,11 @@ api_stage 유지
 
 # 6. Response View Type
 
-| Value | Description |
-| ----- | ----------- |
-| 1     | KEY_VALUE   |
-| 2     | GRID        |
+| Value | Description   |
+| ----- | ------------- |
+| 1     | KEY_VALUE     |
+| 2     | GRID          |
+| 3     | EDITABLE_GRID |
 
 ---
 

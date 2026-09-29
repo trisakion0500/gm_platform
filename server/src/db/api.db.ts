@@ -4,7 +4,8 @@ import { toDBError, ERROR_MAP } from '../constants/errors';
 
 /**
  * API를 생성하고 생성된 API 정보를 반환한다.
- * project 미존재 시 DBError(31002), api_code 중복 시 DBError(32001)를 던진다.
+ * project 미존재 시 DBError(31002), api_code 중복 시 DBError(32001),
+ * response_view_type=3인데 update_endpoint 미지정 시 DBError(30003)를 던진다.
  * @author trisakion
  * @param projectId 소속 프로젝트 ID
  * @param apiCode API 고유 코드
@@ -12,7 +13,8 @@ import { toDBError, ERROR_MAP } from '../constants/errors';
  * @param endpoint 서비스 호출 Endpoint
  * @param description 설명 (없으면 null)
  * @param isRequiredApproval 승인 필요 여부 (0:즉시실행, 1:승인필요)
- * @param responseViewType 응답 표시 방식 (1:KEY_VALUE, 2:GRID)
+ * @param responseViewType 응답 표시 방식 (1:KEY_VALUE, 2:GRID, 3:EDITABLE_GRID)
+ * @param updateEndpoint 편집 그리드 저장 시 호출할 Endpoint (response_view_type=3 시 필수, 그 외 null)
  * @param displayOrder 화면 표시 순서
  * @param createdBy 생성자 user_id
  * @param callerRoleCode 생성자 역할 코드 (SUPER_ADMIN 외에는 SP 내부에서 대상 프로젝트 실제 DEVELOPER 권한을 원자적으로 재검증)
@@ -26,18 +28,20 @@ export async function createApi(
   description: string | null,
   isRequiredApproval: number,
   responseViewType: number,
+  updateEndpoint: string | null,
   displayOrder: number,
   createdBy: number,
   callerRoleCode: number,
 ): Promise<APIRow> {
   const [status, [data]] = await callSP('SP_CREATE_API', [
     projectId, apiCode, apiName, endpoint, description,
-    isRequiredApproval, responseViewType, displayOrder, createdBy, callerRoleCode,
+    isRequiredApproval, responseViewType, updateEndpoint, displayOrder, createdBy, callerRoleCode,
   ]);
   switch (status[0].RESULT) {
     case 31002: throw toDBError(ERROR_MAP.PROJECT_NOT_FOUND);
     case 20001: throw toDBError(ERROR_MAP.FORBIDDEN);
     case 32001: throw toDBError(ERROR_MAP.DUPLICATE_VALUE);
+    case 30003: throw toDBError(ERROR_MAP.INVALID_VALUE);
   }
   return data[0] as unknown as APIRow;
 }
@@ -76,7 +80,7 @@ export async function getApiList(
 }
 
 /**
- * 사이드바 API 메뉴용 활성 API 전체를 조회한다 (페이지네이션 없음).
+ * 활성 API 전체를 조회한다 (페이지네이션 없음).
  * SUPER_ADMIN은 전체, 일반 사용자는 권한 있는 프로젝트만 조회 가능하다. 미권한 시 DBError(20001)를 던진다.
  * @author trisakion
  * @param projectId 프로젝트 ID
@@ -122,7 +126,8 @@ export async function getApi(
 
 /**
  * API 정보를 수정하고 수정된 API 정보를 반환한다.
- * 미존재 시 DBError(31006), api_code 중복 시 DBError(32001)를 던진다.
+ * 미존재 시 DBError(31006), api_code 중복 시 DBError(32001),
+ * 최종 response_view_type=3인데 최종 update_endpoint가 없으면 DBError(30003)를 던진다.
  * @author trisakion
  * @param apiId 수정할 API ID
  * @param apiCode API 고유 코드 (null=변경 없음)
@@ -131,7 +136,8 @@ export async function getApi(
  * @param description 설명 (null=변경 없음)
  * @param apiStage 운영 단계 (null=변경 없음, 롤백 트리거 시 무시됨)
  * @param isRequiredApproval 승인 필요 여부 (null=변경 없음)
- * @param responseViewType 응답 표시 방식 (null=변경 없음)
+ * @param responseViewType 응답 표시 방식 (null=변경 없음, 1:KEY_VALUE, 2:GRID, 3:EDITABLE_GRID)
+ * @param updateEndpoint 편집 그리드 저장 시 호출할 Endpoint (null=변경 없음)
  * @param displayOrder 화면 표시 순서 (null=변경 없음)
  * @param status 상태 (null=변경 없음)
  * @param updatedBy 수정자 user_id
@@ -147,6 +153,7 @@ export async function updateApi(
   apiStage: number | null,
   isRequiredApproval: number | null,
   responseViewType: number | null,
+  updateEndpoint: string | null,
   displayOrder: number | null,
   status: number | null,
   updatedBy: number,
@@ -154,12 +161,13 @@ export async function updateApi(
 ): Promise<APIRow> {
   const [spStatus, [data]] = await callSP('SP_UPDATE_API', [
     apiId, apiCode, apiName, endpoint, description,
-    apiStage, isRequiredApproval, responseViewType, displayOrder, status, updatedBy, callerRoleCode,
+    apiStage, isRequiredApproval, responseViewType, updateEndpoint, displayOrder, status, updatedBy, callerRoleCode,
   ]);
   switch (spStatus[0].RESULT) {
     case 31006: throw toDBError(ERROR_MAP.API_NOT_FOUND);
     case 20001: throw toDBError(ERROR_MAP.FORBIDDEN);
     case 32001: throw toDBError(ERROR_MAP.DUPLICATE_VALUE);
+    case 30003: throw toDBError(ERROR_MAP.INVALID_VALUE);
   }
   return data[0] as unknown as APIRow;
 }

@@ -11,6 +11,8 @@ BEGIN
 -- 작성 : 2026-06-30 trisakion
 -- 수정 : 2026-07-17 trisakion - 프로젝트 스코핑 추가 (i_caller_role_code, i_caller_user_id)
 -- 수정 : 2026-07-17 trisakion - EXISTS 인라인 체크를 FN_HAS_PROJECT_ROLE() 호출로 공용화
+-- 수정 : 2026-09-29 trisakion - save_api_id(다른 API 참조) → update_endpoint(문자열)로 전환에 따라
+--        LEFT JOIN 제거, update_endpoint를 그대로 SELECT
 -- 내용 : API 상세 조회
 --        SUPER_ADMIN(10) : 모든 API 조회 가능
 --        그 외           : 본인이 활성 user_role을 가진 프로젝트 소속 API만 조회 가능
@@ -31,11 +33,11 @@ BEGIN
 
         SELECT 0 AS RESULT;
 
-        SELECT `api_id`, `project_id`, `api_code`, `api_name`, `endpoint`, `description`,
-               `api_stage`, `is_required_approval`, `response_view_type`,
-               `status`, `display_order`, `created_by`, `updated_by`, `created_at`, `updated_at`
-        FROM `api`
-        WHERE `api_id` = i_api_id;
+        SELECT a.`api_id`, a.`project_id`, a.`api_code`, a.`api_name`, a.`endpoint`, a.`description`,
+               a.`api_stage`, a.`is_required_approval`, a.`response_view_type`, a.`update_endpoint`,
+               a.`status`, a.`display_order`, a.`created_by`, a.`updated_by`, a.`created_at`, a.`updated_at`
+        FROM `api` a
+        WHERE a.`api_id` = i_api_id;
 
         SELECT `api_request_id`, `api_id`, `parameter_name`, `parameter_label`,
                `parameter_type`, `component_type`, `code_group_id`, `is_required`,

@@ -80,6 +80,7 @@ erDiagram
         TINYINT     api_stage
         TINYINT     is_required_approval
         TINYINT     response_view_type
+        VARCHAR500  update_endpoint
         TINYINT     status
         INT         display_order
         BIGINT      created_by              FK
@@ -128,6 +129,7 @@ erDiagram
         VARCHAR200   api_name            "스냅샷"
         VARCHAR500   endpoint            "스냅샷"
         TINYINT      is_required_approval "스냅샷"
+        TINYINT      is_update_execution "스냅샷(저장 실행 여부)"
         BIGINT       request_user_id     FK
         BIGINT       approve_user_id     FK "NULL허용"
         TINYINT      status
@@ -232,8 +234,9 @@ erDiagram
 | 컬럼 | 원본 |
 |------|------|
 | `api_name` | `api.api_name` |
-| `endpoint` | `api.endpoint` |
+| `endpoint` | `is_update_execution=0`이면 `api.endpoint`, `1`이면 `api.update_endpoint` |
 | `is_required_approval` | `api.is_required_approval` |
+| `is_update_execution` | 실행 시점의 `is_update` 요청값(0:조회/일반 실행, 1:편집 그리드 저장) |
 
 `api_base_url` 은 스냅샷 저장하지 않으며 호출 시점의 `project.api_base_url` 을 사용한다.
 
