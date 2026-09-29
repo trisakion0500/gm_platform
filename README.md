@@ -127,6 +127,10 @@
 | 폼        | Ant Design Form       |
 | 상태 관리 | Zustand               |
 | HTTP      | Axios                 |
+| 엑셀 내보내기 | xlsx (SheetJS)     |
+
+> **`xlsx` 패키지의 미패치 취약점**
+> npm에 배포된 `xlsx@0.18.5`는 Prototype Pollution·ReDoS High 취약점 2건이 패치 없이 남아있다(SheetJS 패치 버전은 npm이 아닌 자체 CDN에만 배포). 두 취약점 모두 악성 파일을 파싱(읽기)할 때 발동하는데, 이 프로젝트는 편집 그리드 데이터를 엑셀 파일로 쓰기(export)만 하고 외부 파일을 파싱하지 않아 해당 공격 표면이 없다고 판단해 npm 공식 버전을 그대로 사용했다.
 
 **MCP 서버** (`mcp_server_dev/`, `mcp_server_pc/`)
 

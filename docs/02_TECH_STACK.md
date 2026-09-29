@@ -27,6 +27,9 @@
 | 폼 상태 관리  | Ant Design Form (antd `Form`, 일부 컴포넌트는 react-hook-form) |
 | 상태 관리     | Zustand               |
 | HTTP          | Axios                 |
+| 엑셀 내보내기 | xlsx (SheetJS) — 편집 그리드(EDITABLE_GRID) 다운로드 전용 |
+
+> **`xlsx` 패키지의 미패치 취약점** — npm에 배포된 `xlsx@0.18.5`는 Prototype Pollution·ReDoS High 취약점 2건이 패치 없이 남아있다(SheetJS 패치 버전은 npm이 아닌 자체 CDN에만 배포). 두 취약점 모두 악성 스프레드시트를 파싱(읽기)할 때 발동하는데, 이 프로젝트는 그리드 데이터를 쓰기(export)만 하고 외부 파일을 파싱하지 않아 공격 표면에 해당하지 않는다고 판단해 npm 공식 버전을 그대로 채택했다.
 
 ---
 

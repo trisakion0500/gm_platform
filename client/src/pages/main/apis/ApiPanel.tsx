@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import { Alert, Button, Card, Checkbox, DatePicker, Descriptions, Form, Input, InputNumber, Radio, Select, Space, Table, Tag, Typography } from 'antd';
-import { CloseOutlined } from '@ant-design/icons';
+import { CloseOutlined, DeleteOutlined, DownloadOutlined, PlusOutlined } from '@ant-design/icons';
 import dayjs, { type Dayjs } from 'dayjs';
+import * as XLSX from 'xlsx';
 import * as apiApi from '../../../api/api.api';
 import { useApiWorkspaceStore } from '../../../stores/apiWorkspaceStore';
 import { useAuthStore } from '../../../stores/authStore';
@@ -122,6 +123,15 @@ interface EditableGridRow {
   _error?: string;
 }
 
+// "행 추가" 클릭 시 삽입되는 빈 행 — JSON은 저장 시 파싱 검증 대상이라 빈 문자열, 그 외는 NULL 취급으로 비워둔다.
+function createEmptyRow(responses: ApiResponseRow[]): EditableGridRow {
+  const values: Record<string, unknown> = {};
+  responses.forEach((r) => {
+    values[r.parameter_name] = r.parameter_type === 6 ? '' : undefined;
+  });
+  return { _key: crypto.randomUUID(), values };
+}
+
 // api_response.parameter_type/code_group_id에 따른 편집용 초기값 변환 — DATE/DATETIME은 DatePicker가
 // 다루는 Dayjs로, JSON은 원문 텍스트로(저장 시 파싱 검증), 그 외는 raw 값 그대로 둔다.
 function toEditableGridRows(rows: Record<string, unknown>[], responses: ApiResponseRow[]): EditableGridRow[] {
@@ -164,6 +174,7 @@ function renderEditableCell(r: ApiResponseRow, value: unknown, onChange: (v: unk
 
 interface EditableGridResponseViewProps {
   apiId: number;
+  apiName: string;
   responses: ApiResponseRow[];
   data: unknown;
   codeGroupMap: Record<number, ActiveCodeGroupWithItems>;
@@ -171,7 +182,7 @@ interface EditableGridResponseViewProps {
 
 // response_view_type=3 전용 — 실행 결과를 편집 가능한 그리드로 보여주고, 저장 버튼 클릭 시
 // 같은 api_id를 is_update=1로 실행해 api.update_endpoint를 { data: [...전체 행] } 계약으로 호출한다.
-function EditableGridResponseView({ apiId, responses, data, codeGroupMap }: EditableGridResponseViewProps) {
+function EditableGridResponseView({ apiId, apiName, responses, data, codeGroupMap }: EditableGridResponseViewProps) {
   const [rows, setRows] = useState<EditableGridRow[]>(() => toEditableGridRows(unwrapDataArray(data), responses));
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
@@ -234,15 +245,51 @@ function EditableGridResponseView({ apiId, responses, data, codeGroupMap }: Edit
     }
   }
 
+  function handleDownloadExcel(): void {
+    const header = responses.map((r) => r.parameter_label);
+    const body = rows.map((row) =>
+      responses.map((r) => {
+        const v = row.values[r.parameter_name];
+        if (r.parameter_type === 4 && v)
+          return (v as Dayjs).format('YYYY-MM-DD');
+        if (r.parameter_type === 5 && v)
+          return (v as Dayjs).format('YYYY-MM-DD HH:mm:ss');
+        return v ?? '';
+      }),
+    );
+    const worksheet = XLSX.utils.aoa_to_sheet([header, ...body]);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Sheet1');
+    XLSX.writeFile(workbook, `${apiName}.xlsx`);
+  }
+
   if (responses.length === 0)
     return <pre style={{ margin: 0, background: '#fafafa', padding: 8 }}>{JSON.stringify(data, null, 2)}</pre>;
 
-  const columns = responses.map((r) => ({
-    title: r.parameter_label,
-    key: r.parameter_name,
-    render: (_: unknown, record: EditableGridRow) =>
-      renderEditableCell(r, record.values[r.parameter_name], (v) => updateCell(record._key, r.parameter_name, v), codeGroupMap),
-  }));
+  const columns = [
+    ...responses.map((r) => ({
+      title: r.parameter_label,
+      key: r.parameter_name,
+      render: (_: unknown, record: EditableGridRow) =>
+        renderEditableCell(r, record.values[r.parameter_name], (v) => updateCell(record._key, r.parameter_name, v), codeGroupMap),
+    })),
+    {
+      title: '',
+      key: '_actions',
+      width: 40,
+      render: (_: unknown, record: EditableGridRow) => (
+        <Button
+          type="text"
+          danger
+          size="small"
+          icon={<DeleteOutlined />}
+          aria-label="행 삭제"
+          title="행 삭제"
+          onClick={() => setRows((prev) => prev.filter((r) => r._key !== record._key))}
+        />
+      ),
+    },
+  ];
 
   return (
     <div>
@@ -261,6 +308,8 @@ function EditableGridResponseView({ apiId, responses, data, codeGroupMap }: Edit
         rowClassName={(r) => (r._error ? 'editable-row-error' : '')}
         scroll={rows.length > 20 ? { y: 400 } : undefined}
       />
+      <Button icon={<PlusOutlined />} onClick={() => setRows((prev) => [...prev, createEmptyRow(responses)])} style={{ marginTop: 8, marginRight: 8 }}>행 추가</Button>
+      <Button icon={<DownloadOutlined />} onClick={handleDownloadExcel} style={{ marginTop: 8, marginRight: 8 }}>엑셀 다운로드</Button>
       <Button type="primary" onClick={handleSave} loading={saving} style={{ marginTop: 8 }}>저장</Button>
     </div>
   );
@@ -279,6 +328,7 @@ function ApiPanel({ apiId, detail, codeGroupMap }: ApiPanelProps) {
   const [executing, setExecuting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
+  const isEditableGrid = detail.api.response_view_type === 3;
   const activeRequests = detail.requests.filter((r) => r.status === 1).sort((a, b) => a.display_order - b.display_order);
   const activeResponses = detail.responses.filter((r) => r.status === 1).sort((a, b) => a.display_order - b.display_order);
 
@@ -318,7 +368,7 @@ function ApiPanel({ apiId, detail, codeGroupMap }: ApiPanelProps) {
         <Alert type="error" message={errorMessage} showIcon closable onClose={() => setErrorMessage(null)} style={{ marginBottom: 12 }} />
       )}
 
-      <Typography.Text strong>Request</Typography.Text>
+      {!isEditableGrid && <Typography.Text strong>Request</Typography.Text>}
       <Form
         form={form}
         layout="horizontal"
@@ -327,19 +377,23 @@ function ApiPanel({ apiId, detail, codeGroupMap }: ApiPanelProps) {
         initialValues={requestValues}
         style={{ marginTop: 8, marginBottom: 16 }}
       >
-        {activeRequests.length === 0 && <div style={{ color: '#999', marginBottom: 8 }}>정의된 요청 파라미터가 없습니다.</div>}
-        <div style={{ display: 'flex', flexWrap: 'wrap', columnGap: 12 }}>
-          {activeRequests.map((r) => (
-            <Form.Item
-              key={r.api_request_id}
-              name={r.parameter_name}
-              label={r.parameter_label}
-              rules={r.is_required === 1 ? [{ required: true, message: `${r.parameter_label}을(를) 입력하세요.` }] : []}
-            >
-              {renderFieldControl(r, codeGroupMap)}
-            </Form.Item>
-          ))}
-        </div>
+        {!isEditableGrid && (
+          <>
+            {activeRequests.length === 0 && <div style={{ color: '#999', marginBottom: 8 }}>정의된 요청 파라미터가 없습니다.</div>}
+            <div style={{ display: 'flex', flexWrap: 'wrap', columnGap: 12 }}>
+              {activeRequests.map((r) => (
+                <Form.Item
+                  key={r.api_request_id}
+                  name={r.parameter_name}
+                  label={r.parameter_label}
+                  rules={r.is_required === 1 ? [{ required: true, message: `${r.parameter_label}을(를) 입력하세요.` }] : []}
+                >
+                  {renderFieldControl(r, codeGroupMap)}
+                </Form.Item>
+              ))}
+            </div>
+          </>
+        )}
         <Button type="primary" onClick={handleExecute} loading={executing}>
           실행
         </Button>
@@ -382,6 +436,7 @@ function ApiPanel({ apiId, detail, codeGroupMap }: ApiPanelProps) {
             detail.api.update_endpoint ? (
               <EditableGridResponseView
                 apiId={apiId}
+                apiName={detail.api.api_name}
                 responses={activeResponses}
                 data={executionResult.response_data}
                 codeGroupMap={codeGroupMap}
