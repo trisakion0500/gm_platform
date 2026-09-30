@@ -19,7 +19,8 @@ const app = express();
 // SWAGGER_ENABLED=true면 Swagger UI(HTML, 인라인 스크립트/스타일 사용)가 함께 뜨므로 CSP만 끈다 — 나머지 헤더는 유지.
 app.use(helmet({ contentSecurityPolicy: env.swaggerEnabled ? false : undefined }));
 app.use(cors({ origin: env.cors.allowedOrigins }));
-app.use(express.json());
+// 기본 제한(100kb)은 EDITABLE_GRID 저장/실행처럼 그리드 전체 행 배열을 담는 요청에 부족해 413로 실패함
+app.use(express.json({ limit: "5mb" }));
 app.use(requestLogger);
 if (env.swaggerEnabled) {
   // SWAGGER_ENABLED=true 일 때만 모듈 로드 → false 시 메모리에 올라오지 않음
