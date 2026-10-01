@@ -57,7 +57,11 @@ function AppLayout({ variant }: AppLayoutProps) {
       <Header />
       <Layout style={{ overflow: 'hidden' }}>
         <Sider width={displayWidth} theme="light" style={{ position: 'relative' }}>
-          <Sidebar variant={variant} />
+          {/* API 목록이 길어지면 내용만 세로 스크롤되어야 하므로, 리사이즈 핸들과 분리된 별도 래퍼에 overflow를 둔다
+              — 핸들까지 이 안에 두면 핸들도 스크롤을 따라 움직여 드래그 영역이 일부 구간에서 사라진다. */}
+          <div style={{ height: '100%', overflowY: 'auto', overflowX: 'hidden' }}>
+            <Sidebar variant={variant} />
+          </div>
           <div
             onMouseDown={handleResizeStart}
             style={{ position: 'absolute', top: 0, right: 0, width: 4, height: '100%', cursor: 'col-resize', zIndex: 10 }}
